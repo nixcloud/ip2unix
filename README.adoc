@@ -1,0 +1,262 @@
+= ip2unix(1)
+ifndef::manmanual[:doctitle: IP2Unix]
+:revdate: October 2018
+ifndef::manmanual[]
+:toc: macro
+:numbered:
+:toc-title:
+
+*Table of Contents*
+
+toc::[]
+endif::[]
+
+ifdef::manmanual[]
+== Name
+
+ip2unix - Turn IP sockets into Unix domain sockets
+
+== Synopsis
+
+*ip2unix* [options] RULEFILE PROGRAM [ARGS...] +
+*ip2unix* -c [options] RULEFILE
+
+endif::[]
+
+ifndef::manmanual[]
+:1: http://man7.org/linux/man-pages/man8/ld.so.8.html#ENVIRONMENT
+:2: http://man7.org/linux/man-pages/man2/accept.2.html
+:3: https://www.freedesktop.org/software/systemd/man/systemd.socket.html
+:4: pass:quotes[{3}#FileDescriptorName=]
+
+:LD_PRELOAD: pass:attributes,quotes[*`LD_PRELOAD`* ({1}[*ld.so*(8)])]
+:syscall_accept: pass:attributes[{2}[*accept*(2)]]
+:systemd_socket: pass:attributes,quotes[{3}[*systemd.socket*(5)]]
+:fdname: pass:attributes,quotes[FileDescriptorName {4}[*systemd.socket*(5)]]
+:rulefileformat: <<Rule file format>>
+endif::[]
+ifdef::manmanual[]
+:LD_PRELOAD: pass:quotes[*`LD_PRELOAD`* (see *ld.so*(8))]
+:syscall_accept: pass:quotes[*accept*(2)]
+:systemd_socket: pass:quotes[*systemd.socket*(5)]
+:fdname: pass:quotes[FileDescriptorName (see *systemd.socket*(5))]
+:rulefileformat: pass:quotes[*RULE FILE FORMAT*]
+endif::[]
+
+:lgpl_url: https://www.gnu.org/licenses/lgpl-3.0.html
+
+ifndef::without-systemd[:systemd_comma: ,]
+ifdef::without-systemd[:systemd_comma:]
+
+== Description
+
+Turns IP sockets into Unix domain socket based on a list of rules (see
+{rulefileformat} below) specified via JSON file. This is done by the use of
+{LD_PRELOAD} environment variable and you can either directly specify the path
+of *`ip2unix`* via *`LD_PRELOAD`* or use the *`ip2unix`* command directly (it
+is a library and executable at the same time).
+
+In order for the direct *`LD_PRELOAD`* variant to work, you also have to
+specify the *`IP2UNIX_RULE_FILE`* environment variable.
+
+ifndef::manmanual[]
+
+Use `ip2unix --help` or `man ip2unix` to see a detailed list of options
+available.
+
+endif::[]
+
+ifdef::manmanual[]
+
+== Options
+
+*-c, --check*::
+  This is to validate whether the rule file is correct and the program
+  just prints all validation errors to stderr and exits with exit code *0*
+  if validation was successful and *1* if not.
+
+*-h, --help*::
+  Show command line usage and help.
+
+*-p, --print*::
+  Print out the rules that are in effect in a tabular format. If you don't
+  want to run the *PROGRAM*, you can use the *-c* option to exit after
+  printing the rules.
+
+endif::[]
+
+== Rule file format
+
+The rule file is a JSON file, consisting of an array of objects.
+
+Each object consists of keys/values which define which IP sockets to match
+and which Unix domain sockets to assign them to.
+
+=== Rule options
+
+*`direction`*::
+  Whether this rule applies to a server-side socket (*`incoming`*) or a
+  client-side socket (*`outgoing`*).
+
+[[rule-opt-type]]*`type`*::
+  Specifies the IP type, which currently is either *`tcp`* for
+  TCP sockets, *`udp`* for UDP sockets or if it's not defined it
+  matches both UDP and TCP sockets.
+
+*`address`*::
+  The IP address to match, which can be either an IPv4 or an IPv6 address.
+
+*`port`*::
+  UDP or TCP port number (depending on which <<rule-opt-type,*`type`*>> is
+  set), which for outgoing connections specifies the target port and for
+  incomping connections the port that the socket is bound to.
+
+[[rule-socket-path]]*`socketPath`*::
+  The path to the socket file to use for either binding or connecting to
+  depending on whether the above options apply for a particular IP socket.
+
+ifndef::without-systemd[]
+*`socketActivation`*::
+ifndef::manmanual[]
+  If *`ip2unix`* is compiled with systemd support, whether to use socket
+  activation
+endif::[]
+ifdef::manmanual[]
+  Whether to use systemd socket activation
+endif::[]
+  instead of a <<rule-socket-path,*`socketPath`*>>. See {systemd_socket}.
+
+*`fdName`*::
+  An optional file descriptor name for socket activation which can be used to
+  distinguish between several socket units. This corresponds to the {fdname}
+  systemd socket option.
+endif::[]
+
+== Examples
+
+=== Simple HTTP client/server
+
+On the server side with the rule file *`rules-server.json`*:
+
+[source,json]
+-------------------------------------------------------------
+[{"direction": "incoming", "socketPath": "/tmp/test.socket"}]
+-------------------------------------------------------------
+
+The following command spawns a small test web server listening on
+*`/tmp/test.socket`*:
+
+[source,sh-session]
+-----------------------------------------------------------
+$ ip2unix rules-server.json python -m SimpleHTTPServer 8000
+-----------------------------------------------------------
+
+On the client side with *`rules-client.json`*:
+
+[source,json]
+-------------------------------------------------------------
+[{"direction": "outgoing", "socketPath": "/tmp/test.socket"}]
+-------------------------------------------------------------
+
+This connects to the test server listening on *`/tmp/test.socket`*
+and should show the directory listing:
+
+[source,sh-session]
+------------------------------------------------
+$ ip2unix rules-client.json curl http://1.2.3.4/
+------------------------------------------------
+
+=== More complicated example
+
+[source,json]
+--------------------------------------------
+[
+  { "direction": "outgoing",             <1>
+    "type": "tcp",
+    "socketPath": "/run/some.socket"
+  },
+  { "direction": "incoming",             <2>
+    "address": "1.2.3.4",
+    "socketPath": "/run/another.socket"
+ifdef::without-systemd[]
+  }
+endif::without-systemd[]
+ifndef::without-systemd[]
+  },
+  { "direction": "incoming",             <3>
+    "type": "tcp",
+    "port": 22,
+    "socketActivation": true,
+    "fdName": "ssh"
+  }
+endif::without-systemd[]
+]
+--------------------------------------------
+
+<1> This rule will redirect *all* TCP connections to the Unix domain socket at
+    *`/run/some.socket`*.
+<2> Matches the socket that listens to any port on the IPv4 address *`1.2.3.4`*
+    and instead binds it to the Unix domain socket at *`/run/another.socket`*.
+ifndef::without-systemd[]
+<3> Will prevent the TCP socket that would listen on port 22 to not listen at
+    all and instead use the systemd-provided file descriptor named *`ssh`* for
+    operations like {syscall_accept}.
+endif::[]
+
+ifdef::manmanual[]
+
+== Environment variables
+
+`IP2UNIX_RULE_FILE`::
+  When used in conjunction with {LD_PRELOAD}, this environment variable has to
+  be set as well, specifying the absolute path to the rule file (see
+  {rulefileformat} above).
+
+== See also
+
+*accept*(2),
+*bind*(2),
+*connect*(2),
+*listen*(2),
+*socket*(2){systemd_comma}
+ifndef::without-systemd[*systemd.socket*(5)]
+
+endif::[]
+
+ifndef::manmanual[]
+
+== Similar projects
+
+https://cwrap.org/socket_wrapper.html[socket_wrapper]::
+
+The goal is a different one here and its main use is testing. Instead of
+using rules, *socket_wrapper* turns *all* of the IP sockets into Unix sockets
+and uses a central directory to do the mapping.
++
+Containing all Unix sockets into one directory has the nice effect that it's
+easy to map *any* address/port combination to Unix sockets. While this is way
+less error prone than our approach it has the drawback that everything is
+contained and no IP communication is possible anymore.
+
+== Thanks
+
+Special thanks to the https://nlnet.nl/[NLnet foundation] for sponsoring this
+work.
+
+endif::[]
+
+ifdef::manmanual[]
+
+== Author
+
+Written by aszlig <aszlig@nix.build>
+
+endif::[]
+
+== Copyright
+
+Copyright (C) 2018 aszlig. License LGPLv3: GNU LGPL version 3 only
+<{lgpl_url}>.
+
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
