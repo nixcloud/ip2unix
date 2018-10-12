@@ -27,12 +27,12 @@ ifndef::manmanual[]
 :1: http://man7.org/linux/man-pages/man8/ld.so.8.html#ENVIRONMENT
 :2: http://man7.org/linux/man-pages/man2/accept.2.html
 :3: https://www.freedesktop.org/software/systemd/man/systemd.socket.html
-:4: pass:quotes[{3}#FileDescriptorName=]
+:4: pass:attributes,quotes[{3}#FileDescriptorName=]
 
 :LD_PRELOAD: pass:attributes,quotes[*`LD_PRELOAD`* ({1}[*ld.so*(8)])]
-:syscall_accept: pass:attributes[{2}[*accept*(2)]]
+:syscall_accept: pass:attributes,quotes[{2}[*accept*(2)]]
 :systemd_socket: pass:attributes,quotes[{3}[*systemd.socket*(5)]]
-:fdname: pass:attributes,quotes[FileDescriptorName {4}[*systemd.socket*(5)]]
+:fdname: pass:attributes,quotes[{4}[FileDescriptorName]]
 :rulefileformat: <<Rule file format>>
 endif::[]
 ifdef::manmanual[]
