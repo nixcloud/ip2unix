@@ -82,6 +82,13 @@ class ConnectionTest(unittest.TestCase):
         args = ['-m', 'threading', '-p', 10, '-c', 20, '1.2.3.4', 123]
         self.assert_connection({}, {}, args, args)
 
+    def test_path_placeholders(self):
+        args = ['127.0.0.1', 111]
+        srule = {'socketPath': os.path.join(self.tmpdir, '%a-%t-%p.sock')}
+        crule = {'socketPath': os.path.join(self.tmpdir,
+                                            '127.0.0.1-tcp-111.sock')}
+        self.assert_connection(crule, srule, args, args)
+
     @helper.systemd_sa_helper_only
     def test_socket_activation(self):
         srule = {'socketActivation': True}

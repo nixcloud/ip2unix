@@ -42,6 +42,7 @@ struct SocketInfo {
     in_port_t port = 0;
     std::optional<const UdsmapRule*> rule = std::nullopt;
     std::queue<SockoptEntry> sockopts;
+    std::optional<std::string> sockpath = std::nullopt;
 };
 
 typedef std::shared_ptr<SocketInfo> SocketInfoPtr;
@@ -161,39 +162,46 @@ static inline int real_bind_connect(RuleDir dir, int fd,
     return -1;
 }
 
-static bool match_sockaddr_in(const struct sockaddr_in *addr,
-                              UdsmapRule rule)
+static inline std::optional<std::string>
+    get_addr_str(const struct sockaddr_in *addr)
 {
     /* Use max size of INET6 address, because INET is shorter anyway. */
     char buf[INET6_ADDRSTRLEN];
-    bool match = true;
 
-    if (rule.address &&
-        inet_ntop(addr->sin_family, &addr->sin_addr, buf,
-                  sizeof(buf)) != nullptr) {
-        if (std::string(buf) != rule.address.value())
-            match = false;
-    }
+    if (inet_ntop(addr->sin_family, &addr->sin_addr, buf,
+                  sizeof(buf)) == nullptr)
+        return std::nullopt;
+
+    return std::string(buf);
+}
+
+static bool match_sockaddr_in(const struct sockaddr_in *addr,
+                              UdsmapRule rule)
+{
+    if (rule.address && get_addr_str(addr) != rule.address.value())
+        return false;
 
     if (rule.port && ntohs(addr->sin_port) != rule.port.value())
-        match = false;
+        return false;
 
-    return match;
+    return true;
+}
+
+static inline std::optional<RuleIpType> get_sotype(int type)
+{
+    switch (type & (SOCK_STREAM | SOCK_DGRAM)) {
+        case SOCK_STREAM:
+            return RuleIpType::TCP;
+        case SOCK_DGRAM:
+            return RuleIpType::UDP;
+    }
+
+    return std::nullopt;
 }
 
 static bool match_sotype(int type, UdsmapRule rule)
 {
-    if (!rule.type)
-        return true;
-
-    switch (type & (SOCK_STREAM | SOCK_DGRAM)) {
-        case SOCK_STREAM:
-            return rule.type.value() == RuleIpType::TCP;
-        case SOCK_DGRAM:
-            return rule.type.value() == RuleIpType::UDP;
-    }
-
-    return false;
+    return !rule.type || get_sotype(type) == rule.type;
 }
 
 int WRAP_SYM(socket)(int domain, int type, int protocol)
@@ -384,6 +392,36 @@ int WRAP_SYM(listen)(int sockfd, int backlog)
 #endif
 
 /*
+ * Replace placeholders such as %p or %a accordingly in the socket path.
+ */
+static inline std::string format_sockpath(const std::string &sockpath,
+                                          std::string addr, in_port_t port,
+                                          std::optional<RuleIpType> sotype)
+{
+    std::string out = "";
+    size_t sockpath_len = sockpath.size();
+
+    for (size_t i = 0; i < sockpath_len; ++i) {
+        if (sockpath[i] == '%' && i + 1 < sockpath_len) {
+            switch (sockpath[i + 1]) {
+                case '%': out += '%'; i++; continue;
+                case 'a': out += addr; i++; continue;
+                case 'p': out += std::to_string(port); i++; continue;
+                case 't':
+                    out += sotype == RuleIpType::TCP ? "tcp"
+                         : sotype == RuleIpType::UDP ? "udp"
+                         : "unknown";
+                    i++;
+                    continue;
+            }
+        }
+        out += sockpath[i];
+    }
+
+    return out;
+}
+
+/*
  * Handle both bind() and connect() depending on the value of "dir".
  */
 static inline int handle_bind_connect(RuleDir dir, int fd,
@@ -394,6 +432,8 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
         return real_bind_connect(dir, fd, addr, addrlen);
 
     init_rules();
+
+    struct sockaddr_in *inaddr = (struct sockaddr_in *)addr;
 
     for (auto &rule : *g_rules) {
         if (rule.direction != dir)
@@ -423,7 +463,6 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
                 return -1;
             }
 
-            struct sockaddr_in *inaddr = (struct sockaddr_in *)addr;
             memcpy(&si->addr, &inaddr->sin_addr, sizeof(struct in_addr));
             memcpy(&si->port, &inaddr->sin_port, sizeof(in_port_t));
 
@@ -439,17 +478,24 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
         if (!sock_make_unix(fd))
             continue;
 
+        std::string sockpath = format_sockpath(
+            rule.socket_path.value(),
+            get_addr_str(inaddr).value_or("unknown"),
+            ntohs(inaddr->sin_port),
+            get_sotype(si->socktype)
+        );
+
         struct sockaddr_un ua;
         memset(&ua, 0, sizeof ua);
         ua.sun_family = AF_UNIX;
-        strcpy(ua.sun_path, rule.socket_path.value().c_str());
+        strncpy(ua.sun_path, sockpath.c_str(), sizeof(ua.sun_path) - 1);
 
         int ret = real_bind_connect(dir, fd, (struct sockaddr*)&ua, sizeof ua);
         if (ret == 0) {
-            struct sockaddr_in *inaddr = (struct sockaddr_in *)addr;
+            g_mutex.lock();
             memcpy(&si->addr, &inaddr->sin_addr, sizeof(struct in_addr));
             memcpy(&si->port, &inaddr->sin_port, sizeof(in_port_t));
-            g_mutex.lock();
+            si->sockpath = sockpath;
             si->rule = &rule;
             g_mutex.unlock();
         }
@@ -556,9 +602,8 @@ int WRAP_SYM(close)(int fd)
 
         if (si->rule) {
             auto rule = si->rule.value();
-            std::optional<std::string> sockpath = rule->socket_path;
-            if (sockpath && rule->direction == RuleDir::INCOMING)
-                unlink(sockpath.value().c_str());
+            if (si->sockpath && rule->direction == RuleDir::INCOMING)
+                unlink(si->sockpath.value().c_str());
         }
         g_mutex.lock();
         g_active_sockets.erase(fd);

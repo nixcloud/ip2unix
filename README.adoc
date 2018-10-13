@@ -119,6 +119,14 @@ connections the port that the socket is bound to.
 
 The path to the socket file to use for either binding or connecting to
 depending on whether the above options apply for a particular IP socket.
++
+Placeholders are allowed here and those are substituted accordingly:
++
+[horizontal]
+*`%p`*;; port number
+*`%a`*;; address or *``unknown''*
+*`%t`*;; socket type (*`tcp`*, *`udp`* or *`unknown`*)
+*`%%`*;; verbatim *`%`*
 
 ifndef::without-systemd[]
 *`socketActivation`*::
