@@ -40,6 +40,7 @@ struct SocketInfo {
     int protocol = 0;
     struct in_addr addr;
     in_port_t port = 0;
+    bool is_converted = false;
     std::optional<const UdsmapRule*> rule = std::nullopt;
     std::queue<SockoptEntry> sockopts;
     std::optional<std::string> sockpath = std::nullopt;
@@ -314,8 +315,14 @@ static bool sock_make_unix(int old_sockfd)
     int sockfd;
 
     g_mutex.lock();
-    int socktype = get_parent(g_active_sockets[old_sockfd])->socktype;
+    auto si = get_parent(g_active_sockets[old_sockfd]);
+    bool is_converted = si->is_converted;
+    int socktype = si->socktype;
     g_mutex.unlock();
+
+    /* Socket is already converted by us, no need to do it again. */
+    if (is_converted)
+        return true;
 
     if ((sockfd = real::socket(AF_UNIX, socktype, 0)) == -1) {
         perror("socket(AF_UNIX)");
@@ -333,6 +340,9 @@ static bool sock_make_unix(int old_sockfd)
         return false;
     }
 
+    g_mutex.lock();
+    si->is_converted = true;
+    g_mutex.unlock();
     return true;
 }
 
