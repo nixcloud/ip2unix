@@ -187,7 +187,7 @@ static bool match_sotype(int type, UdsmapRule rule)
     if (!rule.type)
         return true;
 
-    switch (type) {
+    switch (type & (SOCK_STREAM | SOCK_DGRAM)) {
         case SOCK_STREAM:
             return rule.type.value() == RuleIpType::TCP;
         case SOCK_DGRAM:
