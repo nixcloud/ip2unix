@@ -98,10 +98,6 @@ static std::optional<UdsmapRule> parse_rule(const std::string &file, int pos,
 {
     UdsmapRule rule;
 
-#ifdef SOCKET_ACTIVATION
-    rule.socket_activation = false;
-#endif
-
     for (auto &node : doc.GetObject()) {
         std::string key = node.name.GetString();
         if (key == "direction") {

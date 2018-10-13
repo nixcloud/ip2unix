@@ -9,15 +9,15 @@ enum class RuleIpType { TCP, UDP };
 enum class RuleDir { INCOMING, OUTGOING };
 
 struct UdsmapRule {
-    RuleDir direction;
-    std::optional<RuleIpType> type;
-    std::optional<std::string> address;
-    std::optional<uint16_t> port;
+    RuleDir direction = RuleDir::INCOMING;
+    std::optional<RuleIpType> type = std::nullopt;
+    std::optional<std::string> address = std::nullopt;
+    std::optional<uint16_t> port = std::nullopt;
 #ifdef SOCKET_ACTIVATION
-    bool socket_activation;
-    std::optional<std::string> fd_name;
+    bool socket_activation = false;
+    std::optional<std::string> fd_name = std::nullopt;
 #endif
-    std::optional<std::string> socket_path;
+    std::optional<std::string> socket_path = std::nullopt;
 };
 
 std::optional<std::vector<UdsmapRule>> parse_rules(std::string file);
