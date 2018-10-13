@@ -95,41 +95,46 @@ and which Unix domain sockets to assign them to.
 === Rule options
 
 *`direction`*::
-  Whether this rule applies to a server-side socket (*`incoming`*) or a
-  client-side socket (*`outgoing`*).
+
+Whether this rule applies to a server-side socket (*`incoming`*) or a
+client-side socket (*`outgoing`*).
 
 [[rule-opt-type]]*`type`*::
-  Specifies the IP type, which currently is either *`tcp`* for
-  TCP sockets, *`udp`* for UDP sockets or if it's not defined it
-  matches both UDP and TCP sockets.
+
+Specifies the IP type, which currently is either *`tcp`* for TCP sockets,
+*`udp`* for UDP sockets or if it's not defined it matches both UDP and TCP
+sockets.
 
 *`address`*::
-  The IP address to match, which can be either an IPv4 or an IPv6 address.
+
+The IP address to match, which can be either an IPv4 or an IPv6 address.
 
 *`port`*::
-  UDP or TCP port number (depending on which <<rule-opt-type,*`type`*>> is
-  set), which for outgoing connections specifies the target port and for
-  incomping connections the port that the socket is bound to.
+
+UDP or TCP port number (depending on which <<rule-opt-type,*`type`*>> is set),
+which for outgoing connections specifies the target port and for incomping
+connections the port that the socket is bound to.
 
 [[rule-socket-path]]*`socketPath`*::
-  The path to the socket file to use for either binding or connecting to
-  depending on whether the above options apply for a particular IP socket.
+
+The path to the socket file to use for either binding or connecting to
+depending on whether the above options apply for a particular IP socket.
 
 ifndef::without-systemd[]
 *`socketActivation`*::
 ifndef::manmanual[]
-  If *`ip2unix`* is compiled with systemd support, whether to use socket
-  activation
+If *`ip2unix`* is compiled with systemd support, whether to use socket
+activation
 endif::[]
 ifdef::manmanual[]
-  Whether to use systemd socket activation
+Whether to use systemd socket activation
 endif::[]
-  instead of a <<rule-socket-path,*`socketPath`*>>. See {systemd_socket}.
+instead of a <<rule-socket-path,*`socketPath`*>>. See {systemd_socket}.
 
 *`fdName`*::
-  An optional file descriptor name for socket activation which can be used to
-  distinguish between several socket units. This corresponds to the {fdname}
-  systemd socket option.
+An optional file descriptor name for socket activation which can be used to
+distinguish between several socket units. This corresponds to the {fdname}
+systemd socket option.
 endif::[]
 
 == Examples
