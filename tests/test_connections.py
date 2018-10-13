@@ -93,7 +93,7 @@ class ConnectionTest(unittest.TestCase):
     def test_socket_activation_with_fdname(self):
         srule = {'socketActivation': True, 'fdName': 'foo', 'port': 333}
         args = ['-c', 10, '4.3.2.1', 333]
-        extrasock = tempfile.mktemp()
+        extrasock = os.path.join(self.tmpdir, 'extra.sock')
         pre_cmd = [helper.SYSTEMD_SA_PATH, '-l', extrasock,
                    '-l', self.sockpath, '--fdname=:foo']
         try:
