@@ -2,6 +2,7 @@
 #ifndef IP2UNIX_RULES_HH
 #define IP2UNIX_RULES_HH
 
+#include <iostream>
 #include <optional>
 #include <vector>
 
@@ -21,6 +22,6 @@ struct UdsmapRule {
 };
 
 std::optional<std::vector<UdsmapRule>> parse_rules(std::string file);
-void print_rules(std::vector<UdsmapRule>&);
+void print_rules(std::vector<UdsmapRule>&, std::ostream&);
 
 #endif

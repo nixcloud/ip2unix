@@ -1,6 +1,8 @@
+import subprocess
+import sys
 import unittest
 
-from helper import ip2unix_check, systemd_only, non_systemd_only
+from helper import ip2unix, ip2unix_check, systemd_only, non_systemd_only
 
 
 class RulesTest(unittest.TestCase):
@@ -65,3 +67,32 @@ class RulesTest(unittest.TestCase):
     def test_no_systemd_options(self):
         self.assert_bad_rules([{'socketActivation': True}])
         self.assert_bad_rules([{'socketActivation': True, 'fdName': 'foo'}])
+
+    def test_print_rules_check_stdout(self):
+        rules = [
+            {'direction': 'outgoing',
+             'type': 'tcp',
+             'socketPath': '/foo'},
+            {'address': '0.0.0.0',
+             'socketPath': '/bar'}
+        ]
+        with ip2unix(rules, [], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
+                     ip2unix_args=['-cp']) as process:
+            stdout, stderr = process.communicate()
+            self.assertEqual(process.poll(), 0)
+            self.assertEqual(stderr, b'')
+            self.assertNotEqual(stdout, b'')
+            self.assertGreater(len(stdout), 0)
+            self.assertIn(b'IP Type', stdout)
+
+    def test_print_rules_stderr(self):
+        rules = [{'socketPath': '/xxx'}]
+        dummy = [sys.executable, '-c', '']
+        with ip2unix(rules, dummy, stderr=subprocess.PIPE,
+                     stdout=subprocess.PIPE, ip2unix_args=['-p']) as process:
+            stdout, stderr = process.communicate()
+            self.assertEqual(process.poll(), 0)
+            self.assertEqual(stdout, b'')
+            self.assertNotEqual(stderr, b'')
+            self.assertGreater(len(stderr), 0)
+            self.assertIn(b'IP Type', stderr)

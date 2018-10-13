@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
     if (!rules)
         return EXIT_FAILURE;
     if (show_rules)
-        print_rules(rules.value());
+        print_rules(rules.value(), check_only ? std::cout : std::cerr);
     if (check_only)
         return EXIT_SUCCESS;
 

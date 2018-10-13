@@ -200,7 +200,7 @@ std::optional<std::vector<UdsmapRule>> parse_rules(std::string file)
     return result;
 }
 
-void print_rules(std::vector<UdsmapRule> &rules)
+void print_rules(std::vector<UdsmapRule> &rules, std::ostream &out)
 {
     int pos = 0;
     for (UdsmapRule &rule : rules) {
@@ -224,8 +224,7 @@ void print_rules(std::vector<UdsmapRule> &rules)
         else
             portstr = "<any>";
 
-        std::cerr
-            << "Rule #" << pos++ << ':' << std::endl
+        out << "Rule #" << pos++ << ':' << std::endl
             << "  Direction: " << dirstr << std::endl
             << "  IP Type: " << typestr << std::endl
             << "  Address: " << rule.address.value_or("<any>") << std::endl
@@ -233,17 +232,16 @@ void print_rules(std::vector<UdsmapRule> &rules)
 
 #ifdef SOCKET_ACTIVATION
         if (rule.socket_activation) {
-            std::cerr << "  Socket activation";
+            out << "  Socket activation";
             if (rule.fd_name) {
-                std::cerr << " with file descriptor name: "
-                          << rule.fd_name.value() << std::endl;
+                out << " with file descriptor name: "
+                    << rule.fd_name.value() << std::endl;
             } else {
-                std::cerr << "." << std::endl;
+                out << "." << std::endl;
             }
         } else {
 #endif
-            std::cerr << "  Socket path: " << rule.socket_path.value()
-                      << std::endl;
+            out << "  Socket path: " << rule.socket_path.value() << std::endl;
 #ifdef SOCKET_ACTIVATION
         }
 #endif
