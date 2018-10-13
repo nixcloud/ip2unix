@@ -234,9 +234,20 @@ int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
                                      (uint8_t*)optval + optlen);
         SockoptEntry entry{level, optname, valcopy};
         auto parent = get_parent(si.value());
-        g_mutex.lock();
-        parent->sockopts.push(entry);
-        g_mutex.unlock();
+
+        int ret = real::setsockopt(sockfd, level, optname, optval, optlen);
+
+        /* Only add the socket option to the queue if the setsockopt() has
+         * succeeded, otherwise we risk a fatal error while replaying them on
+         * our end.
+         */
+        if (ret == 0) {
+            g_mutex.lock();
+            parent->sockopts.push(entry);
+            g_mutex.unlock();
+        }
+
+        return ret;
     }
 
     return real::setsockopt(sockfd, level, optname, optval, optlen);
