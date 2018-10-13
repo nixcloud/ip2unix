@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
         {0, 0, 0, 0}
     };
 
-    while ((c = getopt_long(argc, argv, "hcp", options, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "+hcp", options, NULL)) != -1) {
         switch (c) {
             case 'h':
                 print_usage(self, stdout);
