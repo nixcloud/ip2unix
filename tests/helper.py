@@ -19,8 +19,10 @@ def ip2unix(rules, childargs, *args, **kwargs):
     json.dump(rules, rulefile)
     rulefile.close()
     full_args = [IP2UNIX] + cmdargs + [rulefile.name] + childargs
-    yield subprocess.Popen(full_args, *args, **kwargs)
-    os.unlink(rulefile.name)
+    try:
+        yield subprocess.Popen(full_args, *args, **kwargs)
+    finally:
+        os.unlink(rulefile.name)
 
 
 def ip2unix_check(rules):
