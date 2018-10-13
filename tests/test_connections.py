@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
 
 from contextlib import contextmanager
@@ -39,9 +38,6 @@ class ConnectionTest(unittest.TestCase):
                     msg += '{} but got {}:\n'.format(expected, sync_event)
                     msg += stderr.decode()
                     raise AssertionError(msg)
-            else:
-                while not os.path.exists(self.sockpath):
-                    time.sleep(0.1)
             yield proc
             proc.stdin.write(b'\n')
 

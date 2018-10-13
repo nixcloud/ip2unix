@@ -4,6 +4,7 @@ import socket
 import socketserver
 import sys
 import threading
+import time
 
 
 def make_handler(sotype):
@@ -55,7 +56,13 @@ def client(ip, port, sotype, family):
         raise Exception('Unknown IP socket type')
 
     with socket.socket(family, socktype) as sock:
-        sock.connect((ip, port))
+        time_spent = 0
+        while sock.connect_ex((ip, port)) != 0:
+            time_spent += 0.5
+            time.sleep(0.5)
+            if time_spent > 10:
+                msg = "Still waiting for connection to {}:{} after {} seconds"
+                print(msg.format(ip, port, time_spent), file=sys.stderr)
         sock.sendall(b'make this upper case')
         expected = b'MAKE THIS UPPER CASE'
         got = sock.recv(20)
