@@ -52,8 +52,9 @@ struct SocketChildren {
     SocketInfoPtr parent;
 };
 
-/* FIXME: This only covers critical sections involved with writes! */
-static std::mutex g_mutex;
+static std::mutex g_sockinfo_mutex;
+static std::mutex g_dlsym_mutex;
+static std::mutex g_rules_mutex;
 
 static std::shared_ptr<const std::vector<UdsmapRule>> g_rules = nullptr;
 
@@ -75,9 +76,7 @@ static void init_rules(void)
     std::optional<std::vector<UdsmapRule>> rules = parse_rules(rule_file);
     if (!rules) _exit(EXIT_FAILURE);
 
-    g_mutex.lock();
     g_rules = std::make_shared<std::vector<UdsmapRule>>(rules.value());
-    g_mutex.unlock();
 }
 
 /* This namespace is here so that we can autogenerate and call wrappers for C
@@ -93,8 +92,10 @@ namespace real {
         template <typename ... Args>
         auto operator()(Args ... args) -> decltype(fptr(args ...))
         {
+            g_dlsym_mutex.lock();
             if (fptr == nullptr)
                 fptr = reinterpret_cast<Sig>(dlsym(RTLD_NEXT, Sym::fname));
+            g_dlsym_mutex.unlock();
             return fptr(args ...);
         }
     };
@@ -209,14 +210,14 @@ int WRAP_SYM(socket)(int domain, int type, int protocol)
 {
     int fd = real::socket(domain, type, protocol);
     if (domain == AF_INET || domain == AF_INET6) {
+        g_sockinfo_mutex.lock();
         SocketInfo si;
         si.socktype = type;
         si.protocol = protocol;
         memset(&si.addr, 0, sizeof(struct in_addr));
         memset(&si.port, 0, sizeof(in_port_t));
-        g_mutex.lock();
         g_active_sockets[fd] = std::make_shared<SocketInfo>(si);
-        g_mutex.unlock();
+        g_sockinfo_mutex.unlock();
     }
     return fd;
 }
@@ -228,6 +229,7 @@ int WRAP_SYM(socket)(int domain, int type, int protocol)
 int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
                          const void *optval, socklen_t optlen)
 {
+    g_sockinfo_mutex.lock();
     auto si = get_active_socket(sockfd);
     /* Only cache socket options for SOL_SOCKET, no IPPROTO_TCP etc... */
     if (si && level == SOL_SOCKET) {
@@ -242,15 +244,13 @@ int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
          * succeeded, otherwise we risk a fatal error while replaying them on
          * our end.
          */
-        if (ret == 0) {
-            g_mutex.lock();
-            parent->sockopts.push(entry);
-            g_mutex.unlock();
-        }
+        if (ret == 0) parent->sockopts.push(entry);
 
+        g_sockinfo_mutex.unlock();
         return ret;
     }
 
+    g_sockinfo_mutex.unlock();
     return real::setsockopt(sockfd, level, optname, optval, optlen);
 }
 
@@ -293,9 +293,7 @@ static bool set_cached_sockopts(int old_sockfd, int new_sockfd)
                 perror("setsockopt");
                 return false;
             }
-            g_mutex.lock();
             sockinfo->sockopts.pop();
-            g_mutex.unlock();
         }
     }
 
@@ -314,11 +312,9 @@ static bool sock_make_unix(int old_sockfd)
 {
     int sockfd;
 
-    g_mutex.lock();
     auto si = get_parent(g_active_sockets[old_sockfd]);
     bool is_converted = si->is_converted;
     int socktype = si->socktype;
-    g_mutex.unlock();
 
     /* Socket is already converted by us, no need to do it again. */
     if (is_converted)
@@ -340,9 +336,7 @@ static bool sock_make_unix(int old_sockfd)
         return false;
     }
 
-    g_mutex.lock();
     si->is_converted = true;
-    g_mutex.unlock();
     return true;
 }
 
@@ -405,10 +399,12 @@ static int get_systemd_fd_for_rule(UdsmapRule rule)
  */
 int WRAP_SYM(listen)(int sockfd, int backlog)
 {
-    if (is_socket_activated(sockfd))
-        return 0;
-    else
-        return real::listen(sockfd, backlog);
+    g_sockinfo_mutex.lock();
+    int ret = 0;
+    if (!is_socket_activated(sockfd))
+        ret = real::listen(sockfd, backlog);
+    g_sockinfo_mutex.unlock();
+    return ret;
 }
 #endif
 
@@ -452,16 +448,22 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
     if (addr->sa_family != AF_INET && addr->sa_family != AF_INET6)
         return real_bind_connect(dir, fd, addr, addrlen);
 
+    g_sockinfo_mutex.lock();
+
     /* No socket() call was made prior to this, so simply execute the original
      * syscall, which will probably fail anyway  - in this case it's not our
      * fault.
      */
     auto found = g_active_sockets.find(fd);
-    if (found == g_active_sockets.end())
+    if (found == g_active_sockets.end()) {
+        g_sockinfo_mutex.unlock();
         return real_bind_connect(dir, fd, addr, addrlen);
+    }
 
     SocketInfoPtr si = get_parent(found->second);
     struct sockaddr_in *inaddr = (struct sockaddr_in *)addr;
+
+    g_rules_mutex.lock();
 
     init_rules();
 
@@ -479,10 +481,15 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
         if (rule.socket_activation) {
             int newfd = get_systemd_fd_for_rule(rule);
 
-            if (!set_cached_sockopts(fd, newfd))
+            if (!set_cached_sockopts(fd, newfd)) {
+                g_rules_mutex.unlock();
+                g_sockinfo_mutex.unlock();
                 return -1;
+            }
 
             if (dup2(newfd, fd) == -1) {
+                g_rules_mutex.unlock();
+                g_sockinfo_mutex.unlock();
                 perror("dup2");
                 return -1;
             }
@@ -490,9 +497,8 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
             memcpy(&si->addr, &inaddr->sin_addr, sizeof(struct in_addr));
             memcpy(&si->port, &inaddr->sin_port, sizeof(in_port_t));
 
-            g_mutex.lock();
             si->rule = &rule;
-            g_mutex.unlock();
+            g_sockinfo_mutex.unlock();
             return 0;
         }
 #endif
@@ -516,16 +522,18 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
 
         int ret = real_bind_connect(dir, fd, (struct sockaddr*)&ua, sizeof ua);
         if (ret == 0) {
-            g_mutex.lock();
             memcpy(&si->addr, &inaddr->sin_addr, sizeof(struct in_addr));
             memcpy(&si->port, &inaddr->sin_port, sizeof(in_port_t));
             si->sockpath = sockpath;
             si->rule = &rule;
-            g_mutex.unlock();
         }
+        g_rules_mutex.unlock();
+        g_sockinfo_mutex.unlock();
         return ret;
     }
 
+    g_rules_mutex.unlock();
+    g_sockinfo_mutex.unlock();
     return real_bind_connect(dir, fd, addr, addrlen);
 }
 
@@ -556,15 +564,15 @@ static int handle_accept(int fd, struct sockaddr *addr, socklen_t *addrlen,
 {
     int accfd = real::accept4(fd, addr, addrlen, flags);
     if (accfd > 0) {
+        g_sockinfo_mutex.lock();
         auto si = get_active_socket(fd);
         if (si) {
             SocketChildren newchild;
             newchild.parent = get_parent(si.value());
-            g_mutex.lock();
             g_active_sockets[accfd] = newchild;
-            g_mutex.unlock();
             set_peername(addr, addrlen);
         }
+        g_sockinfo_mutex.unlock();
     }
     return accfd;
 }
@@ -582,16 +590,20 @@ int WRAP_SYM(accept4)(int fd, struct sockaddr *addr, socklen_t *addrlen,
 
 int WRAP_SYM(getpeername)(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
+    g_sockinfo_mutex.lock();
     auto found = get_active_socket(fd);
     if (found) {
         set_peername(addr, addrlen);
+        g_sockinfo_mutex.unlock();
         return 0;
     }
+    g_sockinfo_mutex.unlock();
     return real::getpeername(fd, addr, addrlen);
 }
 
 int WRAP_SYM(getsockname)(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
+    g_sockinfo_mutex.lock();
     auto found = get_active_socket(fd);
     if (found) {
         auto si = get_parent(found.value());
@@ -602,23 +614,26 @@ int WRAP_SYM(getsockname)(int fd, struct sockaddr *addr, socklen_t *addrlen)
         memcpy(&inaddr.sin_port, &si->port, sizeof(in_port_t));
         memcpy(addr, &inaddr, sizeof inaddr);
         *addrlen = sizeof inaddr;
+        g_sockinfo_mutex.unlock();
         return 0;
     }
+    g_sockinfo_mutex.unlock();
     return real::getsockname(fd, addr, addrlen);
 }
 
 int WRAP_SYM(close)(int fd)
 {
+    g_sockinfo_mutex.lock();
     auto found = get_active_socket(fd);
     if (!found || is_children(found.value())) {
+        g_sockinfo_mutex.unlock();
         return real::close(fd);
     } else {
         auto si = get_parent(found.value());
 #ifdef SOCKET_ACTIVATION
         if (si->rule && si->rule.value()->socket_activation) {
-            g_mutex.lock();
             g_active_sockets.erase(fd);
-            g_mutex.unlock();
+            g_sockinfo_mutex.unlock();
             return 0;
         }
 #endif
@@ -629,9 +644,8 @@ int WRAP_SYM(close)(int fd)
             if (si->sockpath && rule->direction == RuleDir::INCOMING)
                 unlink(si->sockpath.value().c_str());
         }
-        g_mutex.lock();
         g_active_sockets.erase(fd);
-        g_mutex.unlock();
+        g_sockinfo_mutex.unlock();
         return ret;
     }
 }
