@@ -431,9 +431,18 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
     if (addr->sa_family != AF_INET && addr->sa_family != AF_INET6)
         return real_bind_connect(dir, fd, addr, addrlen);
 
-    init_rules();
+    /* No socket() call was made prior to this, so simply execute the original
+     * syscall, which will probably fail anyway  - in this case it's not our
+     * fault.
+     */
+    auto found = g_active_sockets.find(fd);
+    if (found == g_active_sockets.end())
+        return real_bind_connect(dir, fd, addr, addrlen);
 
+    SocketInfoPtr si = get_parent(found->second);
     struct sockaddr_in *inaddr = (struct sockaddr_in *)addr;
+
+    init_rules();
 
     for (auto &rule : *g_rules) {
         if (rule.direction != dir)
@@ -441,12 +450,6 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
 
         if (!match_sockaddr_in((struct sockaddr_in*)addr, rule))
             continue;
-
-        auto found = g_active_sockets.find(fd);
-        if (found == g_active_sockets.end())
-            continue;
-
-        SocketInfoPtr si = get_parent(found->second);
 
         if (!match_sotype(si->socktype, rule))
             continue;
