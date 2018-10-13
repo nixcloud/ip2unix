@@ -36,12 +36,11 @@ struct SockoptEntry {
 };
 
 struct SocketInfo {
-    int socktype;
-    int protocol;
-    std::string sockpath;
+    int socktype = 0;
+    int protocol = 0;
     struct in_addr addr;
-    in_port_t port;
-    std::optional<const UdsmapRule*> rule;
+    in_port_t port = 0;
+    std::optional<const UdsmapRule*> rule = std::nullopt;
     std::queue<SockoptEntry> sockopts;
 };
 
