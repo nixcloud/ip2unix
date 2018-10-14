@@ -124,7 +124,7 @@ Placeholders are allowed here and those are substituted accordingly:
 +
 [horizontal]
 *`%p`*;; port number
-*`%a`*;; address or *``unknown''*
+*`%a`*;; IP address or *`unknown`*
 *`%t`*;; socket type (*`tcp`*, *`udp`* or *`unknown`*)
 *`%%`*;; verbatim *`%`*
 
