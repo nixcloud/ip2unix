@@ -5,7 +5,7 @@ import unittest
 from helper import ip2unix, ip2unix_check, systemd_only, non_systemd_only
 
 
-class RulesTest(unittest.TestCase):
+class RuleFileTest(unittest.TestCase):
     def assert_good_rules(self, rules):
         code, output = ip2unix_check(rules)
         msg = 'Rules {!r} do not validate: {}'.format(rules, output.rstrip())

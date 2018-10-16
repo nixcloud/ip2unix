@@ -21,7 +21,8 @@ struct UdsmapRule {
     std::optional<std::string> socket_path = std::nullopt;
 };
 
-std::optional<std::vector<UdsmapRule>> parse_rules(std::string file, bool);
+std::optional<std::vector<UdsmapRule>> parse_rules(std::string, bool);
+std::optional<UdsmapRule> parse_rule_arg(const std::string&);
 std::string encode_rules(std::vector<UdsmapRule>);
 void print_rules(std::vector<UdsmapRule>&, std::ostream&);
 

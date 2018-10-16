@@ -4,6 +4,7 @@
 #include <fstream>
 #include <memory>
 #include <sstream>
+#include <unordered_map>
 
 #include <arpa/inet.h>
 
@@ -23,10 +24,7 @@ static const std::string describe_nodetype(const YAML::Node &node)
     return "an unknown type";
 }
 
-#define RULE_ERROR(msg) \
-    std::cerr << file << ":rule #" << pos << ": " << msg << std::endl
-
-static bool validate_rule(const std::string &file, int pos, UdsmapRule &rule)
+static std::optional<std::string> validate_rule(UdsmapRule &rule)
 {
     if (rule.address) {
         char buf[INET6_ADDRSTRLEN];
@@ -35,38 +33,63 @@ static bool validate_rule(const std::string &file, int pos, UdsmapRule &rule)
             !inet_pton(AF_INET, addr, buf) &&
             !inet_pton(AF_INET6, addr, buf)
         ) {
-            RULE_ERROR("Address \"" << rule.address.value() << "\""
-                       " is not a valid IPv4 or IPv6 address.");
-            return false;
+            return "Address \"" + rule.address.value() + "\""
+                   " is not a valid IPv4 or IPv6 address.";
         }
     }
 
     if (!rule.socket_path || rule.socket_path.value().empty()) {
 #ifdef SOCKET_ACTIVATION
         if (!rule.socket_activation) {
-            RULE_ERROR("Socket activation is disabled and no socket"
-                       " path was specified.");
-            return false;
+            return "Socket activation is disabled and no socket"
+                   " path was specified.";
         }
 #else
-        RULE_ERROR("No socket path specified.");
-        return false;
+        return "No socket path specified.";
 #endif
     } else if (rule.socket_path.value()[0] != '/') {
-        RULE_ERROR("Socket path has to be absolute.");
-        return false;
+        return "Socket path has to be absolute.";
     }
 
 #ifdef SOCKET_ACTIVATION
     if (rule.socket_path && rule.socket_activation) {
-        RULE_ERROR("Can't enable socket activation in conjunction with a"
-                   " socket path.");
-        return false;
+        return "Can't enable socket activation in conjunction with a"
+               " socket path.";
     }
 #endif
 
-    return true;
+    return std::nullopt;
 }
+
+/* Convert a string into a port number, checking whether it satisfies bounds of
+ * an uint16_t. First we convert to string, check whether everything is just
+ * digits and whether the length is short enough for a 16 bit unsigned int and
+ * then convert to uint32_t and check the upper bound.
+ */
+static inline std::optional<uint16_t> string2port(const std::string &str)
+{
+    std::string value(str);
+    value.erase(0, str.find_first_not_of('0'));
+
+    if (str.size() > 0 && value.empty())
+        return 0;
+
+    if (value.empty())
+        return std::nullopt;
+
+    if (std::all_of(value.begin(), value.end(), isdigit)) {
+        uint32_t intval = std::stoi(value);
+        if (value.length() <= 6 && intval <= 65535)
+            return (uint16_t)intval;
+        else
+            return std::nullopt;
+    }
+
+    return std::nullopt;
+}
+
+#define RULE_ERROR(msg) \
+    std::cerr << file << ":rule #" << pos << ": " << msg << std::endl
 
 #define RULE_CONVERT(target, key, type, tname) \
     try { \
@@ -109,23 +132,13 @@ static std::optional<UdsmapRule> parse_rule(const std::string &file, int pos,
         } else if (key == "address") {
             RULE_CONVERT(rule.address, "address", std::string, "string");
         } else if (key == "port") {
-            // FIXME: Very ugly! We convert first to string, check for digits
-            //        and whether the length is short enough and then convert
-            //        to uint32_t and check the upper bound. This is because
-            //        yaml-cpp only casts to the target type without bounds
-            //        checking.
             std::string val;
             RULE_CONVERT(val, "port", std::string, "16 bit unsigned int");
-            if (std::all_of(val.begin(), val.end(), isdigit)) {
-                uint32_t intval = value.as<uint32_t>();
-                if (val.length() <= 6 && intval <= 65535) {
-                    rule.port = (uint16_t)intval;
-                } else {
-                    RULE_ERROR("Port number is not in range 0..65535.");
-                    return std::nullopt;
-                }
+            std::optional<uint16_t> port = string2port(val);
+            if (port) {
+                rule.port = port.value();
             } else {
-                RULE_ERROR("Invalid port value \"" << val << "\".");
+                RULE_ERROR("Port number is not a 16 bit unsigned int.");
                 return std::nullopt;
             }
 #ifdef SOCKET_ACTIVATION
@@ -144,8 +157,11 @@ static std::optional<UdsmapRule> parse_rule(const std::string &file, int pos,
         }
     }
 
-    if (!validate_rule(file, pos, rule))
+    std::optional<std::string> errmsg = validate_rule(rule);
+    if (errmsg) {
+        RULE_ERROR(errmsg.value());
         return std::nullopt;
+    }
 
     return rule;
 }
@@ -185,6 +201,108 @@ std::optional<std::vector<UdsmapRule>>
     }
 
     return result;
+}
+
+static void print_arg_error(const std::string &arg, size_t pos, size_t len,
+                            const std::string &msg)
+{
+    std::cerr << "In rule: " << arg << std::endl
+              << "         ";
+
+    if (pos == 0 && len == 0)
+        std::cerr << msg << std::endl;
+    else
+        std::cerr << std::string(pos, ' ') << std::string(len, '^')
+                  << ' ' << msg << std::endl;
+}
+
+std::optional<UdsmapRule> parse_rule_arg(const std::string &arg)
+{
+    std::string buf = "";
+    std::optional<std::string> key = std::nullopt;
+
+    UdsmapRule rule;
+
+    size_t errpos = 0, valpos = 0;
+    size_t errlen = 0;
+
+    for (size_t i = 0, arglen = arg.length(); i <= arglen; ++i) {
+        if (key) {
+            if (i == arglen || arg[i] == ',') {
+                /* Handle key=value options. */
+                if (key.value() == "path") {
+                    rule.socket_path = std::string(buf);
+#ifdef SOCKET_ACTIVATION
+                } else if (key.value() == "systemd") {
+                    rule.socket_activation = true;
+                    rule.fd_name = std::string(buf);
+#endif
+                } else if (key.value() == "addr" || key.value() == "address") {
+                    rule.address = std::string(buf);
+                } else if (key.value() == "port") {
+                    std::optional<uint16_t> port = string2port(buf);
+                    if (port) {
+                        rule.port = port.value();
+                    } else {
+                        print_arg_error(arg, valpos, i - valpos,
+                                        "invalid port");
+                        return std::nullopt;
+                    }
+                } else {
+                    print_arg_error(arg, errpos, errlen, "unknown key");
+                    return std::nullopt;
+                }
+                key = std::nullopt;
+                errpos = i + 1;
+                errlen = 0;
+                buf.assign("");
+                continue;
+            } else if (arg[i] == '\\' && i < arglen && (arg[i + 1] == ',' ||
+                                                        arg[i + 1] == '\\')) {
+                buf += arg[++i];
+                continue;
+            }
+        } else if (i == arglen || arg[i] == ',') {
+            /* Handle bareword toggle flags. */
+            if (buf == "tcp") {
+                rule.type = RuleIpType::TCP;
+            } else if (buf == "udp") {
+                rule.type = RuleIpType::UDP;
+            } else if (buf == "in") {
+                rule.direction = RuleDir::INCOMING;
+            } else if (buf == "out") {
+                rule.direction = RuleDir::OUTGOING;
+#ifdef SOCKET_ACTIVATION
+            } else if (buf == "systemd") {
+                rule.socket_activation = true;
+#endif
+            } else {
+                print_arg_error(arg, errpos, errlen, "unknown flag");
+                return std::nullopt;
+            }
+            errpos = i + 1;
+            errlen = 0;
+            buf.assign("");
+            continue;
+        } else if (arg[i] == '=') {
+            key = std::string(buf);
+            valpos = i + 1;
+            buf.assign("");
+            continue;
+        } else {
+            errlen += 1;
+        }
+
+        buf += arg[i];
+    }
+
+    std::optional<std::string> errmsg = validate_rule(rule);
+    if (errmsg) {
+        print_arg_error(arg, 0, 0, errmsg.value());
+        return std::nullopt;
+    }
+
+    return rule;
 }
 
 std::string encode_rules(std::vector<UdsmapRule> rules)

@@ -48,6 +48,9 @@ endif::[]
 ifndef::without-systemd[:systemd_comma: ,]
 ifdef::without-systemd[:systemd_comma:]
 
+ifndef::without-systemd[:systemd_backslash: \]
+ifdef::without-systemd[:systemd_backslash:]
+
 == Description
 
 Turns IP sockets into Unix domain socket based on a list of rules (see
@@ -83,19 +86,65 @@ ifdef::manmanual[]
   want to run the *PROGRAM*, you can use the *-c* option to exit after
   printing the rules.
 
+*-r RULESPEC, --rule=RULESPEC*::
+  A single rule for one particular socket to match, can be used several times
+  to specify a set of rules similar to the sequence of the rule file.
+
+*-f RULEFILE, --rule-file=RULEFILE*::
+  Specifies a YAML or JSON file consisting of a sequence of rules.
+
 endif::[]
+
+== Rule specification
+
+Arguments specified via *-r* contain a comma-separated list of either flags or
+options. If a value contains a comma (`,`), it has to be escaped using a
+backslash (`\`) character. If you want to have a verbatim backslash character
+just use it twice (`\\`).
+
+The following flags are available:
+
+*in* | *out*::
+  Corresponds to the <<rule-opt-direction,*`direction`*>> rule file option.
+
+*tcp* | *udp*::
+  Either match TCP or UDP sockets or both if none of these flags are set
+  (<<rule-opt-type,*`type`*>> rule file option).
+
+ifndef::without-systemd[]
+
+*systemd[=FD_NAME]*::
+  Enable systemd socket activation
+  (<<rule-opt-socket-activation,*`socketActivation`*>>), optionally specifying
+  a file descriptior name (<<rule-opt-fdname,*`fdName`*>>).
+
+endif::[]
+
+These options are available:
+
+*addr[ess]=ADDR*::
+  Optional, specifies an IPv4 or IPv6 address, see
+  <<rule-opt-address,*`address`*>> rule file option.
+
+*port=PORT*::
+  Optional, specifies a port to match, see <<rule-opt-port,*`port`*>> rule file
+  option.
+
+*path=SOCKET_PATH*::
+  The path to the socket file to either bind or connect to, see
+  <<rule-socket-path,*`socketPath`*>> rule file option.
 
 == Rule file format
 
-The rule file is a YAML file (or JSON, as it is a subset of YAML), consisting
-of an array of objects.
+The rule file (specified via *-f* is a YAML file (or JSON, as it is a subset of
+YAML), consisting of an array of objects.
 
 Each object consists of keys/values which define which IP sockets to match
 and which Unix domain sockets to assign them to.
 
-=== Rule options
+=== Rule file options
 
-*`direction`*::
+[[rule-opt-direction]]*`direction`*::
 
 Whether this rule applies to a server-side socket (*`incoming`*) or a
 client-side socket (*`outgoing`*).
@@ -106,11 +155,11 @@ Specifies the IP type, which currently is either *`tcp`* for TCP sockets,
 *`udp`* for UDP sockets or if it's not defined it matches both UDP and TCP
 sockets.
 
-*`address`*::
+[[rule-opt-address]]*`address`*::
 
 The IP address to match, which can be either an IPv4 or an IPv6 address.
 
-*`port`*::
+[[rule-opt-port]]*`port`*::
 
 UDP or TCP port number (depending on which <<rule-opt-type,*`type`*>> is set),
 which for outgoing connections specifies the target port and for incomping
@@ -130,7 +179,7 @@ Placeholders are allowed here and those are substituted accordingly:
 *`%%`*;; verbatim *`%`*
 
 ifndef::without-systemd[]
-*`socketActivation`*::
+[[rule-opt-socket-activation]]*`socketActivation`*::
 ifndef::manmanual[]
 If *`ip2unix`* is compiled with systemd support, whether to use socket
 activation
@@ -140,7 +189,7 @@ Whether to use systemd socket activation
 endif::[]
 instead of a <<rule-socket-path,*`socketPath`*>>. See {systemd_socket}.
 
-*`fdName`*::
+[[rule-opt-fdname]]*`fdName`*::
 An optional file descriptor name for socket activation which can be used to
 distinguish between several socket units. This corresponds to the {fdname}
 systemd socket option.
@@ -153,18 +202,26 @@ endif::[]
 On the server side with the rule file *`rules-server.yaml`*:
 
 [source,yaml]
--------------------------------------------------------------
+--------------------------------------------------------------
 - direction: incoming
   socketPath: /tmp/test.socket
--------------------------------------------------------------
+--------------------------------------------------------------
 
 The following command spawns a small test web server listening on
 *`/tmp/test.socket`*:
 
 [source,sh-session]
------------------------------------------------------------
-$ ip2unix rules-server.yaml python -m SimpleHTTPServer 8000
------------------------------------------------------------
+--------------------------------------------------------------
+$ ip2unix -f rules-server.yaml python -m SimpleHTTPServer 8000
+--------------------------------------------------------------
+
+The same can be achieved using *-r*:
+
+--------------------------------------------------------------
+$ ip2unix -r in,path=/tmp/test.socket -m SimpleHTTPServer 8000
+--------------------------------------------------------------
+
+[source,sh-session]
 
 On the client side with *`rules-client.yaml`*:
 
@@ -178,9 +235,15 @@ This connects to the test server listening on *`/tmp/test.socket`*
 and should show the directory listing:
 
 [source,sh-session]
-------------------------------------------------
-$ ip2unix rules-client.yaml curl http://1.2.3.4/
-------------------------------------------------
+-------------------------------------------------------------
+$ ip2unix -f rules-client.yaml curl http://1.2.3.4/
+-------------------------------------------------------------
+
+With the *-r* option:
+
+-------------------------------------------------------------
+$ ip2unix -r out,path=/tmp/test.socket curl http://1.2.3.4/
+-------------------------------------------------------------
 
 === More complicated example
 
@@ -210,6 +273,18 @@ ifndef::without-systemd[]
     all and instead use the systemd-provided file descriptor named *`ssh`* for
     operations like {syscall_accept}.
 endif::[]
+
+The same can be achieved solely using *-r* commandline arguments:
+
+[source,sh-session]
+[subs="attributes"]
+----------------------------------------------------------------------------
+$ ip2unix -r out,tcp,path=/run/some.socket \
+          -r in,addr=1.2.3.4,path=/run/another.socket {systemd_backslash}
+ifndef::without-systemd[]
+          -r in,tcp,port=22,systemd=ssh
+endif::without-systemd[]
+----------------------------------------------------------------------------
 
 ifdef::manmanual[]
 

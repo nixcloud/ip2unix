@@ -22,7 +22,7 @@ def ip2unix(rules, childargs, *args, **kwargs):
     rulefile = tempfile.NamedTemporaryFile('w', delete=False)
     json.dump(rules, rulefile)
     rulefile.close()
-    full_args = pre + [IP2UNIX] + cmdargs + [rulefile.name] + childargs
+    full_args = pre + [IP2UNIX, '-f', rulefile.name] + cmdargs + childargs
     try:
         yield subprocess.Popen(full_args, *args, **kwargs)
     finally:
