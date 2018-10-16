@@ -1,199 +1,181 @@
 // SPDX-License-Identifier: LGPL-3.0-only
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <memory>
 #include <sstream>
 
-#include <rapidjson/error/en.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/schema.h>
-#include <rapidjson/stringbuffer.h>
+#include <arpa/inet.h>
+
+#include <yaml-cpp/yaml.h>
 
 #include "rules.hh"
 
-/* FIXME: Revise this schema once RapidJSON supports a newer specification. */
-static const char *RulesSchema = R"schema(
+static const std::string describe_nodetype(const YAML::Node &node)
 {
-  // RapidJSON currently only supports draft-04.
-  "$schema": "http://json-schema.org/draft-04/schema#",
-
-  "id": "urn:uuid:db179ece-5967-4fab-8573-7f3fe18dafd2",
-  "title": "IP2Unix rules",
-  "description": "A set of rules for transforming IP to Unix sockets",
-  "type": "array",
-  "additionalItems": false,
-  "items": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-      "direction": {
-        "description": "Whether it's an outgoing or incoming socket.",
-        "type": "string",
-        "enum": ["incoming", "outgoing"]
-      },
-      "type": {
-        "description": "The IP type for this rule to match.",
-        "type": "string",
-        "enum": ["tcp", "udp"]
-      },
-      "address": {
-        "description": "The IPv4 or IPv6 address to match.",
-        "type": "string",
-        "format": "ip-address",
-        // Fallback pattern because RapidJSON 1.1.0 doesn't support formats.
-        "pattern": "^(([0-9]+\\.){3}[0-9]+)|([a-fA-F0-9]*:[a-fA-F0-9:.]*)$"
-      },
-      "port": {
-        "description": "The TCP or UDP port to match.",
-        "type": "integer",
-        "minimum": 0,
-        "maximum": 65535
-      },
-)schema"
-#ifdef SOCKET_ACTIVATION
-R"schema(
-      "socketActivation": {
-        "description": "Use systemd socket activation.",
-        "type": "boolean"
-      },
-      "fdName": {
-        "description": "The file descriptor name for socket activation.",
-        "type": "string"
-      },
-)schema"
-#endif
-R"schema(
-      "socketPath": {
-        "description": "The absolute path of the Unix Domain Socket.",
-        "type": "string",
-        "pattern": "^/"
-      }
+    switch (node.Type()) {
+        case YAML::NodeType::Undefined: return "undefined";
+        case YAML::NodeType::Null:      return "null";
+        case YAML::NodeType::Scalar:    return "a scalar";
+        case YAML::NodeType::Sequence:  return "a sequence";
+        case YAML::NodeType::Map:       return "a map";
     }
-  }
-}
-)schema";
-
-using namespace rapidjson;
-
-static void print_parse_error(const std::string &file, Document &doc)
-{
-    std::cerr << file << ':' << doc.GetErrorOffset() << ": "
-              << GetParseError_En(doc.GetParseError()) << std::endl;
+    return "an unknown type";
 }
 
-static std::optional<SchemaDocument> parse_schema(void)
+#define RULE_ERROR(msg) \
+    std::cerr << file << ":rule #" << pos << ": " << msg << std::endl
+
+static bool validate_rule(const std::string &file, int pos, UdsmapRule &rule)
 {
-    Document doc;
-
-    if (doc.Parse<kParseCommentsFlag>(RulesSchema).HasParseError()) {
-        print_parse_error("(schema)", doc);
-        return std::nullopt;
-    }
-
-    return SchemaDocument(doc);
-}
-
-static std::optional<UdsmapRule> parse_rule(const std::string &file, int pos,
-                                            const Value &doc)
-{
-    UdsmapRule rule;
-
-    for (auto &node : doc.GetObject()) {
-        std::string key = node.name.GetString();
-        if (key == "direction") {
-            std::string val = node.value.GetString();
-            if (val == "outgoing")
-                rule.direction = RuleDir::OUTGOING;
-            else
-                rule.direction = RuleDir::INCOMING;
-        } else if (key == "type") {
-            std::string val = node.value.GetString();
-            if (val == "tcp")
-                rule.type = RuleIpType::TCP;
-            else if (val == "udp")
-                rule.type = RuleIpType::UDP;
-        } else if (key == "address") {
-            rule.address = node.value.GetString();
-        } else if (key == "port") {
-            rule.port = node.value.GetUint();
-#ifdef SOCKET_ACTIVATION
-        } else if (key == "socketActivation") {
-            rule.socket_activation = node.value.GetBool();
-        } else if (key == "fdName") {
-            rule.fd_name = node.value.GetString();
-#endif
-        } else if (key == "socketPath") {
-            rule.socket_path = node.value.GetString();
+    if (rule.address) {
+        char buf[INET6_ADDRSTRLEN];
+        const char *addr = rule.address.value().c_str();
+        if (
+            !inet_pton(AF_INET, addr, buf) &&
+            !inet_pton(AF_INET6, addr, buf)
+        ) {
+            RULE_ERROR("Address \"" << rule.address.value() << "\""
+                       " is not a valid IPv4 or IPv6 address.");
+            return false;
         }
     }
 
-    if (!rule.socket_path) {
+    if (!rule.socket_path || rule.socket_path.value().empty()) {
 #ifdef SOCKET_ACTIVATION
         if (!rule.socket_activation) {
-            std::cerr << file << ":rule #" << pos << ": "
-                      << "Socket activation is disabled and no "
-                      << "socket path was specified." << std::endl;
-            return std::nullopt;
+            RULE_ERROR("Socket activation is disabled and no socket"
+                       " path was specified.");
+            return false;
         }
 #else
-        std::cerr << file << ":rule #" << pos << ": "
-                  << "No socket path specified." << std::endl;
-        return std::nullopt;
+        RULE_ERROR("No socket path specified.");
+        return false;
 #endif
+    } else if (rule.socket_path.value()[0] != '/') {
+        RULE_ERROR("Socket path has to be absolute.");
+        return false;
     }
 
 #ifdef SOCKET_ACTIVATION
     if (rule.socket_path && rule.socket_activation) {
-        std::cerr << file << ":rule #" << pos << ": "
-                  << "Can't enable socket activation in conjunction "
-                  << "with a socket path." << std::endl;
-        return std::nullopt;
+        RULE_ERROR("Can't enable socket activation in conjunction with a"
+                   " socket path.");
+        return false;
     }
 #endif
+
+    return true;
+}
+
+#define RULE_CONVERT(target, key, type, tname) \
+    try { \
+        target = value.as<type>(); \
+    } catch (const YAML::BadConversion &e) { \
+        RULE_ERROR("The \"" key "\" option needs to be a " tname "."); \
+        return std::nullopt; \
+    }
+
+static std::optional<UdsmapRule> parse_rule(const std::string &file, int pos,
+                                            const YAML::Node &doc)
+{
+    UdsmapRule rule;
+
+    for (const auto &foo : doc) {
+        std::string key = foo.first.as<std::string>();
+        YAML::Node value = foo.second;
+        if (key == "direction") {
+            std::string val;
+            RULE_CONVERT(val, "direction", std::string, "string");
+            if (val == "outgoing") {
+                rule.direction = RuleDir::OUTGOING;
+            } else if (val == "incoming") {
+                rule.direction = RuleDir::INCOMING;
+            } else {
+                RULE_ERROR("Invalid direction \"" << val << "\".");
+                return std::nullopt;
+            }
+        } else if (key == "type") {
+            std::string val;
+            RULE_CONVERT(val, "type", std::string, "string");
+            if (val == "tcp") {
+                rule.type = RuleIpType::TCP;
+            } else if (val == "udp") {
+                rule.type = RuleIpType::UDP;
+            } else {
+                RULE_ERROR("Invalid type \"" << val << "\".");
+                return std::nullopt;
+            }
+        } else if (key == "address") {
+            RULE_CONVERT(rule.address, "address", std::string, "string");
+        } else if (key == "port") {
+            // FIXME: Very ugly! We convert first to string, check for digits
+            //        and whether the length is short enough and then convert
+            //        to uint32_t and check the upper bound. This is because
+            //        yaml-cpp only casts to the target type without bounds
+            //        checking.
+            std::string val;
+            RULE_CONVERT(val, "port", std::string, "16 bit unsigned int");
+            if (std::all_of(val.begin(), val.end(), isdigit)) {
+                uint32_t intval = value.as<uint32_t>();
+                if (val.length() <= 6 && intval <= 65535) {
+                    rule.port = (uint16_t)intval;
+                } else {
+                    RULE_ERROR("Port number is not in range 0..65535.");
+                    return std::nullopt;
+                }
+            } else {
+                RULE_ERROR("Invalid port value \"" << val << "\".");
+                return std::nullopt;
+            }
+#ifdef SOCKET_ACTIVATION
+        } else if (key == "socketActivation") {
+            RULE_CONVERT(rule.socket_activation, "socketActivation", bool,
+                         "bool");
+        } else if (key == "fdName") {
+            RULE_CONVERT(rule.fd_name, "fdName", std::string, "string");
+#endif
+        } else if (key == "socketPath") {
+            RULE_CONVERT(rule.socket_path, "socketPath", std::string,
+                         "string");
+        } else {
+            RULE_ERROR("Invalid key \"" << key << "\".");
+            return std::nullopt;
+        }
+    }
+
+    if (!validate_rule(file, pos, rule))
+        return std::nullopt;
 
     return rule;
 }
 
 std::optional<std::vector<UdsmapRule>> parse_rules(std::string file)
 {
-    std::optional<SchemaDocument> schema = parse_schema();
-    if (!schema)
+    YAML::Node doc;
+
+    try {
+        doc = YAML::LoadFile(file);
+    } catch (const YAML::ParserException &e) {
+        std::cerr << file << ": " << e.msg << std::endl;
         return std::nullopt;
-
-    Document doc;
-    std::ifstream stream(file);
-    IStreamWrapper rulestream(stream);
-
-    if (doc.ParseStream(rulestream).HasParseError()) {
-        print_parse_error(file, doc);
+    } catch (const YAML::BadFile &e) {
+        std::cerr << "Unable to open file \"" << file << "\"." << std::endl;
         return std::nullopt;
     }
 
-    SchemaValidator validator(schema.value());
-    if (!doc.Accept(validator)) {
-        // FIXME: Better errors are coming soon with RapidJSON 1.2.0:
-        // https://github.com/Tencent/rapidjson/pull/1068
-        StringBuffer sb;
-        validator.GetInvalidSchemaPointer().StringifyUriFragment(sb);
-        std::string schema_token = sb.GetString();
-        std::string schema_keyword = validator.GetInvalidSchemaKeyword();
-        sb.Clear();
-        validator.GetInvalidDocumentPointer().StringifyUriFragment(sb);
-        std::cerr << file << ": "
-                  << "Error \"" << schema_keyword << "\""
-                  << " in pointer " << sb.GetString()
-                  << " (" << schema_token << ")."
-                  << std::endl;
+    if (!doc.IsSequence()) {
+        std::cerr << file << ": Root node needs to be a sequence but it's "
+                  << describe_nodetype(doc) << " instead." << std::endl;
         return std::nullopt;
     }
 
     std::vector<UdsmapRule> result;
 
     int pos = 0;
-    for (auto &node : doc.GetArray()) {
+    for (const YAML::Node &node : doc) {
         std::optional<UdsmapRule> rule = parse_rule(file, pos++, node);
-        if (!rule)
-            return std::nullopt;
+        if (!rule) return std::nullopt;
         result.push_back(rule.value());
     }
 

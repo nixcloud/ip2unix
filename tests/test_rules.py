@@ -65,6 +65,24 @@ class RulesTest(unittest.TestCase):
         self.assert_bad_rules([{'socketPath': '/aaa', 'port': -1}])
         self.assert_bad_rules([{'socketPath': '/aaa', 'port': 65536}])
 
+    def test_valid_address(self):
+        valid_addrs = [
+            '127.0.0.1', '0.0.0.0', '9.8.7.6', '255.255.255.255', '::',
+            '::ffff:127.0.0.1', '7:6:5:4:3:2:1::', '::7:6:5:4:3:2:1',
+            '7::', '::2:1', '::17', 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
+        ]
+        for addr in valid_addrs:
+            self.assert_good_rules([{'socketPath': '/foo', 'address': addr}])
+
+    def test_invalid_addrss(self):
+        invalid_addrs = [
+            '.0.0.1', '123', '123.', '..', '-1.2.3.4', '256.255.255.255', ':::'
+            '0.00.0.0', '1.-2.3.4', 'abcde', '::-1', '01000::', 'abcd::efgh'
+            '8:7:6:5:4:3:2:1::', '::8:7:6:5:4:3:2:1', 'f:f11::01100:2'
+        ]
+        for addr in invalid_addrs:
+            self.assert_bad_rules([{'socketPath': '/foo', 'address': addr}])
+
     @systemd_only
     def test_contradicting_socket_options(self):
         self.assert_bad_rules([

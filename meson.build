@@ -21,7 +21,7 @@ ldflags = [
 cflags = []
 
 deps = [
-  dependency('RapidJSON', version: '>=1.1.0'),
+  dependency('yaml-cpp', version: '>=0.5.0'),
   cc.find_library('dl')
 ]
 

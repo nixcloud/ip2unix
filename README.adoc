@@ -51,10 +51,10 @@ ifdef::without-systemd[:systemd_comma:]
 == Description
 
 Turns IP sockets into Unix domain socket based on a list of rules (see
-{rulefileformat} below) specified via JSON file. This is done by the use of
-{LD_PRELOAD} environment variable and you can either directly specify the path
-of *`ip2unix`* via *`LD_PRELOAD`* or use the *`ip2unix`* command directly (it
-is a library and executable at the same time).
+{rulefileformat} below) specified via YAML/JSON file. This is done by the use
+of {LD_PRELOAD} environment variable and you can either directly specify the
+path of *`ip2unix`* via *`LD_PRELOAD`* or use the *`ip2unix`* command directly
+(it is a library and executable at the same time).
 
 In order for the direct *`LD_PRELOAD`* variant to work, you also have to
 specify the *`IP2UNIX_RULE_FILE`* environment variable.
@@ -87,7 +87,8 @@ endif::[]
 
 == Rule file format
 
-The rule file is a JSON file, consisting of an array of objects.
+The rule file is a YAML file (or JSON, as it is a subset of YAML), consisting
+of an array of objects.
 
 Each object consists of keys/values which define which IP sockets to match
 and which Unix domain sockets to assign them to.
@@ -149,11 +150,12 @@ endif::[]
 
 === Simple HTTP client/server
 
-On the server side with the rule file *`rules-server.json`*:
+On the server side with the rule file *`rules-server.yaml`*:
 
-[source,json]
+[source,yaml]
 -------------------------------------------------------------
-[{"direction": "incoming", "socketPath": "/tmp/test.socket"}]
+- direction: incoming
+  socketPath: /tmp/test.socket
 -------------------------------------------------------------
 
 The following command spawns a small test web server listening on
@@ -161,14 +163,15 @@ The following command spawns a small test web server listening on
 
 [source,sh-session]
 -----------------------------------------------------------
-$ ip2unix rules-server.json python -m SimpleHTTPServer 8000
+$ ip2unix rules-server.yaml python -m SimpleHTTPServer 8000
 -----------------------------------------------------------
 
-On the client side with *`rules-client.json`*:
+On the client side with *`rules-client.yaml`*:
 
-[source,json]
+[source,yaml]
 -------------------------------------------------------------
-[{"direction": "outgoing", "socketPath": "/tmp/test.socket"}]
+- direction: outgoing
+  socketPath: /tmp/test.socket
 -------------------------------------------------------------
 
 This connects to the test server listening on *`/tmp/test.socket`*
@@ -176,34 +179,26 @@ and should show the directory listing:
 
 [source,sh-session]
 ------------------------------------------------
-$ ip2unix rules-client.json curl http://1.2.3.4/
+$ ip2unix rules-client.yaml curl http://1.2.3.4/
 ------------------------------------------------
 
 === More complicated example
 
-[source,json]
+[source,yaml]
 --------------------------------------------
-[
-  { "direction": "outgoing",             <1>
-    "type": "tcp",
-    "socketPath": "/run/some.socket"
-  },
-  { "direction": "incoming",             <2>
-    "address": "1.2.3.4",
-    "socketPath": "/run/another.socket"
-ifdef::without-systemd[]
-  }
-endif::without-systemd[]
+- direction: outgoing                 ## <1>
+  type: tcp
+  socketPath: /run/some.socket
+- direction: incoming                 ## <2>
+  address: 1.2.3.4
+  socketPath: /run/another.socket
 ifndef::without-systemd[]
-  },
-  { "direction": "incoming",             <3>
-    "type": "tcp",
-    "port": 22,
-    "socketActivation": true,
-    "fdName": "ssh"
-  }
+- direction: incoming                 ## <3>
+  type: tcp
+  port: 22
+  socketActivation: true
+  fdName: ssh
 endif::without-systemd[]
-]
 --------------------------------------------
 
 <1> This rule will redirect *all* TCP connections to the Unix domain socket at

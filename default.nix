@@ -14,7 +14,7 @@ pkgs.stdenv.mkDerivation rec {
     pkgs.meson pkgs.ninja pkgs.pkgconfig pkgs.asciidoctor
     pkgs.python3Packages.pytest
   ];
-  buildInputs = [ pkgs.rapidjson pkgs.systemd ];
+  buildInputs = [ pkgs.libyamlcpp pkgs.systemd ];
 
   doCheck = true;
 }

@@ -45,7 +45,7 @@ static void print_usage(char *prog, FILE *fp)
     fprintf(fp, "Usage: %s [options] RULEFILE PROGRAM [ARGS...]\n", prog);
     fprintf(fp, "       %s -c [options] RULEFILE\n\n", prog);
     fputs("Turn IP sockets into Unix domain sockets for PROGRAM\n", fp);
-    fputs("according to the rules specified by the JSON file given\n", fp);
+    fputs("according to the rules specified by the YAML file given\n", fp);
     fputs("by RULEFILE.\n\nOptions:\n", fp);
     fputs("  -h, --help       Show this usage\n",              fp);
     fputs("  -c, --check      Validate rules and exit\n",      fp);
