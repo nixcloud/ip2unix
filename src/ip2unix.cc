@@ -10,7 +10,7 @@
 
 extern char **environ;
 
-static bool run_preload(char *argv[])
+static bool run_preload(std::vector<UdsmapRule> &rules, char *argv[])
 {
     char self[PATH_MAX], *preload;
     ssize_t len;
@@ -29,7 +29,9 @@ static bool run_preload(char *argv[])
         setenv("LD_PRELOAD", self, 1);
     }
 
-    setenv("IP2UNIX_RULE_FILE", argv[0], 1);
+    std::string encoded = encode_rules(rules);
+
+    setenv("__IP2UNIX_RULES", encoded.c_str(), 1);
     argv++;
 
     if (execvpe(argv[0], argv, environ) == -1) {
@@ -96,7 +98,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    std::optional<std::vector<UdsmapRule>> rules = parse_rules(argv[0]);
+    std::optional<std::vector<UdsmapRule>> rules = parse_rules(argv[0], true);
 
     if (!rules)
         return EXIT_FAILURE;
@@ -109,7 +111,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%s: No program to execute specified.\n", self);
         print_usage(self, stderr);
     } else {
-        run_preload(argv);
+        run_preload(rules.value(), argv);
     }
 
     return EXIT_FAILURE;

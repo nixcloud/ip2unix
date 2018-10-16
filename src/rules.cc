@@ -150,12 +150,17 @@ static std::optional<UdsmapRule> parse_rule(const std::string &file, int pos,
     return rule;
 }
 
-std::optional<std::vector<UdsmapRule>> parse_rules(std::string file)
+std::optional<std::vector<UdsmapRule>>
+    parse_rules(std::string content, bool content_is_filename)
 {
     YAML::Node doc;
+    std::string file = content_is_filename ? content : "<unknown>";
 
     try {
-        doc = YAML::LoadFile(file);
+        if (content_is_filename)
+            doc = YAML::LoadFile(file);
+        else
+            doc = YAML::Load(content);
     } catch (const YAML::ParserException &e) {
         std::cerr << file << ": " << e.msg << std::endl;
         return std::nullopt;
@@ -180,6 +185,46 @@ std::optional<std::vector<UdsmapRule>> parse_rules(std::string file)
     }
 
     return result;
+}
+
+std::string encode_rules(std::vector<UdsmapRule> rules)
+{
+    YAML::Node doc;
+
+    for (const auto &rule : rules) {
+        YAML::Node node;
+
+        if (rule.direction == RuleDir::OUTGOING)
+            node["direction"] = "outgoing";
+        else
+            node["direction"] = "incoming";
+
+        if (rule.type == RuleIpType::TCP)
+            node["type"] = "tcp";
+        else if (rule.type == RuleIpType::UDP)
+            node["type"] = "udp";
+
+        if (rule.address)
+            node["address"] = rule.address.value();
+
+        if (rule.port)
+            node["port"] = rule.port.value();
+
+        if (rule.socket_path)
+            node["socketPath"] = rule.socket_path.value();
+
+#ifdef SOCKET_ACTIVATION
+        if (rule.socket_activation)
+            node["socketActivation"] = true;
+
+        if (rule.fd_name)
+            node["fdName"] = rule.fd_name.value();
+#endif
+
+        doc.push_back(node);
+    }
+
+    return YAML::Dump(doc);
 }
 
 void print_rules(std::vector<UdsmapRule> &rules, std::ostream &out)

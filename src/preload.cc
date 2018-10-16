@@ -66,15 +66,21 @@ static void init_rules(void)
     if (g_rules != nullptr)
         return;
 
-    char *rule_file = getenv("IP2UNIX_RULE_FILE");
+    std::optional<std::vector<UdsmapRule>> rules;
+    const char *rule_source;
 
-    if (rule_file == nullptr) {
-        fputs("FATAL: Unable to find IP2UNIX_RULE_FILE!\n", stderr);
+    if ((rule_source = getenv("__IP2UNIX_RULES")) != nullptr) {
+        rules = parse_rules(std::string(rule_source), false);
+    } else if ((rule_source = getenv("IP2UNIX_RULE_FILE")) != nullptr) {
+        rules = parse_rules(std::string(rule_source), true);
+    } else {
+        fputs("FATAL: Unable to find __IP2UNIX_RULES or IP2UNIX_RULE_FILE!\n",
+              stderr);
         _exit(EXIT_FAILURE);
     }
 
-    std::optional<std::vector<UdsmapRule>> rules = parse_rules(rule_file);
-    if (!rules) _exit(EXIT_FAILURE);
+    if (!rules)
+        _exit(EXIT_FAILURE);
 
     g_rules = std::make_shared<std::vector<UdsmapRule>>(rules.value());
 }
