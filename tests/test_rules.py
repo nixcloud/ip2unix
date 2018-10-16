@@ -53,6 +53,18 @@ class RulesTest(unittest.TestCase):
     def test_absolute_socket_path(self):
         self.assert_good_rules([{'socketPath': '/xxx'}])
 
+    def test_invalid_enums(self):
+        self.assert_bad_rules([{'socketPath': '/bbb', 'direction': 111}])
+        self.assert_bad_rules([{'socketPath': '/bbb', 'direction': False}])
+        self.assert_bad_rules([{'socketPath': '/bbb', 'type': 234}])
+        self.assert_bad_rules([{'socketPath': '/bbb', 'type': True}])
+
+    def test_invalid_port_type(self):
+        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 'foo'}])
+        self.assert_bad_rules([{'socketPath': '/aaa', 'port': True}])
+        self.assert_bad_rules([{'socketPath': '/aaa', 'port': -1}])
+        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 65536}])
+
     @systemd_only
     def test_contradicting_socket_options(self):
         self.assert_bad_rules([
