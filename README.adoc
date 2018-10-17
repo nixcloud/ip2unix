@@ -320,7 +320,7 @@ and uses a central directory to do the mapping.
 +
 Containing all Unix sockets into one directory has the nice effect that it's
 easy to map *any* address/port combination to Unix sockets. While this is way
-less error prone than our approach it has the drawback that everything is
+easier to implement than our approach it has the drawback that everything is
 contained and no IP communication is possible anymore.
 
 == Thanks
