@@ -217,6 +217,7 @@ $ ip2unix -f rules-server.yaml python -m SimpleHTTPServer 8000
 
 The same can be achieved using *-r*:
 
+[source,sh-session]
 --------------------------------------------------------------
 $ ip2unix -r in,path=/tmp/test.socket -m SimpleHTTPServer 8000
 --------------------------------------------------------------
@@ -241,6 +242,7 @@ $ ip2unix -f rules-client.yaml curl http://1.2.3.4/
 
 With the *-r* option:
 
+[source,sh-session]
 -------------------------------------------------------------
 $ ip2unix -r out,path=/tmp/test.socket curl http://1.2.3.4/
 -------------------------------------------------------------
