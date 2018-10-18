@@ -10,7 +10,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "rules.hh"
+#include "../rules.hh"
 
 static const std::string describe_nodetype(const YAML::Node &node)
 {

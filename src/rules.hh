@@ -6,6 +6,8 @@
 #include <optional>
 #include <vector>
 
+#include <netinet/in.h>
+
 enum class RuleIpType { TCP, UDP };
 enum class RuleDir { INCOMING, OUTGOING };
 
@@ -25,5 +27,8 @@ std::optional<std::vector<UdsmapRule>> parse_rules(std::string, bool);
 std::optional<UdsmapRule> parse_rule_arg(const std::string&);
 std::string encode_rules(std::vector<UdsmapRule>);
 void print_rules(std::vector<UdsmapRule>&, std::ostream&);
+
+int get_systemd_fd_for_rule(UdsmapRule);
+bool match_sockaddr_in(const struct sockaddr_in*, UdsmapRule);
 
 #endif
