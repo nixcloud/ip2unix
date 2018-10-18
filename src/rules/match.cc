@@ -14,7 +14,7 @@
  * Get a systemd socket file descriptor for the given rule either via name if
  * fd_name is set or just the next file descriptor available.
  */
-int get_systemd_fd_for_rule(UdsmapRule rule)
+int get_systemd_fd_for_rule(Rule rule)
 {
     static std::unordered_map<std::string, int> names;
     static std::queue<int> fds;
@@ -77,7 +77,7 @@ static inline std::optional<std::string>
     return std::string(buf);
 }
 
-bool match_sockaddr_in(const struct sockaddr_in *addr, UdsmapRule rule)
+bool match_sockaddr_in(const struct sockaddr_in *addr, Rule rule)
 {
     if (rule.address && get_addr_str(addr) != rule.address.value())
         return false;

@@ -10,7 +10,7 @@
 
 extern char **environ;
 
-static bool run_preload(std::vector<UdsmapRule> &rules, char *argv[])
+static bool run_preload(std::vector<Rule> &rules, char *argv[])
 {
     char self[PATH_MAX], *preload;
     ssize_t len;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    std::vector<UdsmapRule> rules;
+    std::vector<Rule> rules;
 
     if (!rule_args.empty()) {
         for (auto arg : rule_args) {

@@ -24,7 +24,7 @@ static const std::string describe_nodetype(const YAML::Node &node)
     return "an unknown type";
 }
 
-static std::optional<std::string> validate_rule(UdsmapRule &rule)
+static std::optional<std::string> validate_rule(Rule &rule)
 {
     if (rule.address) {
         char buf[INET6_ADDRSTRLEN];
@@ -99,10 +99,10 @@ static inline std::optional<uint16_t> string2port(const std::string &str)
         return std::nullopt; \
     }
 
-static std::optional<UdsmapRule> parse_rule(const std::string &file, int pos,
+static std::optional<Rule> parse_rule(const std::string &file, int pos,
                                             const YAML::Node &doc)
 {
-    UdsmapRule rule;
+    Rule rule;
 
     for (const auto &foo : doc) {
         std::string key = foo.first.as<std::string>();
@@ -166,7 +166,7 @@ static std::optional<UdsmapRule> parse_rule(const std::string &file, int pos,
     return rule;
 }
 
-std::optional<std::vector<UdsmapRule>>
+std::optional<std::vector<Rule>>
     parse_rules(std::string content, bool content_is_filename)
 {
     YAML::Node doc;
@@ -191,11 +191,11 @@ std::optional<std::vector<UdsmapRule>>
         return std::nullopt;
     }
 
-    std::vector<UdsmapRule> result;
+    std::vector<Rule> result;
 
     int pos = 0;
     for (const YAML::Node &node : doc) {
-        std::optional<UdsmapRule> rule = parse_rule(file, pos++, node);
+        std::optional<Rule> rule = parse_rule(file, pos++, node);
         if (!rule) return std::nullopt;
         result.push_back(rule.value());
     }
@@ -216,12 +216,12 @@ static void print_arg_error(const std::string &arg, size_t pos, size_t len,
                   << ' ' << msg << std::endl;
 }
 
-std::optional<UdsmapRule> parse_rule_arg(const std::string &arg)
+std::optional<Rule> parse_rule_arg(const std::string &arg)
 {
     std::string buf = "";
     std::optional<std::string> key = std::nullopt;
 
-    UdsmapRule rule;
+    Rule rule;
 
     size_t errpos = 0, valpos = 0;
     size_t errlen = 0;
@@ -305,7 +305,7 @@ std::optional<UdsmapRule> parse_rule_arg(const std::string &arg)
     return rule;
 }
 
-std::string encode_rules(std::vector<UdsmapRule> rules)
+std::string encode_rules(std::vector<Rule> rules)
 {
     YAML::Node doc;
 
@@ -345,10 +345,10 @@ std::string encode_rules(std::vector<UdsmapRule> rules)
     return YAML::Dump(doc);
 }
 
-void print_rules(std::vector<UdsmapRule> &rules, std::ostream &out)
+void print_rules(std::vector<Rule> &rules, std::ostream &out)
 {
     int pos = 0;
-    for (UdsmapRule &rule : rules) {
+    for (Rule &rule : rules) {
         std::string dirstr;
         if (rule.direction == RuleDir::INCOMING)
             dirstr = "incoming";

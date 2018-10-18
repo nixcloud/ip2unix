@@ -29,7 +29,7 @@ struct SocketInfo {
     struct in_addr addr;
     in_port_t port = 0;
     bool is_converted = false;
-    std::optional<const UdsmapRule*> rule = std::nullopt;
+    std::optional<const Rule*> rule = std::nullopt;
     std::queue<SockoptEntry> sockopts;
     std::optional<std::string> sockpath = std::nullopt;
 };
@@ -43,7 +43,7 @@ struct SocketChildren {
 static std::mutex g_sockinfo_mutex;
 static std::mutex g_rules_mutex;
 
-static std::shared_ptr<const std::vector<UdsmapRule>> g_rules = nullptr;
+static std::shared_ptr<const std::vector<Rule>> g_rules = nullptr;
 
 typedef std::variant<SocketInfoPtr, SocketChildren> SocketEntry;
 static std::unordered_map<int, SocketEntry> g_active_sockets;
@@ -53,7 +53,7 @@ static void init_rules(void)
     if (g_rules != nullptr)
         return;
 
-    std::optional<std::vector<UdsmapRule>> rules;
+    std::optional<std::vector<Rule>> rules;
     const char *rule_source;
 
     if ((rule_source = getenv("__IP2UNIX_RULES")) != nullptr) {
@@ -69,7 +69,7 @@ static void init_rules(void)
     if (!rules)
         _exit(EXIT_FAILURE);
 
-    g_rules = std::make_shared<std::vector<UdsmapRule>>(rules.value());
+    g_rules = std::make_shared<std::vector<Rule>>(rules.value());
 }
 
 static inline std::optional<SocketEntry> get_active_socket(int fd)
@@ -99,7 +99,7 @@ static inline bool is_socket_activated(int fd)
     auto found = g_active_sockets.find(fd);
     if (found == g_active_sockets.end())
         return false;
-    std::optional<const UdsmapRule*> rule = get_parent(found->second)->rule;
+    std::optional<const Rule*> rule = get_parent(found->second)->rule;
     return rule && rule.value()->socket_activation;
 }
 #endif
@@ -142,7 +142,7 @@ static inline std::optional<RuleIpType> get_sotype(int type)
     return std::nullopt;
 }
 
-static bool match_sotype(int type, UdsmapRule rule)
+static bool match_sotype(int type, Rule rule)
 {
     return !rule.type || get_sotype(type) == rule.type;
 }
