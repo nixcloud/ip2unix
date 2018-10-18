@@ -32,6 +32,40 @@ void SockOpts::cache_ioctl(unsigned long request, const void *arg)
     this->entries.push(entry);
 }
 
+static bool copy_fd_owner(int old_sockfd, int new_sockfd)
+{
+    f_owner_ex owner;
+
+    if (fcntl(old_sockfd, F_GETOWN_EX, &owner) == -1) {
+        perror("fcntl(F_GETOWN_EX)");
+        return false;
+    }
+
+    if (fcntl(new_sockfd, F_SETOWN_EX, &owner) == -1) {
+        perror("fcntl(F_SETOWN_EX)");
+        return false;
+    }
+
+    return true;
+}
+
+static bool copy_fcntl(int old_sockfd, int new_sockfd, int get, int set)
+{
+    int value;
+
+    if ((value = fcntl(old_sockfd, get)) == -1) {
+        perror("fcntl");
+        return false;
+    }
+
+    if (fcntl(new_sockfd, set, value) == -1) {
+        perror("fcntl");
+        return false;
+    }
+
+    return true;
+}
+
 /*
  * Set all the socket options and file descriptor flags from old_sockfd to
  * new_sockfd.
@@ -66,27 +100,14 @@ bool SockOpts::replay(int old_sockfd, int new_sockfd)
         private: int fd;
     };
 
-    int fdflags, fdstatus;
-
-    if ((fdflags = fcntl(old_sockfd, F_GETFD)) == -1) {
-        perror("fcntl(F_GETFD)");
+    if (!copy_fcntl(old_sockfd, new_sockfd, F_GETFD, F_SETFD))
         return false;
-    }
-
-    if ((fdstatus = fcntl(old_sockfd, F_GETFL)) == -1) {
-        perror("fcntl(F_GETFL)");
+    if (!copy_fcntl(old_sockfd, new_sockfd, F_GETFL, F_SETFL))
         return false;
-    }
-
-    if (fcntl(new_sockfd, F_SETFD, fdflags) == -1) {
-        perror("fcntl(F_SETFD)");
+    if (!copy_fcntl(old_sockfd, new_sockfd, F_GETSIG, F_SETSIG))
         return false;
-    }
-
-    if (fcntl(new_sockfd, F_SETFL, fdstatus) == -1) {
-        perror("fcntl(F_SETFL)");
+    if (!copy_fd_owner(old_sockfd, new_sockfd))
         return false;
-    }
 
     while (!this->entries.empty()) {
         auto current = this->entries.front();
