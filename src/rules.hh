@@ -8,12 +8,13 @@
 
 #include <netinet/in.h>
 
-enum class RuleIpType { TCP, UDP };
+#include "types.hh"
+
 enum class RuleDir { INCOMING, OUTGOING };
 
 struct Rule {
     RuleDir direction = RuleDir::INCOMING;
-    std::optional<RuleIpType> type = std::nullopt;
+    std::optional<SocketType> type = std::nullopt;
     std::optional<std::string> address = std::nullopt;
     std::optional<uint16_t> port = std::nullopt;
 #ifdef SOCKET_ACTIVATION

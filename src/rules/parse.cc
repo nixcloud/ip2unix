@@ -122,9 +122,9 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
             std::string val;
             RULE_CONVERT(val, "type", std::string, "string");
             if (val == "tcp") {
-                rule.type = RuleIpType::TCP;
+                rule.type = SocketType::TCP;
             } else if (val == "udp") {
-                rule.type = RuleIpType::UDP;
+                rule.type = SocketType::UDP;
             } else {
                 RULE_ERROR("Invalid type \"" << val << "\".");
                 return std::nullopt;
@@ -265,9 +265,9 @@ std::optional<Rule> parse_rule_arg(const std::string &arg)
         } else if (i == arglen || arg[i] == ',') {
             /* Handle bareword toggle flags. */
             if (buf == "tcp") {
-                rule.type = RuleIpType::TCP;
+                rule.type = SocketType::TCP;
             } else if (buf == "udp") {
-                rule.type = RuleIpType::UDP;
+                rule.type = SocketType::UDP;
             } else if (buf == "in") {
                 rule.direction = RuleDir::INCOMING;
             } else if (buf == "out") {
@@ -317,9 +317,9 @@ std::string encode_rules(std::vector<Rule> rules)
         else
             node["direction"] = "incoming";
 
-        if (rule.type == RuleIpType::TCP)
+        if (rule.type == SocketType::TCP)
             node["type"] = "tcp";
-        else if (rule.type == RuleIpType::UDP)
+        else if (rule.type == SocketType::UDP)
             node["type"] = "udp";
 
         if (rule.address)
@@ -356,9 +356,9 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
             dirstr = "outgoing";
 
         std::string typestr;
-        if (rule.type == RuleIpType::TCP)
+        if (rule.type == SocketType::TCP)
             typestr = "TCP";
-        else if (rule.type == RuleIpType::UDP)
+        else if (rule.type == SocketType::UDP)
             typestr = "UDP";
         else
             typestr = "TCP and UDP";

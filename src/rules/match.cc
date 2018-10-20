@@ -62,28 +62,3 @@ int get_systemd_fd_for_rule(Rule rule)
     return fd;
 }
 #endif
-
-/* FIXME: Duplicate of the same function in preload.cc. */
-static inline std::optional<std::string>
-    get_addr_str(const struct sockaddr_in *addr)
-{
-    /* Use max size of INET6 address, because INET is shorter anyway. */
-    char buf[INET6_ADDRSTRLEN];
-
-    if (inet_ntop(addr->sin_family, &addr->sin_addr, buf,
-                  sizeof(buf)) == nullptr)
-        return std::nullopt;
-
-    return std::string(buf);
-}
-
-bool match_sockaddr_in(const struct sockaddr_in *addr, Rule rule)
-{
-    if (rule.address && get_addr_str(addr) != rule.address.value())
-        return false;
-
-    if (rule.port && ntohs(addr->sin_port) != rule.port.value())
-        return false;
-
-    return true;
-}
