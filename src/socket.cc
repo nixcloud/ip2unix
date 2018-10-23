@@ -55,6 +55,12 @@ Socket::Socket(int fd, int domain, int type, int protocol)
 
 Socket::~Socket()
 {
+    /* NOTE: Do not close the socket file descriptor here, because if an
+     * application checks the return code of close() it might raise errors.
+     *
+     * We can however unlink() the socket path, because the application thinks
+     * it's an AF_INET/AF_INET6 socket so it won't know about that path.
+     */
     if (this->sockpath && this->binding && !this->activated)
         unlink(this->sockpath.value().c_str());
 }
@@ -268,7 +274,7 @@ int Socket::close(void)
     if (this->activated) {
         ret = 0;
     } else {
-        ret = real::close(fd);
+        ret = real::close(this->fd);
 
         if (this->sockpath && this->binding)
             unlink(this->sockpath.value().c_str());
