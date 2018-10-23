@@ -30,12 +30,12 @@ struct Socket : std::enable_shared_from_this<Socket>
 
     ~Socket();
 
-    /* If we find a socket in Socket::active, call the first function,
+    /* If we find a socket in Socket::registry, call the first function,
      * otherwise call the second function (providing default value).
      */
     template<typename T>
     static T when(int fd, std::function<T(Ptr)> f, std::function<T(void)> d) {
-        std::unique_lock<std::mutex> lock(Socket::active_mutex);
+        std::unique_lock<std::mutex> lock(Socket::registry_mutex);
         std::optional<Ptr> sock = Socket::find(fd);
         if (sock) {
             return f(sock.value());
@@ -47,12 +47,12 @@ struct Socket : std::enable_shared_from_this<Socket>
 
     /* Same as the previous function, but without a default value. */
     static void when(int fd, std::function<void(Ptr)> f) {
-        std::scoped_lock<std::mutex> lock(Socket::active_mutex);
+        std::scoped_lock<std::mutex> lock(Socket::registry_mutex);
         std::optional<Ptr> sock = Socket::find(fd);
         if (sock) f(sock.value());
     }
 
-    /* Construct the socket and register it in Socket::active. */
+    /* Construct the socket and register it in Socket::registry. */
     static std::shared_ptr<Socket> create(int, int, int, int);
 
     bool match_rule(const SockAddr&, const Rule&) const;
@@ -85,14 +85,14 @@ struct Socket : std::enable_shared_from_this<Socket>
         std::optional<const Rule*> rule = std::nullopt;
         std::optional<std::string> sockpath = std::nullopt;
 
-        /* Mutex to prevent race conditions during Socket::active lookup. */
-        static std::mutex active_mutex;
+        /* Mutex to prevent race conditions during Socket::registry lookup. */
+        static std::mutex registry_mutex;
 
-        /* Find a registered socket in Socket::active. */
+        /* Find a registered socket in Socket::registry. */
         static std::optional<Ptr> find(int);
 
         /* All INET/INET6 sockets are registered here. */
-        static std::unordered_map<int, Ptr> active;
+        static std::unordered_map<int, Ptr> registry;
 
         /* Whether the socket has been converted to an AF_UNIX socket. */
         bool is_unix = false;

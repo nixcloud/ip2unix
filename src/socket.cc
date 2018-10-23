@@ -10,18 +10,19 @@
 
 std::optional<Socket::Ptr> Socket::find(int fd)
 {
-    decltype(Socket::active)::const_iterator found = Socket::active.find(fd);
-    if (found == Socket::active.end())
+    using itype = decltype(Socket::registry)::const_iterator;
+    itype found = Socket::registry.find(fd);
+    if (found == Socket::registry.end())
         return std::nullopt;
     return found->second;
 }
 
 Socket::Ptr Socket::create(int fd, int domain, int type, int protocol)
 {
-    std::scoped_lock<std::mutex> lock(Socket::active_mutex);
+    std::scoped_lock<std::mutex> lock(Socket::registry_mutex);
     Socket::Ptr sock = std::shared_ptr<Socket>(new Socket(fd, domain, type,
                                                           protocol));
-    return Socket::active[fd] = sock->getptr();
+    return Socket::registry[fd] = sock->getptr();
 }
 
 static inline SocketType get_sotype(const int type)
@@ -36,8 +37,8 @@ static inline SocketType get_sotype(const int type)
     }
 }
 
-std::mutex Socket::active_mutex;
-std::unordered_map<int, Socket::Ptr> Socket::active;
+std::mutex Socket::registry_mutex;
+std::unordered_map<int, Socket::Ptr> Socket::registry;
 
 Socket::Socket(int fd, int domain, int type, int protocol)
     : fd(fd)
@@ -296,7 +297,7 @@ void Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
                                                           this->typearg,
                                                           this->protocol));
     sock->parent = this->getptr();
-    Socket::active[fd] = sock->getptr();
+    Socket::registry[fd] = sock->getptr();
 
     std::optional<SockAddr> sa = SockAddr::create("127.0.0.1", 65530);
     sa.value_or(SockAddr()).apply_addr(addr, addrlen);
@@ -319,7 +320,7 @@ int Socket::close(void)
 {
 #ifdef SOCKET_ACTIVATION
     if (this->rule && this->rule.value()->socket_activation) {
-        Socket::active.erase(this->fd);
+        Socket::registry.erase(this->fd);
         return 0;
     }
 #endif
@@ -331,7 +332,7 @@ int Socket::close(void)
             unlink(this->sockpath.value().c_str());
     }
 
-    Socket::active.erase(this->fd);
+    Socket::registry.erase(this->fd);
     return ret;
 }
 
