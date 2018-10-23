@@ -78,6 +78,18 @@ int Socket::setsockopt(int level, int optname, const void *optval,
     return ret;
 }
 
+int Socket::ioctl(unsigned long request, const void *arg)
+{
+    int ret = real::ioctl(this->fd, request, arg);
+
+    /* Only add the arguments to the queue if the ioctl() has succeeded,
+     * otherwise we risk a fatal error while replaying them on our end.
+     */
+    if (ret == 0)
+        this->sockopts.cache_ioctl(request, arg);
+    return ret;
+}
+
 #ifdef SOCKET_ACTIVATION
 int Socket::listen(int backlog)
 {

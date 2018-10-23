@@ -57,6 +57,7 @@ namespace real {
     DLSYM_FUN(connect, int, int, const struct sockaddr*, socklen_t);
     DLSYM_FUN(getpeername, int, int, struct sockaddr*, socklen_t*);
     DLSYM_FUN(getsockname, int, int, struct sockaddr*, socklen_t*);
+    DLSYM_FUN(ioctl, int, int, unsigned long, const void*);
 #ifdef SOCKET_ACTIVATION
     DLSYM_FUN(listen, int, int, int);
 #endif

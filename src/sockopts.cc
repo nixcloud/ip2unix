@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #include <cstdio>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 
 #include "realcalls.hh"
 #include "sockopts.hh"
@@ -15,8 +16,20 @@ void SockOpts::cache_sockopt(int lvl, int name, const void *val, socklen_t len)
     this->entries.push(entry);
 }
 
-void cache_ioctl(unsigned long request, ...)
+void SockOpts::cache_ioctl(unsigned long request, const void *arg)
 {
+    size_t len;
+
+    switch (request) {
+        case SIOCSPGRP: len = sizeof(pid_t); break;
+        case FIOASYNC: len = sizeof(int); break;
+        default: return;
+    }
+
+    std::vector<uint8_t> argcopy((uint8_t*)arg,
+                                 (uint8_t*)arg + len);
+    SockOpts::EntryIoctl entry{request, argcopy};
+    this->entries.push(entry);
 }
 
 /*
@@ -42,6 +55,11 @@ bool SockOpts::replay(int old_sockfd, int new_sockfd)
 
         bool operator()(const SockOpts::EntryIoctl &entry)
         {
+            if (real::ioctl(this->fd, entry.request, entry.arg.data()) == -1) {
+                perror("ioctl");
+                return false;
+            }
+
             return true;
         }
 

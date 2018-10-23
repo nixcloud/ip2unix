@@ -72,6 +72,15 @@ extern "C" int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
     });
 }
 
+extern "C" int WRAP_SYM(ioctl)(int fd, unsigned long request, void *arg)
+{
+    return Socket::when<int>(fd, [&](Socket::Ptr sock) {
+        return sock->ioctl(request, arg);
+    }, [&]() {
+        return real::ioctl(fd, request, arg);
+    });
+}
+
 #ifdef SOCKET_ACTIVATION
 /*
  * For systemd socket activation, we need to make sure the program doesn't run

@@ -46,6 +46,7 @@ struct Socket : std::enable_shared_from_this<Socket>
     static std::shared_ptr<Socket> create(int, int, int, int);
 
     int setsockopt(int, int, const void*, socklen_t);
+    int ioctl(unsigned long, const void*);
 
     int listen(int);
 #ifdef SOCKET_ACTIVATION

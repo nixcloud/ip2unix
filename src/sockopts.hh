@@ -17,7 +17,7 @@ class SockOpts
 
     struct EntryIoctl {
         unsigned long request;
-        // TODO: std::vector<...> args;
+        std::vector<uint8_t> arg;
     };
 
     std::queue<std::variant<EntrySockopt, EntryIoctl>> entries;
@@ -26,7 +26,7 @@ class SockOpts
         SockOpts();
 
         void cache_sockopt(int, int, const void*, socklen_t);
-        void cache_ioctl(unsigned long, ...);
+        void cache_ioctl(unsigned long, const void*);
 
         bool replay(int, int);
 };
