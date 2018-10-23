@@ -8,6 +8,22 @@
 #include "realcalls.hh"
 #include "rules.hh"
 
+std::optional<Socket::Ptr> Socket::find(int fd)
+{
+    decltype(Socket::active)::const_iterator found = Socket::active.find(fd);
+    if (found == Socket::active.end())
+        return std::nullopt;
+    return found->second;
+}
+
+Socket::Ptr Socket::create(int fd, int domain, int type, int protocol)
+{
+    std::scoped_lock<std::mutex> lock(Socket::active_mutex);
+    Socket::Ptr sock = std::shared_ptr<Socket>(new Socket(fd, domain, type,
+                                                          protocol));
+    return Socket::active[fd] = sock->getptr();
+}
+
 static inline SocketType get_sotype(const int type)
 {
     switch (type & (SOCK_STREAM | SOCK_DGRAM)) {
@@ -20,6 +36,9 @@ static inline SocketType get_sotype(const int type)
     }
 }
 
+std::mutex Socket::active_mutex;
+std::unordered_map<int, Socket::Ptr> Socket::active;
+
 Socket::Socket(int fd, int domain, int type, int protocol)
     : fd(fd)
     , domain(domain)
@@ -29,6 +48,20 @@ Socket::Socket(int fd, int domain, int type, int protocol)
     , binding()
     , sockopts()
 {
+}
+
+Socket::~Socket()
+{
+    if (this->rule && this->sockpath) {
+        auto rule = this->rule.value();
+        if (rule->direction == RuleDir::INCOMING)
+            unlink(this->sockpath.value().c_str());
+    }
+}
+
+Socket::Ptr Socket::getptr(void)
+{
+    return this->shared_from_this();
 }
 
 int Socket::setsockopt(int level, int optname, const void *optval,
@@ -257,15 +290,17 @@ static void set_peername(struct sockaddr *addr, socklen_t *addrlen)
 }
 */
 
-/*
-int Socket::accept(struct sockaddr *addr, socklen_t *addrlen, int flags)
+void Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-    SocketChildren newchild;
-    newchild.parent = get_parent(si.value());
-    g_active_sockets[accfd] = newchild;
-    set_peername(addr, addrlen);
+    Socket::Ptr sock = std::shared_ptr<Socket>(new Socket(fd, this->domain,
+                                                          this->typearg,
+                                                          this->protocol));
+    sock->parent = this->getptr();
+    Socket::active[fd] = sock->getptr();
+
+    std::optional<SockAddr> sa = SockAddr::create("127.0.0.1", 65530);
+    sa.value_or(SockAddr()).apply_addr(addr, addrlen);
 }
-*/
 
 int Socket::getpeername(struct sockaddr *addr, socklen_t *addrlen)
 {
@@ -283,8 +318,10 @@ int Socket::getsockname(struct sockaddr *addr, socklen_t *addrlen)
 int Socket::close(void)
 {
 #ifdef SOCKET_ACTIVATION
-    if (this->rule && this->rule.value()->socket_activation)
+    if (this->rule && this->rule.value()->socket_activation) {
+        Socket::active.erase(this->fd);
         return 0;
+    }
 #endif
     int ret = real::close(fd);
 
@@ -294,6 +331,7 @@ int Socket::close(void)
             unlink(this->sockpath.value().c_str());
     }
 
+    Socket::active.erase(this->fd);
     return ret;
 }
 

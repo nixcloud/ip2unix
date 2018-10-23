@@ -2,8 +2,12 @@
 #ifndef IP2UNIX_SOCKET_HH
 #define IP2UNIX_SOCKET_HH
 
+#include <functional>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <queue>
+#include <unordered_map>
 
 #include <netinet/in.h>
 
@@ -20,54 +24,89 @@ struct SockoptEntry {
     std::vector<uint8_t> optval;
 };
 
-class Socket
+struct Socket : std::enable_shared_from_this<Socket>
 {
-    const int fd;
-    const int domain;
-    const SocketType type;
-    const int typearg;
-    const int protocol;
+    using Ptr = std::shared_ptr<Socket>;
 
-    std::optional<SockAddr> binding;
-    std::queue<SockoptEntry> sockopts;
+    ~Socket();
 
-    // Whether the socket has already been converted to an AF_UNIX socket.
-    bool is_unix = false;
+    /* If we find a socket in Socket::active, call the first function,
+     * otherwise call the second function (providing default value).
+     */
+    template<typename T>
+    static T when(int fd, std::function<T(Ptr)> f, std::function<T(void)> d) {
+        std::unique_lock<std::mutex> lock(Socket::active_mutex);
+        std::optional<Ptr> sock = Socket::find(fd);
+        if (sock) {
+            return f(sock.value());
+        } else {
+            lock.unlock();
+            return d();
+        }
+    }
 
-    // helpers... TODO!
-    bool apply_sockopts(int);
-    bool make_unix();
+    /* Same as the previous function, but without a default value. */
+    static void when(int fd, std::function<void(Ptr)> f) {
+        std::scoped_lock<std::mutex> lock(Socket::active_mutex);
+        std::optional<Ptr> sock = Socket::find(fd);
+        if (sock) f(sock.value());
+    }
 
-    void bind_sockaddr(const SockAddr*);
+    /* Construct the socket and register it in Socket::active. */
+    static std::shared_ptr<Socket> create(int, int, int, int);
 
-    std::string format_sockpath(const std::string&, const SockAddr&) const;
+    bool match_rule(const SockAddr&, const Rule&) const;
 
-    public:
+    int setsockopt(int, int, const void*, socklen_t);
+
+    int listen(int);
+    int bind_connect(const SockAddr&, const Rule &rule);
+
+    void accept(int, sockaddr*, socklen_t*);
+    int getsockname(sockaddr*, socklen_t*);
+    int getpeername(sockaddr*, socklen_t*);
+    int close(void);
+
+    private:
+        const int fd;
+        const int domain;
+        const SocketType type;
+        const int typearg;
+        const int protocol;
+
+        std::optional<SockAddr> binding;
+        std::queue<SockoptEntry> sockopts;
+
+        /* Constructor and reference getter. */
         Socket(int, int, int, int);
+        Ptr getptr(void);
 
-        bool match_rule(const SockAddr&, const Rule&) const;
-
-        // XXX: Make private!
+        // XXX: Get rid of this...
         std::optional<const Rule*> rule = std::nullopt;
         std::optional<std::string> sockpath = std::nullopt;
-        // !XXX
 
-        int setsockopt(int, int, const void*, socklen_t);
+        /* Mutex to prevent race conditions during Socket::active lookup. */
+        static std::mutex active_mutex;
 
-        int listen(int);
+        /* Find a registered socket in Socket::active. */
+        static std::optional<Ptr> find(int);
 
-        int bind_connect(const SockAddr&, const Rule &rule);
-        /*
-        int bind(const struct sockaddr*, socklen_t);
-        int connect(const struct sockaddr *, socklen_t);
-        */
+        /* All INET/INET6 sockets are registered here. */
+        static std::unordered_map<int, Ptr> active;
 
-        int getsockname(sockaddr*, socklen_t*);
-        int getpeername(struct sockaddr*, socklen_t*);
-        /*
-        int accept4(struct sockaddr*, socklen_t*, int);
-        */
-        int close(void);
+        /* Whether the socket has been converted to an AF_UNIX socket. */
+        bool is_unix = false;
+
+        /* The parent once we got another socket via accept(). */
+        std::optional<Ptr> parent;
+
+        // helpers... TODO!
+        bool apply_sockopts(int);
+        bool make_unix();
+
+        void bind_sockaddr(const SockAddr*);
+
+        std::string format_sockpath(const std::string&, const SockAddr&) const;
 };
 
 #endif
