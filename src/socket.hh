@@ -11,13 +11,7 @@
 
 #include "types.hh"
 #include "sockaddr.hh"
-
-// FIXME
-struct SockoptEntry {
-    int level;
-    int optname;
-    std::vector<uint8_t> optval;
-};
+#include "sockopts.hh"
 
 struct Socket : std::enable_shared_from_this<Socket>
 {
@@ -76,7 +70,7 @@ struct Socket : std::enable_shared_from_this<Socket>
         std::optional<SockAddr> connection;
         std::optional<std::string> sockpath;
 
-        std::queue<SockoptEntry> sockopts;
+        SockOpts sockopts;
 
         /* Constructor and reference getter. */
         Socket(int, int, int, int);

@@ -67,10 +67,6 @@ Socket::Ptr Socket::getptr(void)
 int Socket::setsockopt(int level, int optname, const void *optval,
                        socklen_t optlen)
 {
-    std::vector<uint8_t> valcopy((uint8_t*)optval,
-                                 (uint8_t*)optval + optlen);
-    SockoptEntry entry{level, optname, valcopy};
-
     int ret = real::setsockopt(this->fd, level, optname, optval, optlen);
 
     /* Only add the socket option to the queue if the setsockopt() has
@@ -78,7 +74,7 @@ int Socket::setsockopt(int level, int optname, const void *optval,
      * our end.
      */
     if (ret == 0)
-        this->sockopts.push(entry);
+        this->sockopts.cache_sockopt(level, optname, optval, optlen);
     return ret;
 }
 
@@ -91,48 +87,6 @@ int Socket::listen(int backlog)
     return real::listen(this->fd, backlog);
 }
 #endif
-
-/*
- * Set all the socket options and file descriptor flags from old_sockfd to
- * new_sockfd.
- */
-bool Socket::apply_sockopts(int new_sockfd)
-{
-    int fdflags, fdstatus;
-
-    if ((fdflags = fcntl(this->fd, F_GETFD)) == -1) {
-        perror("fcntl(F_GETFD)");
-        return false;
-    }
-
-    if ((fdstatus = fcntl(this->fd, F_GETFL)) == -1) {
-        perror("fcntl(F_GETFL)");
-        return false;
-    }
-
-    if (fcntl(new_sockfd, F_SETFD, fdflags) == -1) {
-        perror("fcntl(F_SETFD)");
-        return false;
-    }
-
-    if (fcntl(new_sockfd, F_SETFL, fdstatus) == -1) {
-        perror("fcntl(F_SETFL)");
-        return false;
-    }
-
-    while (!this->sockopts.empty()) {
-        auto entry = this->sockopts.front();
-        if (real::setsockopt(new_sockfd, entry.level, entry.optname,
-                             entry.optval.data(),
-                             entry.optval.size()) == -1) {
-            perror("setsockopt");
-            return false;
-        }
-        this->sockopts.pop();
-    }
-
-    return true;
-}
 
 /*
  * Replace placeholders such as %p or %a accordingly in the socket path.
@@ -189,7 +143,7 @@ bool Socket::make_unix(int fd)
         return false;
     }
 
-    if (!this->apply_sockopts(newfd)) {
+    if (!this->sockopts.replay(this->fd, newfd)) {
         if (fd == -1) real::close(newfd);
         return false;
     }
