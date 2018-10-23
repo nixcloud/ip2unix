@@ -46,7 +46,7 @@ static void init_rules(void)
     g_rules = std::make_shared<std::vector<Rule>>(rules.value());
 }
 
-int WRAP_SYM(socket)(int domain, int type, int protocol)
+extern "C" int WRAP_SYM(socket)(int domain, int type, int protocol)
 {
     int fd = real::socket(domain, type, protocol);
     if (fd != -1 && (domain == AF_INET || domain == AF_INET6))
@@ -58,8 +58,8 @@ int WRAP_SYM(socket)(int domain, int type, int protocol)
  * We override setsockopt() so that we can gather all the socket options that
  * are set for the socket file descriptor in question.
  */
-int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
-                         const void *optval, socklen_t optlen)
+extern "C" int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
+                                    const void *optval, socklen_t optlen)
 {
     /* Only cache socket options for SOL_SOCKET, no IPPROTO_TCP etc... */
     if (level != SOL_SOCKET)
@@ -77,7 +77,7 @@ int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
  * For systemd socket activation, we need to make sure the program doesn't run
  * listen on the socket, as this is already done by systemd.
  */
-int WRAP_SYM(listen)(int sockfd, int backlog)
+extern "C" int WRAP_SYM(listen)(int sockfd, int backlog)
 {
     return Socket::when<int>(sockfd, [&](Socket::Ptr sock) {
         return sock->listen(backlog);
@@ -137,13 +137,15 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
     });
 }
 
-int WRAP_SYM(bind)(int fd, const struct sockaddr *addr, socklen_t addrlen)
+extern "C" int WRAP_SYM(bind)(int fd, const struct sockaddr *addr,
+                              socklen_t addrlen)
 {
     return bind_connect(&Socket::bind, real::bind, RuleDir::INCOMING,
                         fd, addr, addrlen);
 }
 
-int WRAP_SYM(connect)(int fd, const struct sockaddr *addr, socklen_t addrlen)
+extern "C" int WRAP_SYM(connect)(int fd, const struct sockaddr *addr,
+                                 socklen_t addrlen)
 {
     return bind_connect(&Socket::connect, real::connect, RuleDir::OUTGOING,
                         fd, addr, addrlen);
@@ -161,18 +163,20 @@ static int handle_accept(int fd, struct sockaddr *addr, socklen_t *addrlen,
     return accfd;
 }
 
-int WRAP_SYM(accept)(int fd, struct sockaddr *addr, socklen_t *addrlen)
+extern "C" int WRAP_SYM(accept)(int fd, struct sockaddr *addr,
+                                socklen_t *addrlen)
 {
     return handle_accept(fd, addr, addrlen, 0);
 }
 
-int WRAP_SYM(accept4)(int fd, struct sockaddr *addr, socklen_t *addrlen,
-                      int flags)
+extern "C" int WRAP_SYM(accept4)(int fd, struct sockaddr *addr,
+                                 socklen_t *addrlen, int flags)
 {
     return handle_accept(fd, addr, addrlen, flags);
 }
 
-int WRAP_SYM(getpeername)(int fd, struct sockaddr *addr, socklen_t *addrlen)
+extern "C" int WRAP_SYM(getpeername)(int fd, struct sockaddr *addr,
+                                     socklen_t *addrlen)
 {
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         return sock->getpeername(addr, addrlen);
@@ -181,7 +185,8 @@ int WRAP_SYM(getpeername)(int fd, struct sockaddr *addr, socklen_t *addrlen)
     });
 }
 
-int WRAP_SYM(getsockname)(int fd, struct sockaddr *addr, socklen_t *addrlen)
+extern "C" int WRAP_SYM(getsockname)(int fd, struct sockaddr *addr,
+                                     socklen_t *addrlen)
 {
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         return sock->getsockname(addr, addrlen);
@@ -190,7 +195,7 @@ int WRAP_SYM(getsockname)(int fd, struct sockaddr *addr, socklen_t *addrlen)
     });
 }
 
-int WRAP_SYM(close)(int fd)
+extern "C" int WRAP_SYM(close)(int fd)
 {
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         return sock->close();
