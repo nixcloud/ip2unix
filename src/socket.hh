@@ -9,13 +9,8 @@
 #include <queue>
 #include <unordered_map>
 
-#include <netinet/in.h>
-
 #include "types.hh"
 #include "sockaddr.hh"
-
-// Forward decl
-class Rule;
 
 // FIXME
 struct SockoptEntry {
@@ -29,6 +24,7 @@ struct Socket : std::enable_shared_from_this<Socket>
     using Ptr = std::shared_ptr<Socket>;
 
     ~Socket();
+    const SocketType type;
 
     /* If we find a socket in Socket::registry, call the first function,
      * otherwise call the second function (providing default value).
@@ -55,12 +51,14 @@ struct Socket : std::enable_shared_from_this<Socket>
     /* Construct the socket and register it in Socket::registry. */
     static std::shared_ptr<Socket> create(int, int, int, int);
 
-    bool match_rule(const SockAddr&, const Rule&) const;
-
     int setsockopt(int, int, const void*, socklen_t);
 
     int listen(int);
-    int bind_connect(const SockAddr&, const Rule &rule);
+#ifdef SOCKET_ACTIVATION
+    int activate(const SockAddr&, int fd);
+#endif
+    int bind(const SockAddr&, const std::string&);
+    int connect(const SockAddr&, const std::string&);
 
     void accept(int, sockaddr*, socklen_t*);
     int getsockname(sockaddr*, socklen_t*);
@@ -70,20 +68,19 @@ struct Socket : std::enable_shared_from_this<Socket>
     private:
         const int fd;
         const int domain;
-        const SocketType type;
         const int typearg;
         const int protocol;
 
+        bool activated;
         std::optional<SockAddr> binding;
+        std::optional<SockAddr> connection;
+        std::optional<std::string> sockpath;
+
         std::queue<SockoptEntry> sockopts;
 
         /* Constructor and reference getter. */
         Socket(int, int, int, int);
         Ptr getptr(void);
-
-        // XXX: Get rid of this...
-        std::optional<const Rule*> rule = std::nullopt;
-        std::optional<std::string> sockpath = std::nullopt;
 
         /* Mutex to prevent race conditions during Socket::registry lookup. */
         static std::mutex registry_mutex;
@@ -100,11 +97,9 @@ struct Socket : std::enable_shared_from_this<Socket>
         /* The parent once we got another socket via accept(). */
         std::optional<Ptr> parent;
 
-        // helpers... TODO!
+        /* Various helper functions. */
         bool apply_sockopts(int);
         bool make_unix(int = -1);
-
-        void bind_sockaddr(const SockAddr*);
 
         std::string format_sockpath(const std::string&, const SockAddr&) const;
 };

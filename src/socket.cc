@@ -6,7 +6,6 @@
 
 #include "socket.hh"
 #include "realcalls.hh"
-#include "rules.hh"
 
 std::optional<Socket::Ptr> Socket::find(int fd)
 {
@@ -41,23 +40,23 @@ std::mutex Socket::registry_mutex;
 std::unordered_map<int, Socket::Ptr> Socket::registry;
 
 Socket::Socket(int fd, int domain, int type, int protocol)
-    : fd(fd)
+    : type(get_sotype(type))
+    , fd(fd)
     , domain(domain)
-    , type(get_sotype(type))
     , typearg(type)
     , protocol(protocol)
+    , activated(false)
     , binding()
+    , connection()
+    , sockpath()
     , sockopts()
 {
 }
 
 Socket::~Socket()
 {
-    if (this->rule && this->sockpath) {
-        auto rule = this->rule.value();
-        if (rule->direction == RuleDir::INCOMING)
-            unlink(this->sockpath.value().c_str());
-    }
+    if (this->sockpath && this->binding && !this->activated)
+        unlink(this->sockpath.value().c_str());
 }
 
 Socket::Ptr Socket::getptr(void)
@@ -86,7 +85,7 @@ int Socket::setsockopt(int level, int optname, const void *optval,
 #ifdef SOCKET_ACTIVATION
 int Socket::listen(int backlog)
 {
-    if (this->rule && this->rule.value()->socket_activation)
+    if (this->activated)
         return 0;
 
     return real::listen(this->fd, backlog);
@@ -205,67 +204,57 @@ bool Socket::make_unix(int fd)
     return true;
 }
 
-// FIXME: Get rid of rule!
-int Socket::bind_connect(const SockAddr &addr, const Rule &rule)
-{
 #ifdef SOCKET_ACTIVATION
-    if (rule.socket_activation) {
-        int newfd = get_systemd_fd_for_rule(rule);
-        if (!this->make_unix(newfd))
-            return -1;
+int Socket::activate(const SockAddr &addr, int fd)
+{
+    if (!this->make_unix(fd))
+        return -1;
 
-        this->binding = addr;
-        this->rule = &rule;
-        return 0;
-    }
+    this->binding = addr;
+    this->activated = true;
+    return 0;
+}
 #endif
 
+int Socket::bind(const SockAddr &addr, const std::string &path)
+{
     if (!this->make_unix())
         return -1;
 
-    // XXX: .value() -> dangerous!
-    std::string sockpath =
-        this->format_sockpath(rule.socket_path.value(), addr);
+    std::string sockpath = this->format_sockpath(path, addr);
 
     struct sockaddr_un ua;
     memset(&ua, 0, sizeof ua);
     ua.sun_family = AF_UNIX;
     strncpy(ua.sun_path, sockpath.c_str(), sizeof(ua.sun_path) - 1);
 
-    int ret;
-
-    switch (rule.direction) {
-        case RuleDir::INCOMING:
-            ret = real::bind(this->fd, (struct sockaddr*)&ua, sizeof ua);
-            break;
-        case RuleDir::OUTGOING:
-            ret = real::connect(this->fd, (struct sockaddr*)&ua, sizeof ua);
-            break;
-        default:
-            // FIXME!
-            return 0;
-    }
-
+    int ret = real::bind(this->fd, (struct sockaddr*)&ua, sizeof ua);
     if (ret == 0) {
         this->binding = addr;
         this->sockpath = sockpath;
-        this->rule = &rule;
     }
-
     return ret;
 }
 
-/* TODO!
-int Socket::bind(const struct sockaddr *addr, socklen_t addrlen)
+int Socket::connect(const SockAddr &addr, const std::string &path)
 {
-    return handle_bind_connect(addr, addrlen);
-}
+    if (!this->make_unix())
+        return -1;
 
-int Socket::connect(const struct sockaddr *addr, socklen_t addrlen)
-{
-    return handle_bind_connect(addr, addrlen);
+    std::string sockpath = this->format_sockpath(path, addr);
+
+    struct sockaddr_un ua;
+    memset(&ua, 0, sizeof ua);
+    ua.sun_family = AF_UNIX;
+    strncpy(ua.sun_path, sockpath.c_str(), sizeof(ua.sun_path) - 1);
+
+    int ret = real::connect(this->fd, (struct sockaddr*)&ua, sizeof ua);
+    if (ret == 0) {
+        this->connection = addr;
+        this->sockpath = sockpath;
+    }
+    return ret;
 }
-*/
 
 /*
 static void set_peername(struct sockaddr *addr, socklen_t *addrlen)
@@ -308,34 +297,17 @@ int Socket::getsockname(struct sockaddr *addr, socklen_t *addrlen)
 
 int Socket::close(void)
 {
-#ifdef SOCKET_ACTIVATION
-    if (this->rule && this->rule.value()->socket_activation) {
-        Socket::registry.erase(this->fd);
-        return 0;
-    }
-#endif
-    int ret = real::close(fd);
+    int ret;
 
-    if (this->rule) {
-        auto rule = this->rule.value();
-        if (this->sockpath && rule->direction == RuleDir::INCOMING)
+    if (this->activated) {
+        ret = 0;
+    } else {
+        ret = real::close(fd);
+
+        if (this->sockpath && this->binding)
             unlink(this->sockpath.value().c_str());
     }
 
     Socket::registry.erase(this->fd);
     return ret;
-}
-
-bool Socket::match_rule(const SockAddr &addr, const Rule &rule) const
-{
-    if (rule.type && this->type != rule.type)
-        return false;
-
-    if (rule.address && addr.get_host() != rule.address)
-        return false;
-
-    if (rule.port && addr.get_port() != rule.port)
-        return false;
-
-    return true;
 }

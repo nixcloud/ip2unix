@@ -46,19 +46,6 @@ static void init_rules(void)
     g_rules = std::make_shared<std::vector<Rule>>(rules.value());
 }
 
-static inline int real_bind_connect(RuleDir dir, int fd,
-                                    const struct sockaddr *addr,
-                                    socklen_t addrlen)
-{
-    switch (dir) {
-        case RuleDir::INCOMING:
-            return real::bind(fd, addr, addrlen);
-        case RuleDir::OUTGOING:
-            return real::connect(fd, addr, addrlen);
-    }
-    return -1;
-}
-
 int WRAP_SYM(socket)(int domain, int type, int protocol)
 {
     int fd = real::socket(domain, type, protocol);
@@ -103,12 +90,13 @@ int WRAP_SYM(listen)(int sockfd, int backlog)
 /*
  * Handle both bind() and connect() depending on the value of "dir".
  */
-static inline int handle_bind_connect(RuleDir dir, int fd,
-                                      const struct sockaddr *addr,
-                                      socklen_t addrlen)
+template <typename SockFun, typename RealFun>
+static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
+                               RuleDir dir, int fd,
+                               const struct sockaddr *addr, socklen_t addrlen)
 {
     if (addr->sa_family != AF_INET && addr->sa_family != AF_INET6)
-        return real_bind_connect(dir, fd, addr, addrlen);
+        return std::invoke(realfun, fd, addr, addrlen);
 
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         SockAddr inaddr(addr);
@@ -121,33 +109,44 @@ static inline int handle_bind_connect(RuleDir dir, int fd,
             if (rule.direction != dir)
                 continue;
 
-            if (!sock->match_rule(inaddr, rule))
+            if (rule.type && sock->type != rule.type)
+                continue;
+
+            if (rule.address && inaddr.get_host() != rule.address)
+                continue;
+
+            if (rule.port && inaddr.get_port() != rule.port)
                 continue;
 
 #ifdef SOCKET_ACTIVATION
-            if (rule.socket_activation)
-                return sock->bind_connect(inaddr, rule);
+            if (rule.socket_activation) {
+                int newfd = get_systemd_fd_for_rule(rule);
+                return sock->activate(inaddr, newfd);
+            }
 #endif
             if (!rule.socket_path)
                 continue;
 
-            return sock->bind_connect(inaddr, rule);
+            return std::invoke(sockfun, sock, inaddr,
+                               rule.socket_path.value());
         }
 
-        return real_bind_connect(dir, fd, addr, addrlen);
+        return std::invoke(realfun, fd, addr, addrlen);
     }, [&]() {
-        return real_bind_connect(dir, fd, addr, addrlen);
+        return std::invoke(realfun, fd, addr, addrlen);
     });
 }
 
 int WRAP_SYM(bind)(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
-    return handle_bind_connect(RuleDir::INCOMING, fd, addr, addrlen);
+    return bind_connect(&Socket::bind, real::bind, RuleDir::INCOMING,
+                        fd, addr, addrlen);
 }
 
 int WRAP_SYM(connect)(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
-    return handle_bind_connect(RuleDir::OUTGOING, fd, addr, addrlen);
+    return bind_connect(&Socket::connect, real::connect, RuleDir::OUTGOING,
+                        fd, addr, addrlen);
 }
 
 static int handle_accept(int fd, struct sockaddr *addr, socklen_t *addrlen,
