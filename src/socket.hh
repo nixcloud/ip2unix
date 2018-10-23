@@ -102,7 +102,7 @@ struct Socket : std::enable_shared_from_this<Socket>
 
         // helpers... TODO!
         bool apply_sockopts(int);
-        bool make_unix();
+        bool make_unix(int = -1);
 
         void bind_sockaddr(const SockAddr*);
 

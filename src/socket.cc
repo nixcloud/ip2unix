@@ -176,26 +176,28 @@ std::string Socket::format_sockpath(const std::string &sockpath,
  * The socket options are read from sockopt_cache, which is gathered from the
  * override of the setsockopt() function above.
  */
-bool Socket::make_unix(void)
+bool Socket::make_unix(int fd)
 {
     int newfd;
 
     if (this->is_unix)
         return true;
 
-    if ((newfd = real::socket(AF_UNIX, this->typearg, 0)) == -1) {
+    if (fd != -1) {
+        newfd = fd;
+    } else if ((newfd = real::socket(AF_UNIX, this->typearg, 0)) == -1) {
         perror("socket(AF_UNIX)");
         return false;
     }
 
     if (!this->apply_sockopts(newfd)) {
-        real::close(newfd);
+        if (fd == -1) real::close(newfd);
         return false;
     }
 
     if (dup2(newfd, this->fd) == -1) {
         perror("dup2");
-        real::close(newfd);
+        if (fd == -1) real::close(newfd);
         return false;
     }
 
@@ -208,24 +210,12 @@ int Socket::bind_connect(const SockAddr &addr, const Rule &rule)
 {
 #ifdef SOCKET_ACTIVATION
     if (rule.socket_activation) {
-        // FIXME: Deduplicate!
-        if (this->is_unix)
-            return 0;
-
-        // XXX: This shouldn't be here!
         int newfd = get_systemd_fd_for_rule(rule);
-
-        if (!this->apply_sockopts(newfd))
+        if (!this->make_unix(newfd))
             return -1;
-
-        if (dup2(newfd, fd) == -1) {
-            perror("dup2");
-            return -1;
-        }
 
         this->binding = addr;
         this->rule = &rule;
-        this->is_unix = true;
         return 0;
     }
 #endif
