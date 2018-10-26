@@ -250,7 +250,6 @@ int Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
     Socket::Ptr sock = std::shared_ptr<Socket>(new Socket(fd, this->domain,
                                                           this->typearg,
                                                           this->protocol));
-    sock->parent = this->getptr();
 
     uint16_t sport = this->ports.acquire();
     std::optional<SockAddr> sa = SockAddr::create("127.0.0.1", sport);

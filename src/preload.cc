@@ -165,8 +165,8 @@ static int handle_accept(int fd, struct sockaddr *addr, socklen_t *addrlen,
 {
     int accfd = real::accept4(fd, addr, addrlen, flags);
     if (accfd > 0) {
-        return Socket::when<int>(fd, [&](Socket::Ptr sock) {
-            int ret = sock->accept(fd, addr, addrlen);
+        return Socket::when<int>(accfd, [&](Socket::Ptr sock) {
+            int ret = sock->accept(accfd, addr, addrlen);
             return ret == 0 ? accfd : ret;
         }, [&]() { return accfd; });
     }

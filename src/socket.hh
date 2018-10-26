@@ -92,9 +92,6 @@ struct Socket : std::enable_shared_from_this<Socket>
         /* Whether the socket has been converted to an AF_UNIX socket. */
         bool is_unix = false;
 
-        /* The parent once we got another socket via accept(). */
-        std::optional<Ptr> parent;
-
         /* Various helper functions. */
         bool apply_sockopts(int);
         bool make_unix(int = -1);
