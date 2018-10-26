@@ -14,9 +14,11 @@ if pytest.found()
               ' tests for socket activation.')
     endif
   endif
-  test('tests', pytest, args: pytest_args,
+  test('integration', pytest, args: pytest_args,
        workdir: meson.current_source_dir(),
        env: ['PYTHONDONTWRITEBYTECODE=1'])
 else
   warning('Unable to find pytest, tests will not be run.')
 endif
+
+subdir('unit')

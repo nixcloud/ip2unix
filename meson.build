@@ -4,6 +4,8 @@ add_project_arguments('-Wextra', language: 'cpp')
 
 python = import('python').find_installation()
 
+sources = []
+includes = []
 subdir('src')
 
 generate_sym_map = [python, files('meson/gensyms.py'), '@INPUT@']
@@ -33,7 +35,7 @@ endif
 
 ip2unix = executable('ip2unix', sources, install: true, dependencies: deps,
                      link_args: ldflags, link_depends: sym_map,
-                     cpp_args: cflags)
+                     include_directories: includes, cpp_args: cflags)
 
 man_input = files('README.adoc')
 
