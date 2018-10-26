@@ -200,6 +200,8 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
 
     std::optional<uint16_t> port = newaddr.get_port();
 
+    // Special case: Bind to port 0 uses a random port from the
+    // ephemeral port range.
     if (port && port.value() == 0) {
         uint16_t anyport = this->ports.acquire();
         newaddr.set_port(anyport);
@@ -238,6 +240,7 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
     int ret = real::connect(this->fd, (struct sockaddr*)&ua, sizeof ua);
     if (ret == 0) {
         uint16_t port = this->ports.reserve();
+        //                               vvvvvvvvvvv - XXX!
         this->binding = SockAddr::create("127.0.0.1", port);
         this->connection = addr;
         this->sockpath = sockpath;
@@ -247,28 +250,35 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
 
 int Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-    Socket::Ptr sock = std::shared_ptr<Socket>(new Socket(fd, this->domain,
-                                                          this->typearg,
-                                                          this->protocol));
-
-    uint16_t sport = this->ports.acquire();
-    std::optional<SockAddr> sa = SockAddr::create("127.0.0.1", sport);
-    sock->ports.reserve(sport);
-
-    uint16_t cport = sock->ports.acquire(); //    vvvvvvvvv - XXX!
-    std::optional<SockAddr> ca = SockAddr::create("0.0.0.1", cport);
-
-    if (sa && ca) {
-        sock->binding = sa;
-        sock->connection = ca;
-        sa.value().apply_addr(addr, addrlen);
-        Socket::registry[fd] = sock->getptr();
-        return 0;
-    } else {
-        sock->close();
-        errno = EPROTO;
+    if (!this->binding) {
+        errno = EINVAL;
         return -1;
     }
+
+    SockAddr binding = this->binding.value().copy();
+    std::optional<uint16_t> local_port = binding.get_port();
+    if (!local_port) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    uint16_t peer_port = this->ports.acquire();
+    //                                              vvvvvvvvv - XXX!
+    std::optional<SockAddr> peer = SockAddr::create("0.0.0.1", peer_port);
+    if (!peer) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    Socket::Ptr sock = std::shared_ptr<Socket>(
+        new Socket(fd, this->domain, this->typearg, this->protocol)
+    );
+    sock->ports.reserve(local_port.value());
+    sock->binding = binding;
+    sock->connection = peer;
+    peer.value().apply_addr(addr, addrlen);
+    Socket::registry[fd] = sock->getptr();
+    return 0;
 }
 
 int Socket::getpeername(struct sockaddr *addr, socklen_t *addrlen)
