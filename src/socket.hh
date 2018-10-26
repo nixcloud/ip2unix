@@ -12,6 +12,7 @@
 #include "types.hh"
 #include "sockaddr.hh"
 #include "sockopts.hh"
+#include "dynports.hh"
 
 struct Socket : std::enable_shared_from_this<Socket>
 {
@@ -55,7 +56,7 @@ struct Socket : std::enable_shared_from_this<Socket>
     int bind(const SockAddr&, const std::string&);
     int connect(const SockAddr&, const std::string&);
 
-    void accept(int, sockaddr*, socklen_t*);
+    int accept(int, sockaddr*, socklen_t*);
     int getsockname(sockaddr*, socklen_t*);
     int getpeername(sockaddr*, socklen_t*);
     int close(void);
@@ -67,11 +68,13 @@ struct Socket : std::enable_shared_from_this<Socket>
         const int protocol;
 
         bool activated;
+        bool bound;
         std::optional<SockAddr> binding;
         std::optional<SockAddr> connection;
         std::optional<std::string> sockpath;
 
         SockOpts sockopts;
+        DynPorts ports;
 
         /* Constructor and reference getter. */
         Socket(int, int, int, int);

@@ -46,10 +46,12 @@ Socket::Socket(int fd, int domain, int type, int protocol)
     , typearg(type)
     , protocol(protocol)
     , activated(false)
+    , bound(false)
     , binding()
     , connection()
     , sockpath()
     , sockopts()
+    , ports()
 {
 }
 
@@ -61,7 +63,7 @@ Socket::~Socket()
      * We can however unlink() the socket path, because the application thinks
      * it's an AF_INET/AF_INET6 socket so it won't know about that path.
      */
-    if (this->sockpath && this->binding && !this->activated)
+    if (this->sockpath && this->bound && !this->activated)
         unlink(this->sockpath.value().c_str());
 }
 
@@ -182,6 +184,7 @@ int Socket::activate(const SockAddr &addr, int fd)
     if (!this->make_unix(fd))
         return -1;
 
+    this->bound = true;
     this->binding = addr;
     this->activated = true;
     return 0;
@@ -202,6 +205,9 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
 
     int ret = real::bind(this->fd, (struct sockaddr*)&ua, sizeof ua);
     if (ret == 0) {
+        std::optional<uint16_t> port = addr.get_port();
+        if (port) this->ports.reserve(port.value());
+        this->bound = true;
         this->binding = addr;
         this->sockpath = sockpath;
     }
@@ -222,49 +228,61 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
 
     int ret = real::connect(this->fd, (struct sockaddr*)&ua, sizeof ua);
     if (ret == 0) {
+        uint16_t port = this->ports.reserve();
+        this->binding = SockAddr::create("127.0.0.1", port);
         this->connection = addr;
         this->sockpath = sockpath;
     }
     return ret;
 }
 
-/*
-static void set_peername(struct sockaddr *addr, socklen_t *addrlen)
-{
-    struct sockaddr_in dummy;
-    dummy.sin_family = AF_INET;
-    // FIXME: Fake this with a cached value!
-    dummy.sin_addr.s_addr = inet_addr("127.0.0.1");
-    // TODO: Rotate this!
-    dummy.sin_port = htons(65530);
-    memcpy(addr, &dummy, sizeof dummy);
-    *addrlen = sizeof dummy;
-}
-*/
-
-void Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
+int Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
     Socket::Ptr sock = std::shared_ptr<Socket>(new Socket(fd, this->domain,
                                                           this->typearg,
                                                           this->protocol));
     sock->parent = this->getptr();
-    Socket::registry[fd] = sock->getptr();
 
-    std::optional<SockAddr> sa = SockAddr::create("127.0.0.1", 65530);
-    sa.value_or(SockAddr()).apply_addr(addr, addrlen);
+    uint16_t sport = this->ports.acquire();
+    std::optional<SockAddr> sa = SockAddr::create("127.0.0.1", sport);
+    sock->ports.reserve(sport);
+
+    uint16_t cport = sock->ports.acquire(); //    vvvvvvvvv - XXX!
+    std::optional<SockAddr> ca = SockAddr::create("0.0.0.1", cport);
+
+    if (sa && ca) {
+        sock->binding = sa;
+        sock->connection = ca;
+        sa.value().apply_addr(addr, addrlen);
+        Socket::registry[fd] = sock->getptr();
+        return 0;
+    } else {
+        sock->close();
+        errno = EPROTO;
+        return -1;
+    }
 }
 
 int Socket::getpeername(struct sockaddr *addr, socklen_t *addrlen)
 {
-    std::optional<SockAddr> sa = SockAddr::create("127.0.0.1", 65530);
-    sa.value_or(SockAddr()).apply_addr(addr, addrlen);
-    return 0;
+    if (this->connection) {
+        this->connection.value().apply_addr(addr, addrlen);
+        return 0;
+    } else {
+        errno = EFAULT;
+        return -1;
+    }
 }
 
 int Socket::getsockname(struct sockaddr *addr, socklen_t *addrlen)
 {
-    this->binding.value_or(SockAddr()).apply_addr(addr, addrlen);
-    return 0;
+    if (this->binding) {
+        this->binding.value().apply_addr(addr, addrlen);
+        return 0;
+    } else {
+        errno = EFAULT;
+        return -1;
+    }
 }
 
 int Socket::close(void)
@@ -276,7 +294,7 @@ int Socket::close(void)
     } else {
         ret = real::close(this->fd);
 
-        if (this->sockpath && this->binding)
+        if (this->sockpath && this->bound)
             unlink(this->sockpath.value().c_str());
     }
 
