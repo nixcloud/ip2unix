@@ -42,7 +42,7 @@ class RulesTest(unittest.TestCase):
         fixtures = {
             "path=/aaa\\\\,port=0": "Port: 0\n",
             "path=/bbb\\\\,port=65535": "Port: 65535\n",
-            "path=/ccc\\\\": "Direction: incoming\n",
+            "path=/ccc\\\\": "Direction: both\n",
             "path=/ddd\\\\,in": "Direction: incoming\n",
             "path=/eee\\\\,out": "Direction: outgoing\n",
             "path=/fff\\\\,tcp,udp": "IP Type: UDP\n",

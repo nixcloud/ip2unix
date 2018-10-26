@@ -115,7 +115,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
         init_rules();
 
         for (auto &rule : *g_rules) {
-            if (rule.direction != dir)
+            if (rule.direction && rule.direction != dir)
                 continue;
 
             if (rule.type && sock->type != rule.type)

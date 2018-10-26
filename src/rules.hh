@@ -13,7 +13,7 @@
 enum class RuleDir { INCOMING, OUTGOING };
 
 struct Rule {
-    RuleDir direction = RuleDir::INCOMING;
+    std::optional<RuleDir> direction = std::nullopt;
     std::optional<SocketType> type = std::nullopt;
     std::optional<std::string> address = std::nullopt;
     std::optional<uint16_t> port = std::nullopt;

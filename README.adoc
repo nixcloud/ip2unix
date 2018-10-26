@@ -105,7 +105,8 @@ just use it twice (`\\`).
 The following flags are available:
 
 *in* | *out*::
-  Corresponds to the <<rule-opt-direction,*`direction`*>> rule file option.
+  Corresponds to the <<rule-opt-direction,*`direction`*>> rule file option and
+  if it's not set, both incoming and outgoing connections are matched.
 
 *tcp* | *udp*::
   Either match TCP or UDP sockets or both if none of these flags are set
@@ -146,8 +147,8 @@ and which Unix domain sockets to assign them to.
 
 [[rule-opt-direction]]*`direction`*::
 
-Whether this rule applies to a server-side socket (*`incoming`*) or a
-client-side socket (*`outgoing`*).
+Whether this rule applies to a server-side socket (*`incoming`*), a client-side
+socket (*`outgoing`*) or both if not defined.
 
 [[rule-opt-type]]*`type`*::
 

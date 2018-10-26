@@ -312,15 +312,19 @@ std::string encode_rules(std::vector<Rule> rules)
     for (const auto &rule : rules) {
         YAML::Node node;
 
-        if (rule.direction == RuleDir::OUTGOING)
-            node["direction"] = "outgoing";
-        else
-            node["direction"] = "incoming";
+        if (rule.direction) {
+            if (rule.direction.value() == RuleDir::OUTGOING)
+                node["direction"] = "outgoing";
+            else if (rule.direction.value() == RuleDir::INCOMING)
+                node["direction"] = "incoming";
+        }
 
-        if (rule.type == SocketType::TCP)
-            node["type"] = "tcp";
-        else if (rule.type == SocketType::UDP)
-            node["type"] = "udp";
+        if (rule.type) {
+            if (rule.type.value() == SocketType::TCP)
+                node["type"] = "tcp";
+            else if (rule.type.value() == SocketType::UDP)
+                node["type"] = "udp";
+        }
 
         if (rule.address)
             node["address"] = rule.address.value();
@@ -354,6 +358,8 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
             dirstr = "incoming";
         else if (rule.direction == RuleDir::OUTGOING)
             dirstr = "outgoing";
+        else
+            dirstr = "both";
 
         std::string typestr;
         if (rule.type == SocketType::TCP)
