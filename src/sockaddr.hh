@@ -13,6 +13,8 @@ struct SockAddr : public sockaddr_storage
     static std::optional<SockAddr> create(const std::string&, uint16_t,
                                           sa_family_t = AF_INET);
 
+    SockAddr copy(void) const;
+
     std::optional<std::string> get_host(void) const;
     bool set_host(const std::string&);
 

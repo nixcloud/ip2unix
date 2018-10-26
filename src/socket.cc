@@ -196,7 +196,17 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
     if (!this->make_unix())
         return -1;
 
-    std::string sockpath = this->format_sockpath(path, addr);
+    SockAddr newaddr = addr.copy();
+
+    std::optional<uint16_t> port = newaddr.get_port();
+
+    if (port && port.value() == 0) {
+        uint16_t anyport = this->ports.acquire();
+        newaddr.set_port(anyport);
+        port = anyport;
+    }
+
+    std::string sockpath = this->format_sockpath(path, newaddr);
 
     struct sockaddr_un ua;
     memset(&ua, 0, sizeof ua);
@@ -205,10 +215,9 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
 
     int ret = real::bind(this->fd, (struct sockaddr*)&ua, sizeof ua);
     if (ret == 0) {
-        std::optional<uint16_t> port = addr.get_port();
         if (port) this->ports.reserve(port.value());
         this->bound = true;
-        this->binding = addr;
+        this->binding = newaddr;
         this->sockpath = sockpath;
     }
     return ret;

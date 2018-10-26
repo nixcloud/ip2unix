@@ -34,6 +34,12 @@ std::optional<SockAddr> SockAddr::create(const std::string &addr,
     return sa;
 }
 
+SockAddr SockAddr::copy() const
+{
+    SockAddr sa(reinterpret_cast<const sockaddr*>(this));
+    return sa;
+}
+
 std::optional<std::string> SockAddr::get_host(void) const
 {
     if (this->ss_family == AF_INET) {
