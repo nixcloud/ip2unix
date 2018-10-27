@@ -18,8 +18,13 @@ ip2unix - Turn IP sockets into Unix domain sockets
 
 == Synopsis
 
-*ip2unix* [options] RULEFILE PROGRAM [ARGS...] +
-*ip2unix* -c [options] RULEFILE
+*ip2unix* [-p] -f RULES_FILE        PROGRAM [ARGS...] +
+*ip2unix* [-p] -F RULES_DATA        PROGRAM [ARGS...] +
+*ip2unix* [-p] -r RULE [-r RULE]... PROGRAM [ARGS...] +
+*ip2unix* [-p] -c -f RULES_FILE +
+*ip2unix* [-p] -c -F RULES_DATA +
+*ip2unix* [-p] -c -r RULE [-r RULE]... +
+*ip2unix* -h
 
 endif::[]
 
@@ -90,8 +95,12 @@ ifdef::manmanual[]
   A single rule for one particular socket to match, can be used several times
   to specify a set of rules similar to the sequence of the rule file.
 
-*-f RULEFILE, --rule-file=RULEFILE*::
+*-f RULESFILE, --rules-file=RULESFILE*::
   Specifies a YAML or JSON file consisting of a sequence of rules.
+
+*-F RULESDATA, --rules-data=RULESDATA*::
+  Similar to *-f*, but instead of specifying a file, directly pass the contents
+  as an argument.
 
 endif::[]
 

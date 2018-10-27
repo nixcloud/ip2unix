@@ -46,20 +46,23 @@ static bool run_preload(std::vector<Rule> &rules, char *argv[])
 static void print_usage(char *prog, FILE *fp)
 {
     fprintf(fp, "Usage: %s [-p] -f RULES_FILE        " PROG_ARGS "\n", prog);
+    fprintf(fp, "       %s [-p] -F RULES_DATA        " PROG_ARGS "\n", prog);
     fprintf(fp, "       %s [-p] -r RULE [-r RULE]... " PROG_ARGS "\n", prog);
     fprintf(fp, "       %s [-p] -c -f RULES_FILE\n", prog);
-    fprintf(fp, "       %s [-p] -c -r RULE\n", prog);
+    fprintf(fp, "       %s [-p] -c -F RULES_DATA\n", prog);
+    fprintf(fp, "       %s [-p] -c -r RULE [-r RULE]...\n", prog);
     fprintf(fp, "       %s -h\n", prog);
     fputs("\nTurn IP sockets into Unix domain sockets for PROGRAM\n", fp);
     fputs("according to the rules specified by either the YAML file\n", fp);
-    fputs("given by RULES_FILE or rules specified via one or more RULE\n", fp);
-    fputs("arguments.\n", fp);
+    fputs("given by RULES_FILE, inline via RULES_DATA or by directly\n", fp);
+    fputs("specifying one or more individual RULE arguments.\n", fp);
     fputs("\nOptions:\n", fp);
-    fputs("  -h, --help       Show this usage\n",              fp);
-    fputs("  -c, --check      Validate rules and exit\n",      fp);
-    fputs("  -p, --print      Print out the table of rules\n", fp);
-    fputs("  -f, --rule-file  YAML/JSON file containing the rules\n", fp);
-    fputs("  -r, --rule       A single rule\n", fp);
+    fputs("  -h, --help        Show this usage\n",                     fp);
+    fputs("  -c, --check       Validate rules and exit\n",             fp);
+    fputs("  -p, --print       Print out the table of rules\n",        fp);
+    fputs("  -f, --rules-file  YAML/JSON file containing the rules\n", fp);
+    fputs("  -F, --rules-data  Rules as inline YAML/JSON data\n",      fp);
+    fputs("  -r, --rule        A single rule\n",                       fp);
     fputs("\nSee ip2unix(1) for details about specifying rules.\n", fp);
 }
 
@@ -76,14 +79,16 @@ int main(int argc, char *argv[])
         {"check", no_argument, 0, 'c'},
         {"print", no_argument, 0, 'p'},
         {"rule", required_argument, 0, 0},
-        {"rule-file", required_argument, 0, 0},
+        {"rules-file", required_argument, 0, 0},
+        {"rules-data", required_argument, 0, 0},
         {0, 0, 0, 0}
     };
 
     std::optional<std::string> rulefile = std::nullopt;
+    std::optional<std::string> ruledata = std::nullopt;
     std::vector<std::string> rule_args;
 
-    while ((c = getopt_long(argc, argv, "+hcpr:f:", options, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "+hcpr:f:F:", options, NULL)) != -1) {
         switch (c) {
             case 'h':
                 print_usage(self, stdout);
@@ -105,15 +110,26 @@ int main(int argc, char *argv[])
                 rulefile = std::string(optarg);
                 break;
 
+            case 'F':
+                ruledata = std::string(optarg);
+                break;
+
             default:
                 print_usage(self, stderr);
                 return EXIT_FAILURE;
         }
     }
 
-    if (!rule_args.empty() && rulefile) {
+    if (!rule_args.empty() && (rulefile || ruledata)) {
         fprintf(stderr, "%s: Can't specify both direct rules and a rule"
                         " file.\n\n", self);
+        print_usage(self, stderr);
+        return EXIT_FAILURE;
+    }
+
+    if (rulefile && ruledata) {
+        fprintf(stderr, "%s: Can't use a rule file path and inline rules"
+                        " at the same time.\n\n", self);
         print_usage(self, stderr);
         return EXIT_FAILURE;
     }
@@ -132,9 +148,14 @@ int main(int argc, char *argv[])
         auto result = parse_rules(rulefile.value(), true);
         if (!result) return EXIT_FAILURE;
         rules = result.value();
+    } else if (ruledata) {
+        auto result = parse_rules(ruledata.value(), false);
+        if (!result) return EXIT_FAILURE;
+        rules = result.value();
     } else {
         fprintf(stderr, "%s: You need to either specify a rule file with '-f'"
-                        " or directly specify rules via '-r'.\n\n", self);
+                        " or '-F' (for inline content) or directly specify"
+                        " rules via '-r'.\n\n", self);
         print_usage(self, stderr);
         return EXIT_FAILURE;
     }

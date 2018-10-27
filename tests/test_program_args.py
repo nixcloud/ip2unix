@@ -28,6 +28,11 @@ def test_rules_and_rulefile():
     assert b"Can't specify both" in stderr
 
 
+def test_rulefile_and_ruledata():
+    stderr = check_error([IP2UNIX, '-f', '/nonexistent', '-F', '{}'])
+    assert b"rule file path and inline rules at the same time" in stderr
+
+
 def test_no_program():
     stderr = check_error([IP2UNIX, '-r', 'path=/foo'])
     assert b"No program to execute" in stderr
