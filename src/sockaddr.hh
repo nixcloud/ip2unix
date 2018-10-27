@@ -17,6 +17,7 @@ struct SockAddr : public sockaddr_storage
 
     std::optional<std::string> get_host(void) const;
     bool set_host(const std::string&);
+    bool set_host(const ucred&);
 
     std::optional<uint16_t> get_port(void) const;
     bool set_port(uint16_t);

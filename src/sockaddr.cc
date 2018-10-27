@@ -78,6 +78,29 @@ bool SockAddr::set_host(const std::string &host)
     return true;
 }
 
+bool SockAddr::set_host(const ucred &peercred)
+{
+    if (this->ss_family == AF_INET) {
+        sockaddr_in *addr = reinterpret_cast<struct sockaddr_in*>(this);
+        addr->sin_addr.s_addr = htonl(peercred.pid);
+        return true;
+    } else if (this->ss_family == AF_INET6) {
+        sockaddr_in6 *addr = reinterpret_cast<struct sockaddr_in6*>(this);
+        addr->sin6_addr.s6_addr[0] = 0xfe;
+        addr->sin6_addr.s6_addr[1] = 0x80;
+        addr->sin6_addr.s6_addr[2] = 0x00;
+        addr->sin6_addr.s6_addr[3] = 0x00;
+        uint32_t part = htonl(peercred.uid);
+        memcpy(addr->sin6_addr.s6_addr + 4, &part, 4);
+        part = htonl(peercred.gid);
+        memcpy(addr->sin6_addr.s6_addr + 8, &part, 4);
+        part = htonl(peercred.pid);
+        memcpy(addr->sin6_addr.s6_addr + 12, &part, 4);
+        return true;
+    }
+    return false;
+}
+
 std::optional<uint16_t> SockAddr::get_port(void) const
 {
     if (this->ss_family == AF_INET)

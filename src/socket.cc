@@ -237,11 +237,36 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
     ua.sun_family = AF_UNIX;
     strncpy(ua.sun_path, sockpath.c_str(), sizeof(ua.sun_path) - 1);
 
+    std::optional<uint16_t> remote_port = addr.get_port();
+    if (!remote_port) {
+        errno = EADDRNOTAVAIL;
+        return -1;
+    }
+
     int ret = real::connect(this->fd, (struct sockaddr*)&ua, sizeof ua);
     if (ret == 0) {
-        uint16_t port = this->ports.reserve();
-        //                               vvvvvvvvvvv - XXX!
-        this->binding = SockAddr::create("127.0.0.1", port);
+        if (!this->binding) {
+            // Use SO_PEERCRED here for determining the local IP address.
+            ucred peercred;
+            socklen_t len = sizeof peercred;
+
+            if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peercred, &len) == -1)
+                return -1;
+
+            uint16_t local_port = this->ports.acquire();
+            this->ports.reserve(remote_port.value());
+
+            // Our local sockaddr, which we only need if we didn't have a
+            // bind() before our connect.
+            SockAddr local;
+            local.ss_family = this->domain;
+            if (!local.set_host(peercred) || !local.set_port(local_port)) {
+                errno = EADDRNOTAVAIL;
+                return -1;
+            }
+
+            this->binding = local;
+        }
         this->connection = addr;
         this->sockpath = sockpath;
     }
@@ -262,10 +287,19 @@ int Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
         return -1;
     }
 
+    // We use SO_PEERCRED to get uid, gid and pid in order to generate unique
+    // IP addresses.
+    ucred peercred;
+    socklen_t len = sizeof peercred;
+
+    if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peercred, &len) == -1)
+        return -1;
+
+    // This is going to be used later when getpeername() is invoked.
     uint16_t peer_port = this->ports.acquire();
-    //                                              vvvvvvvvv - XXX!
-    std::optional<SockAddr> peer = SockAddr::create("0.0.0.1", peer_port);
-    if (!peer) {
+    SockAddr peer;
+    peer.ss_family = this->domain;
+    if (!peer.set_host(peercred) || !peer.set_port(peer_port)) {
         errno = EINVAL;
         return -1;
     }
@@ -276,9 +310,9 @@ int Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
     sock->ports.reserve(local_port.value());
     sock->binding = binding;
     sock->connection = peer;
-    peer.value().apply_addr(addr, addrlen);
+    peer.apply_addr(addr, addrlen);
     Socket::registry[fd] = sock->getptr();
-    return 0;
+    return fd;
 }
 
 int Socket::getpeername(struct sockaddr *addr, socklen_t *addrlen)
