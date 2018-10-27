@@ -1,6 +1,4 @@
-import os
 import json
-import tempfile
 import subprocess
 
 from contextlib import contextmanager
@@ -18,14 +16,8 @@ def ip2unix(rules, childargs, *args, **kwargs):
     cmdargs = [] if ip2unix_args is None else ip2unix_args
     pre_cmd = kwargs.pop('pre_cmd', None)
     pre = [] if pre_cmd is None else pre_cmd
-    rulefile = tempfile.NamedTemporaryFile('w', delete=False)
-    json.dump(rules, rulefile)
-    rulefile.close()
-    full_args = pre + [IP2UNIX, '-f', rulefile.name] + cmdargs + childargs
-    try:
-        yield subprocess.Popen(full_args, *args, **kwargs)
-    finally:
-        os.unlink(rulefile.name)
+    full_args = pre + [IP2UNIX, '-F', json.dumps(rules)] + cmdargs + childargs
+    yield subprocess.Popen(full_args, *args, **kwargs)
 
 
 systemd_only = pytest.mark.skipif(
