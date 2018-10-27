@@ -104,7 +104,7 @@ void SockAddr::apply_addr(struct sockaddr *addr, socklen_t *addrlen) const
 {
     if (this->ss_family == AF_INET)
         *addrlen = sizeof(sockaddr_in);
-    else if (this->ss_family == AF_INET)
+    else if (this->ss_family == AF_INET6)
         *addrlen = sizeof(sockaddr_in6);
     else
         return;
