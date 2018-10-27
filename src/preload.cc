@@ -163,14 +163,15 @@ extern "C" int WRAP_SYM(connect)(int fd, const struct sockaddr *addr,
 static int handle_accept(int fd, struct sockaddr *addr, socklen_t *addrlen,
                          int flags)
 {
-    int accfd = real::accept4(fd, addr, addrlen, flags);
-    if (accfd > 0) {
-        return Socket::when<int>(accfd, [&](Socket::Ptr sock) {
-            int ret = sock->accept(accfd, addr, addrlen);
-            return ret == 0 ? accfd : ret;
-        }, [&]() { return accfd; });
-    }
-    return accfd;
+    return Socket::when<int>(fd, [&](Socket::Ptr sock) {
+        int accfd = real::accept4(fd, nullptr, nullptr, flags);
+        if (accfd > 0)
+            return sock->accept(accfd, addr, addrlen);
+        else
+            return accfd;
+    }, [&]() {
+        return real::accept4(fd, addr, addrlen, flags);
+    });
 }
 
 extern "C" int WRAP_SYM(accept)(int fd, struct sockaddr *addr,
