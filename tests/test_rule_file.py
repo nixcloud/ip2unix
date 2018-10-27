@@ -1,20 +1,23 @@
+import json
 import subprocess
 import sys
 import unittest
 
-from helper import ip2unix, ip2unix_check, systemd_only, non_systemd_only
+from helper import IP2UNIX, systemd_only, non_systemd_only
 
 
 class RuleFileTest(unittest.TestCase):
     def assert_good_rules(self, rules):
-        code, output = ip2unix_check(rules)
-        msg = 'Rules {!r} do not validate: {}'.format(rules, output.rstrip())
-        self.assertTrue(code, msg)
+        cmd = [IP2UNIX, '-c', '-F', json.dumps(rules)]
+        result = subprocess.run(cmd, stderr=subprocess.STDOUT)
+        msg = 'Rules {!r} do not validate: {}'.format(rules, result.stdout)
+        self.assertEqual(result.returncode, 0, msg)
 
     def assert_bad_rules(self, rules):
-        code, output = ip2unix_check(rules)
+        cmd = [IP2UNIX, '-c', '-F', json.dumps(rules)]
+        result = subprocess.run(cmd, stderr=subprocess.STDOUT)
         msg = 'Rules {!r} should not be valid.'.format(rules)
-        self.assertFalse(code, msg)
+        self.assertNotEqual(result.returncode, 0, msg)
 
     def test_no_array(self):
         self.assert_bad_rules({'rule1': {'socketPath': '/foo'}})
@@ -106,23 +109,23 @@ class RuleFileTest(unittest.TestCase):
             {'address': '0.0.0.0',
              'socketPath': '/bar'}
         ]
-        with ip2unix(rules, [], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                     ip2unix_args=['-cp']) as process:
-            stdout, stderr = process.communicate()
-            self.assertEqual(process.poll(), 0)
-            self.assertEqual(stderr, b'')
-            self.assertNotEqual(stdout, b'')
-            self.assertGreater(len(stdout), 0)
-            self.assertIn(b'IP Type', stdout)
+        cmd = [IP2UNIX, '-cp', '-F', json.dumps(rules)]
+        result = subprocess.run(cmd, stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stderr, b'')
+        self.assertNotEqual(result.stdout, b'')
+        self.assertGreater(len(result.stdout), 0)
+        self.assertIn(b'IP Type', result.stdout)
 
     def test_print_rules_stderr(self):
         rules = [{'socketPath': '/xxx'}]
-        dummy = [sys.executable, '-c', '']
-        with ip2unix(rules, dummy, stderr=subprocess.PIPE,
-                     stdout=subprocess.PIPE, ip2unix_args=['-p']) as process:
-            stdout, stderr = process.communicate()
-            self.assertEqual(process.poll(), 0)
-            self.assertEqual(stdout, b'')
-            self.assertNotEqual(stderr, b'')
-            self.assertGreater(len(stderr), 0)
-            self.assertIn(b'IP Type', stderr)
+        cmd = [IP2UNIX, '-p', '-F', json.dumps(rules),
+               sys.executable, '-c', '']
+        result = subprocess.run(cmd, stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, b'')
+        self.assertNotEqual(result.stderr, b'')
+        self.assertGreater(len(result.stderr), 0)
+        self.assertIn(b'IP Type', result.stderr)

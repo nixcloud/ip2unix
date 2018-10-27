@@ -9,8 +9,7 @@ import pytest
 from conftest import IP2UNIX, SYSTEMD_SUPPORT, SYSTEMD_SA_PATH
 
 __all__ = ['IP2UNIX', 'SYSTEMD_SUPPORT', 'SYSTEMD_SA_PATH', 'ip2unix',
-           'ip2unix_check', 'systemd_only', 'non_systemd_only',
-           'systemd_sa_helper_only']
+           'systemd_only', 'non_systemd_only', 'systemd_sa_helper_only']
 
 
 @contextmanager
@@ -27,18 +26,6 @@ def ip2unix(rules, childargs, *args, **kwargs):
         yield subprocess.Popen(full_args, *args, **kwargs)
     finally:
         os.unlink(rulefile.name)
-
-
-def ip2unix_check(rules):
-    with ip2unix(rules, [], stderr=subprocess.STDOUT, stdout=subprocess.PIPE,
-                 universal_newlines=True, ip2unix_args=['-c']) as process:
-        try:
-            stdout = process.communicate()[0]
-        except: # NOQA
-            process.kill()
-            process.wait()
-            raise
-        return process.poll() == 0, stdout
 
 
 systemd_only = pytest.mark.skipif(
