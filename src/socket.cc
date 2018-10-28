@@ -246,12 +246,10 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
     int ret = real::connect(this->fd, (struct sockaddr*)&ua, sizeof ua);
     if (ret == 0) {
         if (!this->binding) {
-            // Use SO_PEERCRED here for determining the local IP address.
-            ucred peercred;
-            socklen_t len = sizeof peercred;
-
-            if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peercred, &len) == -1)
-                return -1;
+            ucred local_cred;
+            local_cred.uid = getuid();
+            local_cred.gid = getgid();
+            local_cred.pid = getpid();
 
             uint16_t local_port = this->ports.acquire();
             this->ports.reserve(remote_port.value());
@@ -260,7 +258,7 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
             // bind() before our connect.
             SockAddr local;
             local.ss_family = this->domain;
-            if (!local.set_host(peercred) || !local.set_port(local_port)) {
+            if (!local.set_host(local_cred) || !local.set_port(local_port)) {
                 errno = EADDRNOTAVAIL;
                 return -1;
             }
