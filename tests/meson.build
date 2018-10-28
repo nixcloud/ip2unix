@@ -4,6 +4,15 @@ if pytest.found()
     '-p', 'no:cacheprovider',
     '--ip2unix-path=@0@'.format(ip2unix.full_path())
   ]
+
+  has_timeout_plugin = run_command(pytest, '--timeout=20', '--version')
+  if has_timeout_plugin.returncode() == 0
+    pytest_args += ['--timeout=30']
+    timeout = 60
+  else
+    timeout = 30
+  endif
+
   if libsystemd.found()
     pytest_args += ['--systemd-support']
     systemd_sa = find_program('systemd-socket-activate', required: false)
@@ -14,7 +23,7 @@ if pytest.found()
               ' tests for socket activation.')
     endif
   endif
-  test('integration', pytest, args: pytest_args,
+  test('integration', pytest, args: pytest_args, timeout: timeout,
        workdir: meson.current_source_dir(),
        env: ['PYTHONDONTWRITEBYTECODE=1'])
 else

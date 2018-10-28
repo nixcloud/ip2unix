@@ -12,7 +12,7 @@ pkgs.stdenv.mkDerivation rec {
 
   nativeBuildInputs = [
     pkgs.meson pkgs.ninja pkgs.pkgconfig pkgs.asciidoctor
-    pkgs.python3Packages.pytest
+    pkgs.python3Packages.pytest pkgs.python3Packages.pytest-timeout
   ];
   buildInputs = [ pkgs.libyamlcpp pkgs.systemd ];
 
