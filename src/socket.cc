@@ -246,19 +246,32 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
     int ret = real::connect(this->fd, (struct sockaddr*)&ua, sizeof ua);
     if (ret == 0) {
         if (!this->binding) {
-            ucred local_cred;
-            local_cred.uid = getuid();
-            local_cred.gid = getgid();
-            local_cred.pid = getpid();
+            SockAddr local;
+            local.ss_family = this->domain;
+
+            if (addr.is_loopback()) {
+                if (!local.set_host(addr)) {
+                    errno = EADDRNOTAVAIL;
+                    return -1;
+                }
+            } else {
+                ucred local_cred;
+                local_cred.uid = getuid();
+                local_cred.gid = getgid();
+                local_cred.pid = getpid();
+
+                // Our local sockaddr, which we only need if we didn't have a
+                // bind() before our connect.
+                if (!local.set_host(local_cred)) {
+                    errno = EADDRNOTAVAIL;
+                    return -1;
+                }
+            }
 
             uint16_t local_port = this->ports.acquire();
             this->ports.reserve(remote_port.value());
 
-            // Our local sockaddr, which we only need if we didn't have a
-            // bind() before our connect.
-            SockAddr local;
-            local.ss_family = this->domain;
-            if (!local.set_host(local_cred) || !local.set_port(local_port)) {
+            if (!local.set_port(local_port)) {
                 errno = EADDRNOTAVAIL;
                 return -1;
             }
@@ -285,19 +298,32 @@ int Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
         return -1;
     }
 
-    // We use SO_PEERCRED to get uid, gid and pid in order to generate unique
-    // IP addresses.
-    ucred peercred;
-    socklen_t len = sizeof peercred;
+    SockAddr peer;
+    peer.ss_family = this->domain;
 
-    if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peercred, &len) == -1)
-        return -1;
+    if (this->binding.value().is_loopback()) {
+        if (!peer.set_host(this->binding.value())) {
+            errno = EADDRNOTAVAIL;
+            return -1;
+        }
+    } else {
+        // We use SO_PEERCRED to get uid, gid and pid in order to generate
+        // unique IP addresses.
+        ucred peercred;
+        socklen_t len = sizeof peercred;
+
+        if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peercred, &len) == -1)
+            return -1;
+
+        if (!peer.set_host(peercred)) {
+            errno = EINVAL;
+            return -1;
+        }
+    }
 
     // This is going to be used later when getpeername() is invoked.
     uint16_t peer_port = this->ports.acquire();
-    SockAddr peer;
-    peer.ss_family = this->domain;
-    if (!peer.set_host(peercred) || !peer.set_port(peer_port)) {
+    if (!peer.set_port(peer_port)) {
         errno = EINVAL;
         return -1;
     }

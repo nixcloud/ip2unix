@@ -78,6 +78,21 @@ bool SockAddr::set_host(const std::string &host)
     return true;
 }
 
+bool SockAddr::set_host(const SockAddr &other)
+{
+    if (this->ss_family == AF_INET && other.ss_family == AF_INET) {
+        memcpy(&this->cast4()->sin_addr, &other.ccast4()->sin_addr,
+               sizeof(in_addr));
+        return true;
+    } else if (this->ss_family == AF_INET6 && other.ss_family == AF_INET6) {
+        memcpy(&this->cast6()->sin6_addr, &other.ccast6()->sin6_addr,
+               sizeof(in6_addr));
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool SockAddr::set_host(const ucred &peercred)
 {
     if (this->ss_family == AF_INET) {
@@ -120,6 +135,18 @@ bool SockAddr::set_port(uint16_t port)
         return false;
 
     return true;
+}
+
+bool SockAddr::is_loopback(void) const
+{
+    if (this->ss_family == AF_INET) {
+        return (ntohl(this->ccast4()->sin_addr.s_addr) & 0xff000000)
+               >> 24 == 127;
+    } else if (this->ss_family == AF_INET6) {
+        return IN6_IS_ADDR_LOOPBACK(&this->ccast6()->sin6_addr);
+    } else {
+        return false;
+    }
 }
 
 void SockAddr::apply_addr(struct sockaddr *addr, socklen_t *addrlen) const
