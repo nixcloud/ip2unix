@@ -89,7 +89,7 @@ static inline std::optional<uint16_t> string2port(const std::string &str)
 }
 
 #define RULE_ERROR(msg) \
-    std::cerr << file << ":rule #" << pos << ": " << msg << std::endl
+    std::cerr << file << ":rule #" << pos + 1 << ": " << msg << std::endl
 
 #define RULE_CONVERT(target, key, type, tname) \
     try { \
@@ -375,7 +375,7 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
         else
             portstr = "<any>";
 
-        out << "Rule #" << pos++ << ':' << std::endl
+        out << "Rule #" << ++pos << ':' << std::endl
             << "  Direction: " << dirstr << std::endl
             << "  IP Type: " << typestr << std::endl
             << "  Address: " << rule.address.value_or("<any>") << std::endl
