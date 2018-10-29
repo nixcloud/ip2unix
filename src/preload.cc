@@ -96,6 +96,38 @@ extern "C" int WRAP_SYM(listen)(int sockfd, int backlog)
 }
 #endif
 
+static std::optional<const Rule> match_rule(const SockAddr &addr,
+                                            const Socket::Ptr sock,
+                                            const RuleDir dir)
+{
+    init_rules();
+
+    for (auto &rule : *g_rules) {
+        if (rule.direction && rule.direction != dir)
+            continue;
+
+        if (rule.type && sock->type != rule.type)
+            continue;
+
+        if (rule.address && addr.get_host() != rule.address)
+            continue;
+
+        if (rule.port && addr.get_port() != rule.port)
+            continue;
+
+#ifdef SOCKET_ACTIVATION
+        if (rule.socket_activation)
+            return rule;
+#endif
+        if (!rule.socket_path)
+            continue;
+
+        return rule;
+    }
+
+    return std::nullopt;
+}
+
 /*
  * Handle both bind() and connect() depending on the value of "dir".
  */
@@ -112,35 +144,20 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
 
         std::scoped_lock<std::mutex> lock(g_rules_mutex);
 
-        init_rules();
+        std::optional<const Rule> rule = match_rule(inaddr, sock, dir);
 
-        for (auto &rule : *g_rules) {
-            if (rule.direction && rule.direction != dir)
-                continue;
-
-            if (rule.type && sock->type != rule.type)
-                continue;
-
-            if (rule.address && inaddr.get_host() != rule.address)
-                continue;
-
-            if (rule.port && inaddr.get_port() != rule.port)
-                continue;
+        if (!rule)
+            return std::invoke(realfun, fd, addr, addrlen);
 
 #ifdef SOCKET_ACTIVATION
-            if (rule.socket_activation) {
-                int newfd = get_systemd_fd_for_rule(rule);
-                return sock->activate(inaddr, newfd);
-            }
-#endif
-            if (!rule.socket_path)
-                continue;
-
-            return std::invoke(sockfun, sock, inaddr,
-                               rule.socket_path.value());
+        if (rule.value().socket_activation) {
+            int newfd = get_systemd_fd_for_rule(rule.value());
+            return sock->activate(inaddr, newfd);
         }
+#endif
 
-        return std::invoke(realfun, fd, addr, addrlen);
+        return std::invoke(sockfun, sock, inaddr,
+                           rule.value().socket_path.value());
     }, [&]() {
         return std::invoke(realfun, fd, addr, addrlen);
     });
