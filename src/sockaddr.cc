@@ -43,14 +43,14 @@ SockAddr SockAddr::copy() const
 std::optional<std::string> SockAddr::get_host(void) const
 {
     if (this->ss_family == AF_INET) {
-        const sockaddr_in *addr = reinterpret_cast<const sockaddr_in*>(this);
+        const sockaddr_in *addr = this->ccast4();
         char buf[INET_ADDRSTRLEN];
 
         if (inet_ntop(addr->sin_family, &addr->sin_addr, buf,
                       INET_ADDRSTRLEN) != nullptr)
             return std::string(buf);
     } else if (this->ss_family == AF_INET6) {
-        const sockaddr_in6 *addr = reinterpret_cast<const sockaddr_in6*>(this);
+        const sockaddr_in6 *addr = this->ccast6();
         char buf[INET6_ADDRSTRLEN];
 
         if (inet_ntop(addr->sin6_family, &addr->sin6_addr, buf,
@@ -64,11 +64,11 @@ std::optional<std::string> SockAddr::get_host(void) const
 bool SockAddr::set_host(const std::string &host)
 {
     if (this->ss_family == AF_INET) {
-        sockaddr_in *addr = reinterpret_cast<struct sockaddr_in*>(this);
+        sockaddr_in *addr = this->cast4();
         if (inet_pton(AF_INET, host.c_str(), &addr->sin_addr.s_addr) != 1)
             return false;
     } else if (this->ss_family == AF_INET6) {
-        sockaddr_in6 *addr = reinterpret_cast<struct sockaddr_in6*>(this);
+        sockaddr_in6 *addr = this->cast6();
         if (inet_pton(AF_INET6, host.c_str(), &addr->sin6_addr.s6_addr) != 1)
             return false;
     } else {
@@ -81,11 +81,10 @@ bool SockAddr::set_host(const std::string &host)
 bool SockAddr::set_host(const ucred &peercred)
 {
     if (this->ss_family == AF_INET) {
-        sockaddr_in *addr = reinterpret_cast<struct sockaddr_in*>(this);
-        addr->sin_addr.s_addr = htonl(peercred.pid);
+        this->cast4()->sin_addr.s_addr = htonl(peercred.pid);
         return true;
     } else if (this->ss_family == AF_INET6) {
-        sockaddr_in6 *addr = reinterpret_cast<struct sockaddr_in6*>(this);
+        sockaddr_in6 *addr = this->cast6();
         addr->sin6_addr.s6_addr[0] = 0xfe;
         addr->sin6_addr.s6_addr[1] = 0x80;
         addr->sin6_addr.s6_addr[2] = 0x00;
@@ -104,9 +103,9 @@ bool SockAddr::set_host(const ucred &peercred)
 std::optional<uint16_t> SockAddr::get_port(void) const
 {
     if (this->ss_family == AF_INET)
-        return htons(reinterpret_cast<const sockaddr_in*>(this)->sin_port);
+        return htons(this->ccast4()->sin_port);
     else if (this->ss_family == AF_INET6)
-        return htons(reinterpret_cast<const sockaddr_in6*>(this)->sin6_port);
+        return htons(this->ccast6()->sin6_port);
     else
         return std::nullopt;
 }
@@ -114,9 +113,9 @@ std::optional<uint16_t> SockAddr::get_port(void) const
 bool SockAddr::set_port(uint16_t port)
 {
     if (this->ss_family == AF_INET)
-        reinterpret_cast<sockaddr_in*>(this)->sin_port = htons(port);
+        this->cast4()->sin_port = htons(port);
     else if(this->ss_family == AF_INET6)
-        reinterpret_cast<sockaddr_in6*>(this)->sin6_port = htons(port);
+        this->cast6()->sin6_port = htons(port);
     else
         return false;
 

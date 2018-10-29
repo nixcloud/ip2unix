@@ -30,6 +30,24 @@ struct SockAddr : public sockaddr_storage
             return std::to_string(port.value());
         return std::nullopt;
     };
+
+    private:
+        inline sockaddr_in *cast4(void) {
+            return reinterpret_cast<sockaddr_in*>(this);
+        }
+
+        inline const sockaddr_in *ccast4(void) const {
+            return reinterpret_cast<const sockaddr_in*>(this);
+        }
+
+        inline sockaddr_in6 *cast6(void) {
+            return reinterpret_cast<sockaddr_in6*>(this);
+        }
+
+        inline const sockaddr_in6 *ccast6(void) const
+        {
+            return reinterpret_cast<const sockaddr_in6*>(this);
+        }
 };
 
 #endif
