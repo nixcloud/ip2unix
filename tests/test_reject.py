@@ -34,7 +34,7 @@ with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as server:
 '''
 
 
-def test_sendrecv_direct():
+def test_reject():
     rules = ['-r', 'addr=1234::1,reject', '-r', 'reject=eperm']
     cmd = [IP2UNIX] + rules + [sys.executable, '-c', TESTPROG]
     result = subprocess.run(cmd, stdout=subprocess.PIPE)
