@@ -212,7 +212,8 @@ static void print_arg_error(const std::string &arg, size_t pos, size_t len,
     if (pos == 0 && len == 0)
         std::cerr << msg << std::endl;
     else
-        std::cerr << std::string(pos, ' ') << std::string(len, '^')
+        std::cerr << std::string(pos, ' ')
+                  << std::string(std::max(len, static_cast<size_t>(1)), '^')
                   << ' ' << msg << std::endl;
 }
 
