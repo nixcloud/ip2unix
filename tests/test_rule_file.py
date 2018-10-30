@@ -94,14 +94,28 @@ class RuleFileTest(unittest.TestCase):
         for val in ["EBAAAADF", "", "XXX", "vvv", -10]:
             self.assert_bad_rules([{'reject': True, 'rejectError': val}])
 
+    def test_reject_with_sockpath(self):
+        self.assert_bad_rules([{'socketPath': '/foo', 'reject': True}])
+
+    def test_blackhole_with_reject(self):
+        self.assert_bad_rules([{'direction': 'incoming', 'reject': True,
+                                'blackhole': True}])
+
+    def test_blackhole_outgoing(self):
+        self.assert_bad_rules([{'blackhole': True}])
+        self.assert_bad_rules([{'direction': 'outgoing', 'blackhole': True}])
+
+    def test_blackhole_with_sockpath(self):
+        self.assert_bad_rules([{'direction': 'incoming', 'socketPath': '/foo',
+                                'blackhole': True}])
+
+    def test_blackhole_all(self):
+        self.assert_good_rules([{'direction': 'incoming', 'blackhole': True}])
+
     @systemd_only
-    def test_contradicting_socket_options(self):
-        self.assert_bad_rules([
-            {'socketPath': '/foo', 'socketActivation': True}
-        ])
-        self.assert_bad_rules([
-            {'socketPath': '/foo', 'reject': True}
-        ])
+    def test_contradicting_systemd(self):
+        self.assert_bad_rules([{'socketPath': '/foo',
+                                'socketActivation': True}])
 
     @systemd_only
     def test_socket_fdname(self):

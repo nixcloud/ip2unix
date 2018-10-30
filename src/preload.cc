@@ -119,7 +119,7 @@ static std::optional<const Rule> match_rule(const SockAddr &addr,
         if (rule.socket_activation)
             return rule;
 #endif
-        if (!rule.socket_path && !rule.reject)
+        if (!rule.socket_path && !rule.reject && !rule.blackhole)
             continue;
 
         return rule;
@@ -152,6 +152,11 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
         if (rule.value().reject) {
             errno = rule.value().reject_errno.value_or(EACCES);
             return -1;
+        }
+
+        if (rule.value().blackhole) {
+            sock->blackhole();
+            return std::invoke(sockfun, sock, inaddr, "");
         }
 
 #ifdef SOCKET_ACTIVATION

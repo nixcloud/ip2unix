@@ -84,6 +84,11 @@ Socket::Ptr Socket::getptr(void)
     return this->shared_from_this();
 }
 
+void Socket::blackhole(void)
+{
+    this->is_blackhole = true;
+}
+
 int Socket::setsockopt(int level, int optname, const void *optval,
                        socklen_t optlen)
 {
@@ -230,7 +235,7 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
 
     // Another special case: If we already have a socket which binds to the
     // exact same path, let's blackhole the current socket.
-    if (Socket::has_sockpath(sockpath)) {
+    if (this->is_blackhole || Socket::has_sockpath(sockpath)) {
         BlackHole bh;
         std::optional<std::string> bh_path = bh.get_path();
         if (!bh_path) return -1;

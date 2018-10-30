@@ -27,6 +27,8 @@ struct Rule {
 
     bool reject = false;
     std::optional<int> reject_errno = std::nullopt;
+
+    bool blackhole = false;
 };
 
 std::optional<std::vector<Rule>> parse_rules(std::string, bool);

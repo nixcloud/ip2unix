@@ -46,6 +46,8 @@ struct Socket : std::enable_shared_from_this<Socket>
     /* Construct the socket and register it in Socket::registry. */
     static std::shared_ptr<Socket> create(int, int, int, int);
 
+    void blackhole(void);
+
     int setsockopt(int, int, const void*, socklen_t);
     int ioctl(unsigned long, const void*);
 

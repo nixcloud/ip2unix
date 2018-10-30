@@ -54,15 +54,25 @@ static std::optional<std::string> validate_rule(Rule &rule)
         if (rule.reject)
             return "Using a reject action in conjuction with a socket"
                    " path is not allowed.";
+
+        if (rule.blackhole)
+            return "Using a blackhole action in conjuction with a socket"
+                   " path is not allowed.";
+    } else if (rule.reject && rule.blackhole) {
+        return "Reject and blackhole actions are mutually exclusive.";
     } else if (rule.reject) {
+        return std::nullopt;
+    } else if (rule.blackhole) {
+        if (rule.direction != RuleDir::INCOMING)
+            return "Blackhole rules are only valid for incoming connections.";
         return std::nullopt;
 #ifdef SOCKET_ACTIVATION
     } else if (!rule.socket_activation) {
          return "Socket activation is disabled and no socket"
-                " path or reject action was specified.";
+                " path, reject or blackhole action was specified.";
 #else
     } else {
-        return "No socket path or reject action specified.";
+        return "No socket path, reject or blackhole action specified.";
 #endif
     }
 
@@ -179,6 +189,8 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
                 RULE_ERROR("Invalid reject error code \"" << val << "\".");
                 return std::nullopt;
             }
+        } else if (key == "blackhole") {
+            RULE_CONVERT(rule.blackhole, "blackhole", bool, "bool");
         } else if (key == "socketPath") {
             RULE_CONVERT(rule.socket_path, "socketPath", std::string,
                          "string");
@@ -324,6 +336,8 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
 #endif
             } else if (buf == "reject") {
                 rule.reject = true;
+            } else if (buf == "blackhole") {
+                rule.blackhole = true;
             } else {
                 print_arg_error(rulepos, arg, errpos, errlen, "unknown flag");
                 return std::nullopt;
@@ -397,6 +411,9 @@ std::string encode_rules(std::vector<Rule> rules)
         if (rule.reject_errno)
             node["rejectError"] = rule.reject_errno.value();
 
+        if (rule.blackhole)
+            node["blackhole"] = true;
+
         doc.push_back(node);
     }
 
@@ -452,6 +469,8 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
                     out << " with errno "
                         << errno2name(rule.reject_errno.value());
                 out << "." << std::endl;
+            } else if (rule.blackhole) {
+                out << "  Blackhole the socket." << std::endl;
             } else {
                 out << "  Socket path: " << rule.socket_path.value()
                     << std::endl;

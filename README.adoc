@@ -130,6 +130,15 @@ ifndef::without-systemd[]
 
 endif::[]
 
+*reject[=ERRNO]*::
+  Reject calls to *connect* and *bind* with *`EACCES`* by default or the
+  *`ERRNO`* specified either via name or as an integer.
+
+*blackhole*::
+  When binding the socket, use a temporary file system path and *unlink* it
+  shortly after the *bind*. This is a way to deactivate a specific socket
+  without the application noticing.
+
 These options are available:
 
 *addr[ess]=ADDR*::
@@ -143,10 +152,6 @@ These options are available:
 *path=SOCKET_PATH*::
   The path to the socket file to either bind or connect to, see
   <<rule-socket-path,*`socketPath`*>> rule file option.
-
-*reject[=ERRNO]*::
-  Reject calls to *connect* and *bind* with *`EACCES`* by default or the
-  *`ERRNO`* specified either via name or as an integer.
 
 == Rule file format
 
@@ -217,6 +222,12 @@ endif::[]
   <<rule-reject,*`reject`*>> instead of *`EACCES`*. This can be either a string
   such as *`EADDRINUSE`* (case doesn't matter) or an integer.
 
+*`blackhole`*::
+  If true, a temporary file system path is used and unlinked shortly
+  thereafter, so the socket is effectively deactivated in a way that the
+  application should not recognize. Only valid if
+  <<rule-opt-direction,*`direction`*>> is *`incoming`*.
+
 == Examples
 
 === Simple HTTP client/server
@@ -279,10 +290,14 @@ $ ip2unix -r out,path=/tmp/test.socket curl http://1.2.3.4/
   socketPath: /run/another.socket
 - direction: incoming                 ## <3>
   port: 80
+  address: abcd::1
+  blackhole: true
+- direction: incoming                 ## <4>
+  port: 80
   reject: true
   rejectError: EADDRINUSE
 ifndef::without-systemd[]
-- direction: incoming                 ## <4>
+- direction: incoming                 ## <5>
   type: tcp
   port: 22
   socketActivation: true
@@ -294,9 +309,12 @@ endif::without-systemd[]
     *`/run/some.socket`*.
 <2> Matches the socket that listens to any port on the IPv4 address *`1.2.3.4`*
     and instead binds it to the Unix domain socket at *`/run/another.socket`*.
-<3> Trying to bind to port 80 will result in an *`EADDRINUSE`* error.
+<3> The application may bind to the IPv6 address *`abcd::1`* on port 80 but it
+    won't get any connections, because no socket path exists.
+<4> Trying to bind to port 80 on addresses other than *`abcd::1`* will result
+    in an *`EADDRINUSE`* error.
 ifndef::without-systemd[]
-<4> Will prevent the TCP socket that would listen on port 22 to not listen at
+<5> Will prevent the TCP socket that would listen on port 22 to not listen at
     all and instead use the systemd-provided file descriptor named *`ssh`* for
     operations like {syscall_accept}.
 endif::[]

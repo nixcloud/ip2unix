@@ -19,7 +19,7 @@ class RulesTest(unittest.TestCase):
 
     def test_bad_syntax(self):
         syntax_errors = {
-            'unknown key': ["=123", "321=", "=", "xxx=", "=="],
+            'unknown key': ["=123", "321=", "=", "xxx=", "==", "blackhole=1"],
             'invalid port': ["port=", "port=-1", "port=65536", "port=1000000"],
             'invalid reject error code': ["reject=", "reject=-1",
                                           "reject=INVALIDERRORCODE"],
@@ -54,6 +54,7 @@ class RulesTest(unittest.TestCase):
             "path=/jjj\\,,in": "Socket path: /jjj,\n",
             "reject": "Reject connect() and bind() calls.\n",
             "reject=EPERM": "connect() and bind() calls with errno EPERM.\n",
+            "in,blackhole": "Blackhole the socket.\n",
         }
         for val, expect in fixtures.items():
             stdout, stderr = self.check_rules(val)
