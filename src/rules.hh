@@ -25,7 +25,7 @@ struct Rule {
 };
 
 std::optional<std::vector<Rule>> parse_rules(std::string, bool);
-std::optional<Rule> parse_rule_arg(const std::string&);
+std::optional<Rule> parse_rule_arg(size_t, const std::string&);
 std::string encode_rules(std::vector<Rule>);
 void print_rules(std::vector<Rule>&, std::ostream&);
 

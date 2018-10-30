@@ -203,11 +203,14 @@ std::optional<std::vector<Rule>>
     return result;
 }
 
-static void print_arg_error(const std::string &arg, size_t pos, size_t len,
-                            const std::string &msg)
+static void print_arg_error(size_t rulepos, const std::string &arg, size_t pos,
+                            size_t len, const std::string &msg)
 {
-    std::cerr << "In rule: " << arg << std::endl
-              << "         ";
+    std::string pos_str = std::to_string(rulepos);
+    std::string pos_spc = std::string(pos_str.size(), ' ');
+
+    std::cerr << "In rule #" << pos_str << ": " << arg << std::endl
+              << "         " << pos_spc << "  ";
 
     if (pos == 0 && len == 0)
         std::cerr << msg << std::endl;
@@ -217,7 +220,7 @@ static void print_arg_error(const std::string &arg, size_t pos, size_t len,
                   << ' ' << msg << std::endl;
 }
 
-std::optional<Rule> parse_rule_arg(const std::string &arg)
+std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
 {
     std::string buf = "";
     std::optional<std::string> key = std::nullopt;
@@ -245,12 +248,13 @@ std::optional<Rule> parse_rule_arg(const std::string &arg)
                     if (port) {
                         rule.port = port.value();
                     } else {
-                        print_arg_error(arg, valpos, i - valpos,
+                        print_arg_error(rulepos, arg, valpos, i - valpos,
                                         "invalid port");
                         return std::nullopt;
                     }
                 } else {
-                    print_arg_error(arg, errpos, errlen, "unknown key");
+                    print_arg_error(rulepos, arg, errpos, errlen,
+                                    "unknown key");
                     return std::nullopt;
                 }
                 key = std::nullopt;
@@ -278,7 +282,7 @@ std::optional<Rule> parse_rule_arg(const std::string &arg)
                 rule.socket_activation = true;
 #endif
             } else {
-                print_arg_error(arg, errpos, errlen, "unknown flag");
+                print_arg_error(rulepos, arg, errpos, errlen, "unknown flag");
                 return std::nullopt;
             }
             errpos = i + 1;
@@ -299,7 +303,7 @@ std::optional<Rule> parse_rule_arg(const std::string &arg)
 
     std::optional<std::string> errmsg = validate_rule(rule);
     if (errmsg) {
-        print_arg_error(arg, 0, 0, errmsg.value());
+        print_arg_error(rulepos, arg, 0, 0, errmsg.value());
         return std::nullopt;
     }
 

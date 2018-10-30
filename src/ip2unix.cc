@@ -137,8 +137,9 @@ int main(int argc, char *argv[])
     std::vector<Rule> rules;
 
     if (!rule_args.empty()) {
+        size_t rulepos = 0;
         for (auto arg : rule_args) {
-            auto result = parse_rule_arg(arg);
+            auto result = parse_rule_arg(++rulepos, arg);
             if (result)
                 rules.push_back(result.value());
             else
