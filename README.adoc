@@ -53,6 +53,9 @@ endif::[]
 ifndef::without-systemd[:systemd_comma: ,]
 ifdef::without-systemd[:systemd_comma:]
 
+ifndef::without-systemd[:systemd_backslash: \]
+ifdef::without-systemd[:systemd_backslash:]
+
 == Description
 
 Turns IP sockets into Unix domain socket based on a list of rules (see
@@ -274,29 +277,29 @@ $ ip2unix -r out,path=/tmp/test.socket curl http://1.2.3.4/
 - direction: incoming                 ## <2>
   address: 1.2.3.4
   socketPath: /run/another.socket
-ifndef::without-systemd[]
 - direction: incoming                 ## <3>
+  port: 80
+  reject: true
+  rejectError: EADDRINUSE
+ifndef::without-systemd[]
+- direction: incoming                 ## <4>
   type: tcp
   port: 22
   socketActivation: true
   fdName: ssh
 endif::without-systemd[]
-- direction: incoming                 ## <4>
-  port: 80
-  reject: true
-  rejectError: EADDRINUSE
 --------------------------------------------
 
 <1> This rule will redirect *all* TCP connections to the Unix domain socket at
     *`/run/some.socket`*.
 <2> Matches the socket that listens to any port on the IPv4 address *`1.2.3.4`*
     and instead binds it to the Unix domain socket at *`/run/another.socket`*.
+<3> Trying to bind to port 80 will result in an *`EADDRINUSE`* error.
 ifndef::without-systemd[]
-<3> Will prevent the TCP socket that would listen on port 22 to not listen at
+<4> Will prevent the TCP socket that would listen on port 22 to not listen at
     all and instead use the systemd-provided file descriptor named *`ssh`* for
     operations like {syscall_accept}.
 endif::[]
-<4> Trying to bind to port 80 will result in an *`EADDRINUSE`* error.
 
 The same can be achieved solely using *-r* commandline arguments:
 
@@ -305,10 +308,10 @@ The same can be achieved solely using *-r* commandline arguments:
 ----------------------------------------------------------------------------
 $ ip2unix -r out,tcp,path=/run/some.socket \
           -r in,addr=1.2.3.4,path=/run/another.socket \
+          -r in,port=80,reject=EADDRINUSE {systemd_backslash}
 ifndef::without-systemd[]
-          -r in,tcp,port=22,systemd=ssh \
+          -r in,tcp,port=22,systemd=ssh
 endif::without-systemd[]
-          -r in,port=80,reject=EADDRINUSE
 ----------------------------------------------------------------------------
 
 ifdef::manmanual[]

@@ -60,6 +60,9 @@ static std::optional<std::string> validate_rule(Rule &rule)
     } else if (!rule.socket_activation) {
          return "Socket activation is disabled and no socket"
                 " path or reject action was specified.";
+#else
+    } else {
+        return "No socket path or reject action specified.";
 #endif
     }
 
