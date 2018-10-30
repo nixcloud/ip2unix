@@ -11,6 +11,7 @@ errnos = custom_target('errno_list',
                        capture: true)
 
 sources += files('ip2unix.cc',
+                 'blackhole.cc',
                  'preload.cc',
                  'realcalls.cc',
                  'rules/match.cc',

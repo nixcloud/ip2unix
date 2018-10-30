@@ -6,6 +6,7 @@
 
 #include "socket.hh"
 #include "realcalls.hh"
+#include "blackhole.hh"
 
 std::optional<Socket::Ptr> Socket::find(int fd)
 {
@@ -14,6 +15,13 @@ std::optional<Socket::Ptr> Socket::find(int fd)
     if (found == Socket::registry.end())
         return std::nullopt;
     return found->second;
+}
+
+bool Socket::has_sockpath(const std::string &path)
+{
+    using itype = decltype(Socket::sockpath_registry)::const_iterator;
+    itype found = Socket::sockpath_registry.find(path);
+    return found != Socket::sockpath_registry.end();
 }
 
 Socket::Ptr Socket::create(int fd, int domain, int type, int protocol)
@@ -38,6 +46,7 @@ static inline SocketType get_sotype(const int type)
 
 std::mutex Socket::registry_mutex;
 std::unordered_map<int, Socket::Ptr> Socket::registry;
+std::unordered_set<std::string> Socket::sockpath_registry;
 
 Socket::Socket(int fd, int domain, int type, int protocol)
     : type(get_sotype(type))
@@ -63,8 +72,11 @@ Socket::~Socket()
      * We can however unlink() the socket path, because the application thinks
      * it's an AF_INET/AF_INET6 socket so it won't know about that path.
      */
-    if (this->sockpath && this->bound && !this->activated)
+    if (this->sockpath && this->bound && !this->activated) {
+        int old_errno = errno;
         unlink(this->sockpath.value().c_str());
+        errno = old_errno;
+    }
 }
 
 Socket::Ptr Socket::getptr(void)
@@ -210,17 +222,36 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
 
     std::string sockpath = this->format_sockpath(path, newaddr);
 
+    int ret;
+
     struct sockaddr_un ua;
     memset(&ua, 0, sizeof ua);
     ua.sun_family = AF_UNIX;
-    strncpy(ua.sun_path, sockpath.c_str(), sizeof(ua.sun_path) - 1);
 
-    int ret = real::bind(this->fd, (struct sockaddr*)&ua, sizeof ua);
+    // Another special case: If we already have a socket which binds to the
+    // exact same path, let's blackhole the current socket.
+    if (Socket::has_sockpath(sockpath)) {
+        BlackHole bh;
+        std::optional<std::string> bh_path = bh.get_path();
+        if (!bh_path) return -1;
+
+        strncpy(ua.sun_path, bh_path.value().c_str(), sizeof(ua.sun_path) - 1);
+        ret = real::bind(this->fd, (struct sockaddr*)&ua, sizeof ua);
+        if (ret == 0)
+            this->is_blackhole = true;
+    } else {
+        strncpy(ua.sun_path, sockpath.c_str(), sizeof(ua.sun_path) - 1);
+        ret = real::bind(this->fd, (struct sockaddr*)&ua, sizeof ua);
+        if (ret == 0) {
+            Socket::sockpath_registry.insert(sockpath);
+            this->sockpath = sockpath;
+        }
+    }
+
     if (ret == 0) {
         if (port) this->ports.reserve(port.value());
         this->bound = true;
         this->binding = newaddr;
-        this->sockpath = sockpath;
     }
     return ret;
 }
@@ -370,8 +401,13 @@ int Socket::close(void)
     } else {
         ret = real::close(this->fd);
 
-        if (this->sockpath && this->bound)
+        if (this->sockpath && this->bound && !this->is_blackhole) {
+            int old_errno = errno;
             unlink(this->sockpath.value().c_str());
+            errno = old_errno;
+            Socket::sockpath_registry.erase(this->sockpath.value());
+            this->sockpath = std::nullopt;
+        }
     }
 
     Socket::registry.erase(this->fd);

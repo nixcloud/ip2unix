@@ -86,11 +86,20 @@ struct Socket : std::enable_shared_from_this<Socket>
         /* Find a registered socket in Socket::registry. */
         static std::optional<Ptr> find(int);
 
+        /* Check if a socket path is registered. */
+        static bool has_sockpath(const std::string&);
+
         /* All INET/INET6 sockets are registered here. */
         static std::unordered_map<int, Ptr> registry;
 
+        /* Mapping from bound socket paths to sockets. */
+        static std::unordered_set<std::string> sockpath_registry;
+
         /* Whether the socket has been converted to an AF_UNIX socket. */
         bool is_unix = false;
+
+        /* Set if this socket is bound to an unlinked socket path. */
+        bool is_blackhole = false;
 
         /* Various helper functions. */
         bool apply_sockopts(int);
