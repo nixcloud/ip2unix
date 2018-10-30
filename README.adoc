@@ -53,9 +53,6 @@ endif::[]
 ifndef::without-systemd[:systemd_comma: ,]
 ifdef::without-systemd[:systemd_comma:]
 
-ifndef::without-systemd[:systemd_backslash: \]
-ifdef::without-systemd[:systemd_backslash:]
-
 == Description
 
 Turns IP sockets into Unix domain socket based on a list of rules (see
@@ -144,6 +141,10 @@ These options are available:
   The path to the socket file to either bind or connect to, see
   <<rule-socket-path,*`socketPath`*>> rule file option.
 
+*reject[=ERRNO]*::
+  Reject calls to *connect* and *bind* with *`EACCES`* by default or the
+  *`ERRNO`* specified either via name or as an integer.
+
 == Rule file format
 
 The rule file (specified via *-f* is a YAML file (or JSON, as it is a subset of
@@ -204,6 +205,14 @@ An optional file descriptor name for socket activation which can be used to
 distinguish between several socket units. This corresponds to the {fdname}
 systemd socket option.
 endif::[]
+
+*`reject`*::
+  If true, reject calls to *connect* and *bind* with *`EACCES`*.
+
+*`rejectError`*:
+  Specifies an alternative error code to be returned by
+  <<rule-reject,*`reject`*>> instead of *`EACCES`*. This can be either a string
+  such as *`EADDRINUSE`* (case doesn't matter) or an integer.
 
 == Examples
 
@@ -272,6 +281,10 @@ ifndef::without-systemd[]
   socketActivation: true
   fdName: ssh
 endif::without-systemd[]
+- direction: incoming                 ## <4>
+  port: 80
+  reject: true
+  rejectError: EADDRINUSE
 --------------------------------------------
 
 <1> This rule will redirect *all* TCP connections to the Unix domain socket at
@@ -283,6 +296,7 @@ ifndef::without-systemd[]
     all and instead use the systemd-provided file descriptor named *`ssh`* for
     operations like {syscall_accept}.
 endif::[]
+<4> Trying to bind to port 80 will result in an *`EADDRINUSE`* error.
 
 The same can be achieved solely using *-r* commandline arguments:
 
@@ -290,10 +304,11 @@ The same can be achieved solely using *-r* commandline arguments:
 [subs="attributes"]
 ----------------------------------------------------------------------------
 $ ip2unix -r out,tcp,path=/run/some.socket \
-          -r in,addr=1.2.3.4,path=/run/another.socket {systemd_backslash}
+          -r in,addr=1.2.3.4,path=/run/another.socket \
 ifndef::without-systemd[]
-          -r in,tcp,port=22,systemd=ssh
+          -r in,tcp,port=22,systemd=ssh \
 endif::without-systemd[]
+          -r in,port=80,reject=EADDRINUSE
 ----------------------------------------------------------------------------
 
 ifdef::manmanual[]

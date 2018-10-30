@@ -17,11 +17,16 @@ struct Rule {
     std::optional<SocketType> type = std::nullopt;
     std::optional<std::string> address = std::nullopt;
     std::optional<uint16_t> port = std::nullopt;
+
 #ifdef SOCKET_ACTIVATION
     bool socket_activation = false;
     std::optional<std::string> fd_name = std::nullopt;
 #endif
+
     std::optional<std::string> socket_path = std::nullopt;
+
+    bool reject = false;
+    std::optional<int> reject_errno = std::nullopt;
 };
 
 std::optional<std::vector<Rule>> parse_rules(std::string, bool);

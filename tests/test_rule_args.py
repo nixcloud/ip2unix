@@ -21,6 +21,8 @@ class RulesTest(unittest.TestCase):
         syntax_errors = {
             'unknown key': ["=123", "321=", "=", "xxx=", "=="],
             'invalid port': ["port=", "port=-1", "port=65536", "port=1000000"],
+            'invalid reject error code': ["reject=", "reject=-1",
+                                          "reject=INVALIDERRORCODE"],
             'has to be absolute': ["path=\\", "path=\\a"],
             'unknown flag': [",", "", "/", "path=/a\\\\,xxx"],
         }
@@ -50,6 +52,8 @@ class RulesTest(unittest.TestCase):
             "path=/hhh\\\\": "Socket path: /hhh\\\n",
             "path=/iii\\,,out": "IP Type: TCP and UDP\n",
             "path=/jjj\\,,in": "Socket path: /jjj,\n",
+            "reject": "Reject connect() and bind() calls.\n",
+            "reject=EPERM": "connect() and bind() calls with errno EPERM.\n",
         }
         for val, expect in fixtures.items():
             stdout, stderr = self.check_rules(val)

@@ -4,6 +4,8 @@ add_project_arguments('-Wextra', language: 'cpp')
 
 python = import('python').find_installation()
 
+cc = meson.get_compiler('cpp')
+
 sources = []
 includes = []
 subdir('src')
@@ -11,8 +13,6 @@ subdir('src')
 generate_sym_map = [python, files('meson/gensyms.py'), '@INPUT@']
 sym_map = custom_target('symmap', input: sources, output: 'symbols.map',
                         command: generate_sym_map, capture: true)
-
-cc = meson.get_compiler('cpp')
 
 ldflags = [
   '-fPIC',

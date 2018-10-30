@@ -86,10 +86,21 @@ class RuleFileTest(unittest.TestCase):
         for addr in invalid_addrs:
             self.assert_bad_rules([{'socketPath': '/foo', 'address': addr}])
 
+    def test_valid_reject(self):
+        for val in ["EBADF", "EINTR", "enomem", "EnOMeM", 13, 12]:
+            self.assert_good_rules([{'reject': True, 'rejectError': val}])
+
+    def test_invalid_reject(self):
+        for val in ["EBAAAADF", "", "XXX", "vvv", -10]:
+            self.assert_bad_rules([{'reject': True, 'rejectError': val}])
+
     @systemd_only
     def test_contradicting_socket_options(self):
         self.assert_bad_rules([
             {'socketPath': '/foo', 'socketActivation': True}
+        ])
+        self.assert_bad_rules([
+            {'socketPath': '/foo', 'reject': True}
         ])
 
     @systemd_only

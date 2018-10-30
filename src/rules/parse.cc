@@ -12,6 +12,8 @@
 
 #include "../rules.hh"
 
+#include "errno_list.hh"
+
 static const std::string describe_nodetype(const YAML::Node &node)
 {
     switch (node.Type()) {
@@ -38,25 +40,28 @@ static std::optional<std::string> validate_rule(Rule &rule)
         }
     }
 
-    if (!rule.socket_path || rule.socket_path.value().empty()) {
-#ifdef SOCKET_ACTIVATION
-        if (!rule.socket_activation) {
-            return "Socket activation is disabled and no socket"
-                   " path was specified.";
-        }
-#else
-        return "No socket path specified.";
-#endif
-    } else if (rule.socket_path.value()[0] != '/') {
-        return "Socket path has to be absolute.";
-    }
+    if (rule.socket_path) {
+        if (rule.socket_path.value().empty())
+            return "Socket path has to be non-empty.";
+        if (rule.socket_path.value()[0] != '/')
+            return "Socket path has to be absolute.";
 
 #ifdef SOCKET_ACTIVATION
-    if (rule.socket_path && rule.socket_activation) {
-        return "Can't enable socket activation in conjunction with a"
-               " socket path.";
-    }
+        if (rule.socket_activation)
+            return "Can't enable socket activation in conjunction with a"
+                   " socket path.";
 #endif
+        if (rule.reject)
+            return "Using a reject action in conjuction with a socket"
+                   " path is not allowed.";
+    } else if (rule.reject) {
+        return std::nullopt;
+#ifdef SOCKET_ACTIVATION
+    } else if (!rule.socket_activation) {
+         return "Socket activation is disabled and no socket"
+                " path or reject action was specified.";
+#endif
+    }
 
     return std::nullopt;
 }
@@ -86,6 +91,17 @@ static inline std::optional<uint16_t> string2port(const std::string &str)
     }
 
     return std::nullopt;
+}
+
+static inline std::optional<int> parse_errno(const std::string &str)
+{
+    if (str.empty())
+        return std::nullopt;
+
+    if (std::all_of(str.begin(), str.end(), isdigit))
+        return std::stoi(str);
+
+    return name2errno(str);
 }
 
 #define RULE_ERROR(msg) \
@@ -148,6 +164,18 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
         } else if (key == "fdName") {
             RULE_CONVERT(rule.fd_name, "fdName", std::string, "string");
 #endif
+        } else if (key == "reject") {
+            RULE_CONVERT(rule.reject, "reject", bool, "bool");
+        } else if (key == "rejectError") {
+            std::string val;
+            RULE_CONVERT(val, "rejectError", std::string, "string");
+            std::optional<int> rej_errno = parse_errno(val);
+            if (rej_errno) {
+                rule.reject_errno = rej_errno;
+            } else {
+                RULE_ERROR("Invalid reject error code \"" << val << "\".");
+                return std::nullopt;
+            }
         } else if (key == "socketPath") {
             RULE_CONVERT(rule.socket_path, "socketPath", std::string,
                          "string");
@@ -241,6 +269,16 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                     rule.socket_activation = true;
                     rule.fd_name = std::string(buf);
 #endif
+                } else if (key.value() == "reject") {
+                    rule.reject = true;
+                    std::optional<int> rej_errno = parse_errno(buf);
+                    if (rej_errno) {
+                        rule.reject_errno = rej_errno.value();
+                    } else {
+                        print_arg_error(rulepos, arg, valpos, i - valpos,
+                                        "invalid reject error code");
+                        return std::nullopt;
+                    }
                 } else if (key.value() == "addr" || key.value() == "address") {
                     rule.address = std::string(buf);
                 } else if (key.value() == "port") {
@@ -281,6 +319,8 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
             } else if (buf == "systemd") {
                 rule.socket_activation = true;
 #endif
+            } else if (buf == "reject") {
+                rule.reject = true;
             } else {
                 print_arg_error(rulepos, arg, errpos, errlen, "unknown flag");
                 return std::nullopt;
@@ -348,6 +388,12 @@ std::string encode_rules(std::vector<Rule> rules)
             node["fdName"] = rule.fd_name.value();
 #endif
 
+        if (rule.reject)
+            node["reject"] = true;
+
+        if (rule.reject_errno)
+            node["rejectError"] = rule.reject_errno.value();
+
         doc.push_back(node);
     }
 
@@ -397,7 +443,16 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
             }
         } else {
 #endif
-            out << "  Socket path: " << rule.socket_path.value() << std::endl;
+            if (rule.reject) {
+                out << "  Reject connect() and bind() calls";
+                if (rule.reject_errno)
+                    out << " with errno "
+                        << errno2name(rule.reject_errno.value());
+                out << "." << std::endl;
+            } else {
+                out << "  Socket path: " << rule.socket_path.value()
+                    << std::endl;
+            }
 #ifdef SOCKET_ACTIVATION
         }
 #endif
