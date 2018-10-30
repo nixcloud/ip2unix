@@ -39,7 +39,7 @@ struct SockAddr : public sockaddr_storage
             return reinterpret_cast<sockaddr_in*>(this);
         }
 
-        inline const sockaddr_in *ccast4(void) const {
+        inline const sockaddr_in *cast4(void) const {
             return reinterpret_cast<const sockaddr_in*>(this);
         }
 
@@ -47,7 +47,7 @@ struct SockAddr : public sockaddr_storage
             return reinterpret_cast<sockaddr_in6*>(this);
         }
 
-        inline const sockaddr_in6 *ccast6(void) const
+        inline const sockaddr_in6 *cast6(void) const
         {
             return reinterpret_cast<const sockaddr_in6*>(this);
         }

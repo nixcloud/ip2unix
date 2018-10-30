@@ -43,14 +43,14 @@ SockAddr SockAddr::copy() const
 std::optional<std::string> SockAddr::get_host(void) const
 {
     if (this->ss_family == AF_INET) {
-        const sockaddr_in *addr = this->ccast4();
+        const sockaddr_in *addr = this->cast4();
         char buf[INET_ADDRSTRLEN];
 
         if (inet_ntop(addr->sin_family, &addr->sin_addr, buf,
                       INET_ADDRSTRLEN) != nullptr)
             return std::string(buf);
     } else if (this->ss_family == AF_INET6) {
-        const sockaddr_in6 *addr = this->ccast6();
+        const sockaddr_in6 *addr = this->cast6();
         char buf[INET6_ADDRSTRLEN];
 
         if (inet_ntop(addr->sin6_family, &addr->sin6_addr, buf,
@@ -81,11 +81,11 @@ bool SockAddr::set_host(const std::string &host)
 bool SockAddr::set_host(const SockAddr &other)
 {
     if (this->ss_family == AF_INET && other.ss_family == AF_INET) {
-        memcpy(&this->cast4()->sin_addr, &other.ccast4()->sin_addr,
+        memcpy(&this->cast4()->sin_addr, &other.cast4()->sin_addr,
                sizeof(in_addr));
         return true;
     } else if (this->ss_family == AF_INET6 && other.ss_family == AF_INET6) {
-        memcpy(&this->cast6()->sin6_addr, &other.ccast6()->sin6_addr,
+        memcpy(&this->cast6()->sin6_addr, &other.cast6()->sin6_addr,
                sizeof(in6_addr));
         return true;
     } else {
@@ -118,9 +118,9 @@ bool SockAddr::set_host(const ucred &peercred)
 std::optional<uint16_t> SockAddr::get_port(void) const
 {
     if (this->ss_family == AF_INET)
-        return htons(this->ccast4()->sin_port);
+        return htons(this->cast4()->sin_port);
     else if (this->ss_family == AF_INET6)
-        return htons(this->ccast6()->sin6_port);
+        return htons(this->cast6()->sin6_port);
     else
         return std::nullopt;
 }
@@ -140,10 +140,10 @@ bool SockAddr::set_port(uint16_t port)
 bool SockAddr::is_loopback(void) const
 {
     if (this->ss_family == AF_INET) {
-        return (ntohl(this->ccast4()->sin_addr.s_addr) & 0xff000000)
+        return (ntohl(this->cast4()->sin_addr.s_addr) & 0xff000000)
                >> 24 == 127;
     } else if (this->ss_family == AF_INET6) {
-        return IN6_IS_ADDR_LOOPBACK(&this->ccast6()->sin6_addr);
+        return IN6_IS_ADDR_LOOPBACK(&this->cast6()->sin6_addr);
     } else {
         return false;
     }
