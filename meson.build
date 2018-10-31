@@ -14,13 +14,13 @@ generate_sym_map = [python, files('meson/gensyms.py'), '@INPUT@']
 sym_map = custom_target('symmap', input: sources, output: 'symbols.map',
                         command: generate_sym_map, capture: true)
 
+cflags = ['-fPIC']
+
 ldflags = [
-  '-fPIC',
   '-pie',
   '-Wl,-E',
   '-Wl,--version-script,@0@'.format(sym_map.full_path()),
 ]
-cflags = []
 
 deps = [
   dependency('yaml-cpp', version: '>=0.5.0'),
