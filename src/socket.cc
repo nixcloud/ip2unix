@@ -286,43 +286,45 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
     }
 
     int ret = real::connect(this->fd, (struct sockaddr*)&ua, sizeof ua);
-    if (ret == 0) {
-        if (!this->binding) {
-            SockAddr local;
-            local.ss_family = this->domain;
+    if (ret != 0)
+        return ret;
 
-            if (addr.is_loopback()) {
-                if (!local.set_host(addr)) {
-                    errno = EADDRNOTAVAIL;
-                    return -1;
-                }
-            } else {
-                ucred local_cred;
-                local_cred.uid = getuid();
-                local_cred.gid = getgid();
-                local_cred.pid = getpid();
+    if (!this->binding) {
+        SockAddr local;
+        local.ss_family = this->domain;
 
-                // Our local sockaddr, which we only need if we didn't have a
-                // bind() before our connect.
-                if (!local.set_host(local_cred)) {
-                    errno = EADDRNOTAVAIL;
-                    return -1;
-                }
-            }
-
-            uint16_t local_port = this->ports.acquire();
-            this->ports.reserve(remote_port.value());
-
-            if (!local.set_port(local_port)) {
+        if (addr.is_loopback()) {
+            if (!local.set_host(addr)) {
                 errno = EADDRNOTAVAIL;
                 return -1;
             }
+        } else {
+            ucred local_cred;
+            local_cred.uid = getuid();
+            local_cred.gid = getgid();
+            local_cred.pid = getpid();
 
-            this->binding = local;
+            // Our local sockaddr, which we only need if we didn't have a
+            // bind() before our connect.
+            if (!local.set_host(local_cred)) {
+                errno = EADDRNOTAVAIL;
+                return -1;
+            }
         }
-        this->connection = addr;
-        this->sockpath = sockpath;
+
+        uint16_t local_port = this->ports.acquire();
+        this->ports.reserve(remote_port.value());
+
+        if (!local.set_port(local_port)) {
+            errno = EADDRNOTAVAIL;
+            return -1;
+        }
+
+        this->binding = local;
     }
+
+    this->connection = addr;
+    this->sockpath = sockpath;
     return ret;
 }
 
