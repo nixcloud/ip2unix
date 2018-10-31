@@ -14,7 +14,7 @@
  * Get a systemd socket file descriptor for the given rule either via name if
  * fd_name is set or just the next file descriptor available.
  */
-int get_systemd_fd_for_rule(Rule rule)
+std::optional<int> get_systemd_fd_for_rule(const Rule &rule)
 {
     static std::unordered_map<std::string, int> names;
     static std::queue<int> fds;
@@ -53,8 +53,7 @@ int get_systemd_fd_for_rule(Rule rule)
         }
         return found->second;
     } else if (fds.empty()) {
-        fputs("FATAL: Ran out of systemd sockets to assign\n", stderr);
-        std::abort();
+        return std::nullopt;
     }
 
     int fd = fds.front();

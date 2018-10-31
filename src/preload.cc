@@ -161,8 +161,13 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
 
 #ifdef SOCKET_ACTIVATION
         if (rule.value().socket_activation) {
-            int newfd = get_systemd_fd_for_rule(rule.value());
-            return sock->activate(inaddr, newfd);
+            std::optional<int> newfd = get_systemd_fd_for_rule(rule.value());
+            if (newfd) {
+                return sock->activate(inaddr, newfd.value());
+            } else {
+                sock->blackhole();
+                return std::invoke(sockfun, sock, inaddr, "");
+            }
         }
 #endif
 
