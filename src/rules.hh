@@ -42,6 +42,4 @@ void print_rules(std::vector<Rule>&, std::ostream&);
 std::optional<int> get_systemd_fd_for_rule(const Rule&);
 #endif
 
-bool match_sockaddr_in(const struct sockaddr_in*, Rule);
-
 #endif
