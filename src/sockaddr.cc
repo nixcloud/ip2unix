@@ -151,12 +151,16 @@ bool SockAddr::is_loopback(void) const
 
 void SockAddr::apply_addr(struct sockaddr *addr, socklen_t *addrlen) const
 {
-    if (this->ss_family == AF_INET)
-        *addrlen = sizeof(sockaddr_in);
-    else if (this->ss_family == AF_INET6)
-        *addrlen = sizeof(sockaddr_in6);
-    else
-        return;
-
+    *addrlen = this->size();
     memcpy(addr, this, *addrlen);
+}
+
+socklen_t SockAddr::size() const
+{
+    if (this->ss_family == AF_INET)
+        return sizeof(sockaddr_in);
+    else if (this->ss_family == AF_INET6)
+        return sizeof(sockaddr_in6);
+    else
+        return sizeof(sockaddr_storage);
 }

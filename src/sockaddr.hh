@@ -26,6 +26,7 @@ struct SockAddr : public sockaddr_storage
     bool is_loopback(void) const;
 
     void apply_addr(struct sockaddr*, socklen_t*) const;
+    socklen_t size() const;
 
     inline std::optional<std::string> get_port_str(void) const {
         auto port = this->get_port();
