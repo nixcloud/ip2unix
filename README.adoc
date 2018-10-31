@@ -109,7 +109,7 @@ endif::[]
 Arguments specified via *-r* contain a comma-separated list of either flags or
 options. If a value contains a comma (`,`), it has to be escaped using a
 backslash (`\`) character. If you want to have a verbatim backslash character
-just use it twice (`\\`).
+just use two consecutive backslashes instead.
 
 The following flags are available:
 
