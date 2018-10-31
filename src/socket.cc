@@ -93,25 +93,31 @@ int Socket::setsockopt(int level, int optname, const void *optval,
                        socklen_t optlen)
 {
     int ret = real::setsockopt(this->fd, level, optname, optval, optlen);
+    if (ret != 0)
+        return ret;
 
     /* Only add the socket option to the queue if the setsockopt() has
      * succeeded, otherwise we risk a fatal error while replaying them on
      * our end.
      */
-    if (ret == 0)
+    if (!this->is_unix)
         this->sockopts.cache_sockopt(level, optname, optval, optlen);
+
     return ret;
 }
 
 int Socket::ioctl(unsigned long request, const void *arg)
 {
     int ret = real::ioctl(this->fd, request, arg);
+    if (ret != 0)
+        return ret;
 
     /* Only add the arguments to the queue if the ioctl() has succeeded,
      * otherwise we risk a fatal error while replaying them on our end.
      */
-    if (ret == 0)
+    if (!this->is_unix)
         this->sockopts.cache_ioctl(request, arg);
+
     return ret;
 }
 
