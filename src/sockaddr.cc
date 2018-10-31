@@ -4,6 +4,7 @@
 #include <optional>
 
 #include <arpa/inet.h>
+#include <sys/un.h>
 
 #include "sockaddr.hh"
 
@@ -32,6 +33,18 @@ std::optional<SockAddr> SockAddr::create(const std::string &addr,
         return std::nullopt;
 
     return sa;
+}
+
+std::optional<SockAddr> SockAddr::unix(const std::string &path)
+{
+    struct sockaddr_un ua;
+    memset(&ua, 0, sizeof ua);
+    ua.sun_family = AF_UNIX;
+    if (path.size() >= sizeof(ua.sun_path))
+        return std::nullopt;
+
+    strncpy(ua.sun_path, path.c_str(), sizeof(ua.sun_path) - 1);
+    return SockAddr(reinterpret_cast<const sockaddr*>(&ua));
 }
 
 SockAddr SockAddr::copy() const
@@ -161,6 +174,8 @@ socklen_t SockAddr::size() const
         return sizeof(sockaddr_in);
     else if (this->ss_family == AF_INET6)
         return sizeof(sockaddr_in6);
+    else if (this->ss_family == AF_UNIX)
+        return sizeof(sockaddr_un);
     else
         return sizeof(sockaddr_storage);
 }

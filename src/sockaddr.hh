@@ -13,6 +13,8 @@ struct SockAddr : public sockaddr_storage
     static std::optional<SockAddr> create(const std::string&, uint16_t,
                                           sa_family_t = AF_INET);
 
+    static std::optional<SockAddr> unix(const std::string&);
+
     SockAddr copy(void) const;
 
     std::optional<std::string> get_host(void) const;
@@ -34,6 +36,14 @@ struct SockAddr : public sockaddr_storage
             return std::to_string(port.value());
         return std::nullopt;
     };
+
+    inline sockaddr *cast(void) {
+        return reinterpret_cast<sockaddr*>(this);
+    }
+
+    inline const sockaddr *cast(void) const {
+        return reinterpret_cast<const sockaddr*>(this);
+    }
 
     private:
         inline sockaddr_in *cast4(void) {

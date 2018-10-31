@@ -214,6 +214,14 @@ int Socket::activate(const SockAddr &addr, int fd)
 }
 #endif
 
+#define USOCK_OR_FAIL(path) \
+    std::optional<SockAddr> maybe_dest = SockAddr::unix(path); \
+    if (!maybe_dest) { \
+        errno = EFAULT; \
+        return -1; \
+    } \
+    SockAddr dest = maybe_dest.value()
+
 int Socket::bind(const SockAddr &addr, const std::string &path)
 {
     if (!this->make_unix())
@@ -235,10 +243,6 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
 
     int ret;
 
-    struct sockaddr_un ua;
-    memset(&ua, 0, sizeof ua);
-    ua.sun_family = AF_UNIX;
-
     // Another special case: If we already have a socket which binds to the
     // exact same path, let's blackhole the current socket.
     if (this->is_blackhole || Socket::has_sockpath(sockpath)) {
@@ -246,13 +250,13 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
         std::optional<std::string> bh_path = bh.get_path();
         if (!bh_path) return -1;
 
-        strncpy(ua.sun_path, bh_path.value().c_str(), sizeof(ua.sun_path) - 1);
-        ret = real::bind(this->fd, (struct sockaddr*)&ua, sizeof ua);
+        USOCK_OR_FAIL(bh_path.value());
+        ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0)
             this->is_blackhole = true;
     } else {
-        strncpy(ua.sun_path, sockpath.c_str(), sizeof(ua.sun_path) - 1);
-        ret = real::bind(this->fd, (struct sockaddr*)&ua, sizeof ua);
+        USOCK_OR_FAIL(sockpath);
+        ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0) {
             Socket::sockpath_registry.insert(sockpath);
             this->sockpath = sockpath;
@@ -269,15 +273,12 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
 
 int Socket::connect(const SockAddr &addr, const std::string &path)
 {
+    // TODO/FIXME: Handle datagram sockets here!
+    std::string new_sockpath = this->format_sockpath(path, addr);
+    USOCK_OR_FAIL(new_sockpath);
+
     if (!this->make_unix())
         return -1;
-
-    std::string sockpath = this->format_sockpath(path, addr);
-
-    struct sockaddr_un ua;
-    memset(&ua, 0, sizeof ua);
-    ua.sun_family = AF_UNIX;
-    strncpy(ua.sun_path, sockpath.c_str(), sizeof(ua.sun_path) - 1);
 
     std::optional<uint16_t> remote_port = addr.get_port();
     if (!remote_port) {
@@ -285,7 +286,7 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
         return -1;
     }
 
-    int ret = real::connect(this->fd, (struct sockaddr*)&ua, sizeof ua);
+    int ret = real::connect(this->fd, dest.cast(), dest.size());
     if (ret != 0)
         return ret;
 
@@ -324,7 +325,7 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
     }
 
     this->connection = addr;
-    this->sockpath = sockpath;
+    this->sockpath = new_sockpath;
     return ret;
 }
 
