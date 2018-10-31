@@ -22,7 +22,11 @@ std::optional<int> get_systemd_fd_for_rule(const Rule &rule)
 
     if (!fetch_done) {
         char **raw_names = nullptr;
+#ifdef NO_FDNAMES
+        int count = sd_listen_fds(1);
+#else
         int count = sd_listen_fds_with_names(1, &raw_names);
+#endif
         if (count < 0) {
             fprintf(stderr, "FATAL: Unable to get systemd sockets: %s\n",
                     strerror(errno));
@@ -33,17 +37,22 @@ std::optional<int> get_systemd_fd_for_rule(const Rule &rule)
             std::abort();
         }
         for (int i = 0; i < count; ++i) {
+#ifdef NO_FDNAMES
+            fds.push(SD_LISTEN_FDS_START + i);
+#else
             std::string name = raw_names[i];
             if (name.empty() || name == "unknown" || name == "stored")
                 fds.push(SD_LISTEN_FDS_START + i);
             else
                 names[name] = SD_LISTEN_FDS_START + i;
+#endif
         }
         if (raw_names != nullptr)
             free(raw_names);
         fetch_done = true;
     }
 
+#ifndef NO_FDNAMES
     if (rule.fd_name) {
         auto found = names.find(rule.fd_name.value());
         if (found == names.end()) {
@@ -52,9 +61,12 @@ std::optional<int> get_systemd_fd_for_rule(const Rule &rule)
             std::abort();
         }
         return found->second;
-    } else if (fds.empty()) {
-        return std::nullopt;
     }
+#else
+    std::ignore = rule;
+#endif
+    if (fds.empty())
+        return std::nullopt;
 
     int fd = fds.front();
     fds.pop();

@@ -174,8 +174,10 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
         } else if (key == "socketActivation") {
             RULE_CONVERT(rule.socket_activation, "socketActivation", bool,
                          "bool");
+#ifndef NO_FDNAMES
         } else if (key == "fdName") {
             RULE_CONVERT(rule.fd_name, "fdName", std::string, "string");
+#endif
 #endif
         } else if (key == "reject") {
             RULE_CONVERT(rule.reject, "reject", bool, "bool");
@@ -280,9 +282,11 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                 if (key.value() == "path") {
                     rule.socket_path = std::string(buf);
 #ifdef SOCKET_ACTIVATION
+#ifndef NO_FDNAMES
                 } else if (key.value() == "systemd") {
                     rule.socket_activation = true;
                     rule.fd_name = std::string(buf);
+#endif
 #endif
                 } else if (key.value() == "reject") {
                     rule.reject = true;
@@ -401,8 +405,10 @@ std::string encode_rules(std::vector<Rule> rules)
         if (rule.socket_activation)
             node["socketActivation"] = true;
 
+#ifndef NO_FDNAMES
         if (rule.fd_name)
             node["fdName"] = rule.fd_name.value();
+#endif
 #endif
 
         if (rule.reject)
@@ -455,12 +461,16 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
 #ifdef SOCKET_ACTIVATION
         if (rule.socket_activation) {
             out << "  Socket activation";
+#ifndef NO_FDNAMES
             if (rule.fd_name) {
                 out << " with file descriptor name: "
                     << rule.fd_name.value() << std::endl;
             } else {
+#endif
                 out << "." << std::endl;
+#ifndef NO_FDNAMES
             }
+#endif
         } else {
 #endif
             if (rule.reject) {

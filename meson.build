@@ -27,10 +27,16 @@ deps = [
   cc.find_library('dl')
 ]
 
+systemd_no_fdnames = false
+
 libsystemd = dependency('libsystemd', required: false)
 if libsystemd.found()
   cflags += ['-DSOCKET_ACTIVATION']
   deps += [libsystemd]
+  if not cc.has_function('sd_listen_fds_with_names', dependencies: libsystemd)
+    systemd_no_fdnames = true
+    cflags += ['-DNO_FDNAMES']
+  endif
 endif
 
 ip2unix = executable('ip2unix', sources, install: true, dependencies: deps,
@@ -47,6 +53,9 @@ adoc_attrs = [
 
 if not libsystemd.found()
   adoc_attrs += ['-a', 'without-systemd']
+endif
+if systemd_no_fdnames
+  adoc_attrs += ['-a', 'systemd-no-fdnames']
 endif
 
 # For generating the manpage

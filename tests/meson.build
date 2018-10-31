@@ -22,6 +22,9 @@ if pytest.found()
       message('No \'systemd-socket-activate\' program found, can\'t run' +
               ' tests for socket activation.')
     endif
+    if systemd_no_fdnames
+      pytest_args += ['--systemd-no-fdnames']
+    endif
   endif
   test('integration', pytest, args: pytest_args, timeout: timeout,
        workdir: meson.current_source_dir(),

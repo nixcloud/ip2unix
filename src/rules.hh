@@ -20,7 +20,9 @@ struct Rule {
 
 #ifdef SOCKET_ACTIVATION
     bool socket_activation = false;
+#ifndef NO_FDNAMES
     std::optional<std::string> fd_name = std::nullopt;
+#endif
 #endif
 
     std::optional<std::string> socket_path = std::nullopt;

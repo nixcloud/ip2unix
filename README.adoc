@@ -122,12 +122,17 @@ The following flags are available:
   (<<rule-opt-type,*`type`*>> rule file option).
 
 ifndef::without-systemd[]
-
+ifndef::systemd-no-fdnames[]
 *systemd[=FD_NAME]*::
   Enable systemd socket activation
-  (<<rule-opt-socket-activation,*`socketActivation`*>>), optionally specifying
-  a file descriptior name (<<rule-opt-fdname,*`fdName`*>>).
-
+  (see <<rule-opt-socket-activation,*`socketActivation`*>> below), optionally
+  specifying a file descriptior name (<<rule-opt-fdname,*`fdName`*>>).
+endif::systemd-no-fdnames[]
+ifdef::systemd-no-fdnames[]
+*systemd*::
+  Enable systemd socket activation
+  (see <<rule-opt-socket-activation,*`socketActivation`*>> below).
+endif::systemd-no-fdnames[]
 endif::[]
 
 *reject[=ERRNO]*::
@@ -208,10 +213,12 @@ Whether to use systemd socket activation
 endif::[]
 instead of a <<rule-socket-path,*`socketPath`*>>. See {systemd_socket}.
 
+ifndef::systemd-no-fdnames[]
 [[rule-opt-fdname]]*`fdName`*::
 An optional file descriptor name for socket activation which can be used to
 distinguish between several socket units. This corresponds to the {fdname}
 systemd socket option.
+endif::systemd-no-fdnames[]
 endif::[]
 
 *`reject`*::
@@ -301,7 +308,9 @@ ifndef::without-systemd[]
   type: tcp
   port: 22
   socketActivation: true
+ifndef::systemd-no-fdnames[]
   fdName: ssh
+endif::systemd-no-fdnames[]
 endif::without-systemd[]
 --------------------------------------------
 
@@ -315,11 +324,20 @@ endif::without-systemd[]
     in an *`EADDRINUSE`* error.
 ifndef::without-systemd[]
 <5> Will prevent the TCP socket that would listen on port 22 to not listen at
-    all and instead use the systemd-provided file descriptor named *`ssh`* for
-    operations like {syscall_accept}.
+    all and instead use
+ifndef::systemd-no-fdnames[]
+    the systemd-provided file descriptor named *`ssh`*
+endif::systemd-no-fdnames[]
+ifdef::systemd-no-fdnames[]
+    the first systemd-provided file descriptor available
+endif::systemd-no-fdnames[]
+    for operations like {syscall_accept}.
 endif::[]
 
 The same can be achieved solely using *-r* commandline arguments:
+
+ifndef::systemd-no-fdnames[:example_fdname_arg: =ssh]
+ifdef::systemd-no-fdnames[:example_fdname_arg:]
 
 [source,sh-session]
 [subs="attributes"]
@@ -328,7 +346,7 @@ $ ip2unix -r out,tcp,path=/run/some.socket \
           -r in,addr=1.2.3.4,path=/run/another.socket \
           -r in,port=80,reject=EADDRINUSE {systemd_backslash}
 ifndef::without-systemd[]
-          -r in,tcp,port=22,systemd=ssh
+          -r in,tcp,port=22,systemd{example_fdname_arg}
 endif::without-systemd[]
 ----------------------------------------------------------------------------
 
