@@ -73,7 +73,7 @@ static bool copy_fcntl(int old_sockfd, int new_sockfd, int get, int set)
 bool SockOpts::replay(int old_sockfd, int new_sockfd)
 {
     struct replay_entry {
-        replay_entry(int fd) : fd(fd) {}
+        replay_entry(int filedes) : fd(filedes) {}
 
         bool operator()(const SockOpts::EntrySockopt &entry)
         {

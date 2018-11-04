@@ -1,10 +1,17 @@
 project('ip2unix', 'cpp', default_options: ['cpp_std=c++17'],
         meson_version: '>=0.46.0', version: '0.1.0')
-add_project_arguments('-Wextra', language: 'cpp')
-
-python = import('python').find_installation()
 
 cc = meson.get_compiler('cpp')
+
+warning_flags = [
+  '-Wextra',
+  '-Wshadow',
+]
+
+add_project_arguments(cc.get_supported_arguments(warning_flags),
+                      language: 'cpp')
+
+python = import('python').find_installation()
 
 sources = []
 includes = []

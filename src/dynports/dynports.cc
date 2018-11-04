@@ -48,14 +48,14 @@ DynPorts::DynPorts()
 {
 }
 
-uint16_t DynPorts::rotate_port(uint16_t port, uint16_t offset) const
+uint16_t DynPorts::rotate_port(uint16_t port, uint16_t off) const
 {
     uint32_t tries = 0;
     uint32_t bounds = 65536 - 1024;
 
     do {
         uint32_t base = port - 1024;
-        base = (base + offset) % bounds;
+        base = (base + off) % bounds;
         port = base + 1024;
 
         if (++tries > bounds)

@@ -47,12 +47,12 @@ std::mutex Socket::registry_mutex;
 std::unordered_map<int, Socket::Ptr> Socket::registry;
 std::unordered_set<std::string> Socket::sockpath_registry;
 
-Socket::Socket(int fd, int domain, int type, int protocol)
-    : type(get_sotype(type))
-    , fd(fd)
-    , domain(domain)
-    , typearg(type)
-    , protocol(protocol)
+Socket::Socket(int sfd, int sdomain, int stype, int sproto)
+    : type(get_sotype(stype))
+    , fd(sfd)
+    , domain(sdomain)
+    , typearg(stype)
+    , protocol(sproto)
     , activated(false)
     , bound(false)
     , binding()
@@ -135,15 +135,15 @@ int Socket::listen(int backlog)
 /*
  * Replace placeholders such as %p or %a accordingly in the socket path.
  */
-std::string Socket::format_sockpath(const std::string &sockpath,
+std::string Socket::format_sockpath(const std::string &path,
                                     const SockAddr &addr) const
 {
     std::string out = "";
-    size_t sockpath_len = sockpath.size();
+    size_t path_len = path.size();
 
-    for (size_t i = 0; i < sockpath_len; ++i) {
-        if (sockpath[i] == '%' && i + 1 < sockpath_len) {
-            switch (sockpath[i + 1]) {
+    for (size_t i = 0; i < path_len; ++i) {
+        if (path[i] == '%' && i + 1 < path_len) {
+            switch (path[i + 1]) {
                 case '%': out += '%'; i++; continue;
                 case 'a': out += addr.get_host().value_or("unknown"); i++;
                           continue;
@@ -159,7 +159,7 @@ std::string Socket::format_sockpath(const std::string &sockpath,
                     continue;
             }
         }
-        out += sockpath[i];
+        out += path[i];
     }
 
     return out;
@@ -173,28 +173,28 @@ std::string Socket::format_sockpath(const std::string &sockpath,
  * The socket options are read from sockopt_cache, which is gathered from the
  * override of the setsockopt() function above.
  */
-bool Socket::make_unix(int fd)
+bool Socket::make_unix(int oldfd)
 {
     int newfd;
 
     if (this->is_unix)
         return true;
 
-    if (fd != -1) {
-        newfd = fd;
+    if (oldfd != -1) {
+        newfd = oldfd;
     } else if ((newfd = real::socket(AF_UNIX, this->typearg, 0)) == -1) {
         perror("socket(AF_UNIX)");
         return false;
     }
 
     if (!this->sockopts.replay(this->fd, newfd)) {
-        if (fd == -1) real::close(newfd);
+        real::close(newfd);
         return false;
     }
 
     if (dup2(newfd, this->fd) == -1) {
         perror("dup2");
-        if (fd == -1) real::close(newfd);
+        real::close(newfd);
         return false;
     }
 
@@ -233,9 +233,9 @@ bool Socket::create_binding(const SockAddr &addr)
 }
 
 #ifdef SOCKET_ACTIVATION
-int Socket::activate(const SockAddr &addr, int fd)
+int Socket::activate(const SockAddr &addr, int filedes)
 {
-    if (!this->make_unix(fd))
+    if (!this->make_unix(filedes))
         return -1;
 
     this->bound = true;
@@ -273,13 +273,13 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
         port = anyport;
     }
 
-    std::string sockpath = this->format_sockpath(path, newaddr);
+    std::string newpath = this->format_sockpath(path, newaddr);
 
     int ret;
 
     // Another special case: If we already have a socket which binds to the
     // exact same path, let's blackhole the current socket.
-    if (this->is_blackhole || Socket::has_sockpath(sockpath)) {
+    if (this->is_blackhole || Socket::has_sockpath(newpath)) {
         BlackHole bh;
         std::optional<std::string> bh_path = bh.get_path();
         if (!bh_path) return -1;
@@ -289,11 +289,11 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
         if (ret == 0)
             this->is_blackhole = true;
     } else {
-        USOCK_OR_EFAULT(sockpath);
+        USOCK_OR_EFAULT(newpath);
         ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0) {
-            Socket::sockpath_registry.insert(sockpath);
-            this->sockpath = sockpath;
+            Socket::sockpath_registry.insert(newpath);
+            this->sockpath = newpath;
         }
     }
 
@@ -372,15 +372,15 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
     return ret;
 }
 
-int Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
+int Socket::accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
     if (!this->binding) {
         errno = EINVAL;
         return -1;
     }
 
-    SockAddr binding = this->binding.value().copy();
-    std::optional<uint16_t> local_port = binding.get_port();
+    SockAddr local_addr = this->binding.value().copy();
+    std::optional<uint16_t> local_port = local_addr.get_port();
     if (!local_port) {
         errno = EINVAL;
         return -1;
@@ -400,7 +400,7 @@ int Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
         ucred peercred;
         socklen_t len = sizeof peercred;
 
-        if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peercred, &len) == -1)
+        if (getsockopt(sockfd, SOL_SOCKET, SO_PEERCRED, &peercred, &len) == -1)
             return -1;
 
         if (!peer.set_host(peercred)) {
@@ -417,14 +417,14 @@ int Socket::accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
     }
 
     Socket::Ptr sock = std::shared_ptr<Socket>(
-        new Socket(fd, this->domain, this->typearg, this->protocol)
+        new Socket(sockfd, this->domain, this->typearg, this->protocol)
     );
     sock->ports.reserve(local_port.value());
-    sock->binding = binding;
+    sock->binding = local_addr;
     sock->connection = peer;
     peer.apply_addr(addr, addrlen);
-    Socket::registry[fd] = sock->getptr();
-    return fd;
+    Socket::registry[sockfd] = sock->getptr();
+    return sockfd;
 }
 
 int Socket::getpeername(struct sockaddr *addr, socklen_t *addrlen)
