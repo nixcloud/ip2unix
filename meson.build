@@ -8,6 +8,7 @@ warning_flags = [
   '-Wshadow',
   '-Weffc++',
   '-Wcast-qual',
+  '-Wold-style-cast',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warning_flags),
