@@ -280,12 +280,12 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
             if (i == arglen || arg[i] == ',') {
                 /* Handle key=value options. */
                 if (key.value() == "path") {
-                    rule.socket_path = std::string(buf);
+                    rule.socket_path = buf;
 #ifdef SOCKET_ACTIVATION
 #ifndef NO_FDNAMES
                 } else if (key.value() == "systemd") {
                     rule.socket_activation = true;
-                    rule.fd_name = std::string(buf);
+                    rule.fd_name = buf;
 #endif
 #endif
                 } else if (key.value() == "reject") {
@@ -299,7 +299,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                         return std::nullopt;
                     }
                 } else if (key.value() == "addr" || key.value() == "address") {
-                    rule.address = std::string(buf);
+                    rule.address = buf;
                 } else if (key.value() == "port") {
                     std::optional<uint16_t> port = string2port(buf);
                     if (port) {
@@ -351,7 +351,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
             buf.assign("");
             continue;
         } else if (arg[i] == '=') {
-            key = std::string(buf);
+            key = buf;
             valpos = i + 1;
             buf.assign("");
             continue;
