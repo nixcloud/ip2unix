@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -265,6 +266,14 @@ static void print_arg_error(size_t rulepos, const std::string &arg, size_t pos,
                   << ' ' << msg << std::endl;
 }
 
+std::string make_absolute(const std::string &path)
+{
+    if (path.empty() || path[0] == '/')
+        return path;
+
+    return std::string(get_current_dir_name()) + '/' + path;
+}
+
 std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
 {
     std::string buf = "";
@@ -280,7 +289,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
             if (i == arglen || arg[i] == ',') {
                 /* Handle key=value options. */
                 if (key.value() == "path") {
-                    rule.socket_path = buf;
+                    rule.socket_path = make_absolute(buf);
 #ifdef SOCKET_ACTIVATION
 #ifndef NO_FDNAMES
                 } else if (key.value() == "systemd") {

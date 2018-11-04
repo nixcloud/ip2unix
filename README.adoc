@@ -155,8 +155,9 @@ These options are available:
   option.
 
 *path=SOCKET_PATH*::
-  The path to the socket file to either bind or connect to, see
-  <<rule-socket-path,*`socketPath`*>> rule file option.
+  The path to the socket file to either bind or connect to, which is similar to
+  the <<rule-socket-path,*`socketPath`*>> rule file option but also allows
+  relative paths.
 
 == Rule file format
 

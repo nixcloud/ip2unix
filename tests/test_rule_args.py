@@ -1,3 +1,4 @@
+import os
 import unittest
 import subprocess
 
@@ -23,7 +24,6 @@ class RulesTest(unittest.TestCase):
             'invalid port': ["port=", "port=-1", "port=65536", "port=1000000"],
             'invalid reject error code': ["reject=", "reject=-1",
                                           "reject=INVALIDERRORCODE"],
-            'has to be absolute': ["path=\\", "path=\\a"],
             'unknown flag': [",", "", "/", "path=/a\\\\,xxx"],
         }
         for synerr, rules in syntax_errors.items():
@@ -55,6 +55,7 @@ class RulesTest(unittest.TestCase):
             "reject": "Reject connect() and bind() calls.\n",
             "reject=EPERM": "connect() and bind() calls with errno EPERM.\n",
             "in,blackhole": "Blackhole the socket.\n",
+            "path=foo": "Socket path: " + os.getcwd() + "/foo\n",
         }
         for val, expect in fixtures.items():
             stdout, stderr = self.check_rules(val)
