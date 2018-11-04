@@ -4,6 +4,7 @@
 #include <variant>
 
 #include <netinet/in.h>
+#include <sys/un.h>
 
 struct SockAddr : public sockaddr_storage
 {
@@ -22,6 +23,10 @@ struct SockAddr : public sockaddr_storage
     bool set_host(const ucred&);
     bool set_host(const SockAddr&);
 
+    bool set_random_host(void);
+
+    std::optional<std::string> get_sockpath(void) const;
+
     std::optional<uint16_t> get_port(void) const;
     bool set_port(uint16_t);
 
@@ -36,6 +41,9 @@ struct SockAddr : public sockaddr_storage
             return std::to_string(port.value());
         return std::nullopt;
     };
+
+    bool operator==(const SockAddr &other) const;
+    std::size_t get_hash(void) const;
 
     inline sockaddr *cast(void) {
         return reinterpret_cast<sockaddr*>(this);
@@ -62,6 +70,23 @@ struct SockAddr : public sockaddr_storage
         {
             return reinterpret_cast<const sockaddr_in6*>(this);
         }
+
+        inline sockaddr_un *cast_un(void) {
+            return reinterpret_cast<sockaddr_un*>(this);
+        }
+
+        inline const sockaddr_un *cast_un(void) const
+        {
+            return reinterpret_cast<const sockaddr_un*>(this);
+        }
 };
+
+namespace std {
+    template<> struct hash<SockAddr> {
+        std::size_t operator()(const SockAddr &addr) const {
+            return addr.get_hash();
+        };
+    };
+}
 
 #endif

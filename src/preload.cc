@@ -142,6 +142,17 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         SockAddr inaddr(addr);
 
+        if (dir == RuleDir::OUTGOING) {
+            /* If we already got something from a recvfrom or recvmsg, we
+             * should have a mapping already and thus don't want to match
+             * against a rule as we did this already in recv{from,msg} and the
+             * destination address we get here doesn't necessarily match the
+             * rule.
+             */
+            std::optional<int> pmap_ret = sock->connect_peermap(inaddr);
+            if (pmap_ret) return pmap_ret.value();
+        }
+
         std::scoped_lock<std::mutex> lock(g_rules_mutex);
 
         std::optional<const Rule> rule = match_rule(inaddr, sock, dir);
@@ -235,6 +246,149 @@ extern "C" int WRAP_SYM(getsockname)(int fd, struct sockaddr *addr,
         return sock->getsockname(addr, addrlen);
     }, [&]() {
         return real::getsockname(fd, addr, addrlen);
+    });
+}
+
+extern "C" ssize_t WRAP_SYM(recvfrom)(int fd, void *buf, size_t len, int flags,
+                                      struct sockaddr *addr,
+                                      socklen_t *addrlen)
+{
+    if (addr == nullptr)
+        return real::recvfrom(fd, buf, len, flags, addr, addrlen);
+
+    return Socket::when<ssize_t>(fd, [&](Socket::Ptr sock) {
+        SockAddr recvaddr;
+        recvaddr.ss_family = AF_UNIX;
+        sockaddr *tmpaddr = recvaddr.cast();
+        socklen_t tmplen = recvaddr.size();
+        ssize_t ret = real::recvfrom(fd, buf, len, flags, tmpaddr, &tmplen);
+        if (sock->rewrite_src(recvaddr, addr, addrlen)) {
+            return ret;
+        } else {
+            errno = EINVAL;
+            return static_cast<ssize_t>(-1);
+        }
+    }, [&]() {
+        return real::recvfrom(fd, buf, len, flags, addr, addrlen);
+    });
+}
+
+extern "C" ssize_t WRAP_SYM(recvmsg)(int fd, struct msghdr *msg, int flags)
+{
+    if (msg->msg_name == nullptr)
+        return real::recvmsg(fd, msg, flags);
+
+    return Socket::when<ssize_t>(fd, [&](Socket::Ptr sock) {
+        SockAddr recvaddr;
+        recvaddr.ss_family = AF_UNIX;
+
+        msghdr msgcopy;
+        memcpy(&msgcopy, msg, sizeof(msghdr));
+        msgcopy.msg_name = &recvaddr;
+        msgcopy.msg_namelen = recvaddr.size();
+
+        ssize_t ret = real::recvmsg(fd, &msgcopy, flags);
+
+        msgcopy.msg_name = msg->msg_name;
+        msgcopy.msg_namelen = msg->msg_namelen;
+
+        sockaddr *addr = reinterpret_cast<sockaddr*>(msgcopy.msg_name);
+        if (sock->rewrite_src(recvaddr, addr, &msgcopy.msg_namelen)) {
+            memcpy(msg, &msgcopy, sizeof(msghdr));
+            return ret;
+        } else {
+            errno = EINVAL;
+            return static_cast<ssize_t>(-1);
+        }
+    }, [&]() {
+        return real::recvmsg(fd, msg, flags);
+    });
+}
+
+extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
+                                    int flags, const struct sockaddr *addr,
+                                    socklen_t addrlen)
+{
+    if (addr == nullptr)
+        return real::sendto(fd, buf, len, flags, addr, addrlen);
+
+    return Socket::when<ssize_t>(fd, [&](Socket::Ptr sock) {
+        SockAddr addrcopy(addr);
+
+        // XXX: Make all of this DRY!
+        std::optional<SockAddr> newdest = sock->rewrite_dest_peermap(addrcopy);
+        if (!newdest) {
+            std::scoped_lock<std::mutex> lock(g_rules_mutex);
+
+            std::optional<const Rule> rule = match_rule(addrcopy, sock,
+                                                        RuleDir::OUTGOING);
+
+            if (!rule || !rule.value().socket_path)
+                return real::sendto(fd, buf, len, flags, addr, addrlen);
+
+            if (rule.value().reject) {
+                errno = rule.value().reject_errno.value_or(EACCES);
+                return static_cast<ssize_t>(-1);
+            }
+
+            newdest = sock->rewrite_dest(addrcopy,
+                                         rule.value().socket_path.value());
+        }
+
+        if (newdest) {
+            sockaddr *ptr = reinterpret_cast<sockaddr*>(&newdest.value());
+            return real::sendto(fd, buf, len, flags, ptr,
+                                newdest.value().size());
+        } else {
+            return real::sendto(fd, buf, len, flags, nullptr, 0);
+        }
+    }, [&]() {
+        return real::sendto(fd, buf, len, flags, addr, addrlen);
+    });
+}
+
+extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
+                                     int flags)
+{
+    if (msg->msg_name == nullptr)
+        return real::sendmsg(fd, msg, flags);
+
+    return Socket::when<ssize_t>(fd, [&](Socket::Ptr sock) {
+        SockAddr addrcopy(reinterpret_cast<const sockaddr*>(msg->msg_name));
+
+        // XXX: Make all of this DRY!
+        std::optional<SockAddr> newdest = sock->rewrite_dest_peermap(addrcopy);
+        if (!newdest) {
+            std::scoped_lock<std::mutex> lock(g_rules_mutex);
+
+            std::optional<const Rule> rule = match_rule(addrcopy, sock,
+                                                        RuleDir::OUTGOING);
+
+            if (!rule || !rule.value().socket_path)
+                return real::sendmsg(fd, msg, flags);
+
+            if (rule.value().reject) {
+                errno = rule.value().reject_errno.value_or(EACCES);
+                return static_cast<ssize_t>(-1);
+            }
+
+            newdest = sock->rewrite_dest(addrcopy,
+                                         rule.value().socket_path.value());
+        }
+
+        msghdr newmsg;
+        memcpy(&newmsg, msg, sizeof(msghdr));
+        if (newdest) {
+            void *ptr = reinterpret_cast<void*>(&newdest.value());
+            newmsg.msg_name = ptr;
+            newmsg.msg_namelen = newdest.value().size();
+        } else {
+            newmsg.msg_name = nullptr;
+            newmsg.msg_namelen = 0;
+        }
+        return real::sendmsg(fd, &newmsg, flags);
+    }, [&]() {
+        return real::sendmsg(fd, msg, flags);
     });
 }
 

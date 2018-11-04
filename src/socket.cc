@@ -6,7 +6,6 @@
 
 #include "socket.hh"
 #include "realcalls.hh"
-#include "blackhole.hh"
 
 std::optional<Socket::Ptr> Socket::find(int fd)
 {
@@ -61,6 +60,8 @@ Socket::Socket(int fd, int domain, int type, int protocol)
     , sockpath()
     , sockopts()
     , ports()
+    , peermap()
+    , revpeermap()
 {
 }
 
@@ -201,6 +202,36 @@ bool Socket::make_unix(int fd)
     return true;
 }
 
+/* We need to use this for Socket::connect but also for Socket::rewrite_dest
+ * because both create an implicit binding.
+ */
+bool Socket::create_binding(const SockAddr &addr)
+{
+    SockAddr local;
+    local.ss_family = this->domain;
+
+    if (addr.is_loopback()) {
+        if (!local.set_host(addr))
+            return false;
+    } else {
+        ucred local_cred;
+        local_cred.uid = getuid();
+        local_cred.gid = getgid();
+        local_cred.pid = getpid();
+
+        // Our local sockaddr, which we only need if we didn't have a
+        // bind() before our connect.
+        if (!local.set_host(local_cred))
+            return false;
+    }
+
+    if (!local.set_port(this->ports.acquire()))
+        return false;
+
+    this->binding = local;
+    return true;
+}
+
 #ifdef SOCKET_ACTIVATION
 int Socket::activate(const SockAddr &addr, int fd)
 {
@@ -214,13 +245,16 @@ int Socket::activate(const SockAddr &addr, int fd)
 }
 #endif
 
-#define USOCK_OR_FAIL(path) \
+#define __USOCK_OR_FAIL(path, error_block) \
     std::optional<SockAddr> maybe_dest = SockAddr::unix(path); \
-    if (!maybe_dest) { \
-        errno = EFAULT; \
-        return -1; \
-    } \
+    if (!maybe_dest) error_block \
     SockAddr dest = maybe_dest.value()
+
+#define USOCK_OR_FAIL(path, ret) \
+    __USOCK_OR_FAIL(path, return ret;)
+
+#define USOCK_OR_EFAULT(path) \
+    __USOCK_OR_FAIL(path, { errno = EFAULT; return -1; })
 
 int Socket::bind(const SockAddr &addr, const std::string &path)
 {
@@ -250,12 +284,12 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
         std::optional<std::string> bh_path = bh.get_path();
         if (!bh_path) return -1;
 
-        USOCK_OR_FAIL(bh_path.value());
+        USOCK_OR_EFAULT(bh_path.value());
         ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0)
             this->is_blackhole = true;
     } else {
-        USOCK_OR_FAIL(sockpath);
+        USOCK_OR_EFAULT(sockpath);
         ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0) {
             Socket::sockpath_registry.insert(sockpath);
@@ -271,11 +305,46 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
     return ret;
 }
 
+std::optional<int> Socket::connect_peermap(const SockAddr &addr)
+{
+    if (this->type == SocketType::UDP) {
+        auto found = this->peermap.find(addr);
+        if (found != this->peermap.end()) {
+            USOCK_OR_EFAULT(found->second);
+            int ret = real::connect(this->fd, dest.cast(), dest.size());
+            if (ret != 0)
+                return ret;
+            this->connection = addr;
+            this->sockpath = found->second;
+            return ret;
+        }
+    }
+    return std::nullopt;
+}
+
 int Socket::connect(const SockAddr &addr, const std::string &path)
 {
-    // TODO/FIXME: Handle datagram sockets here!
+    if (this->type == SocketType::UDP && !this->binding) {
+        /* If we connect without prior binding on a datagram socket, we need to
+         * create an implicit binding first, so the peer is able to recognise
+         * us.
+         */
+        std::optional<SockAddr> maybe_dest = this->rewrite_dest(addr, path);
+        if (!maybe_dest) {
+            errno = EADDRNOTAVAIL;
+            return -1;
+        }
+        SockAddr dest = maybe_dest.value();
+        int ret = real::connect(this->fd, dest.cast(), dest.size());
+        if (ret == 0) {
+            this->connection = addr;
+            this->sockpath = dest.get_sockpath();
+        }
+        return ret;
+    }
+
     std::string new_sockpath = this->format_sockpath(path, addr);
-    USOCK_OR_FAIL(new_sockpath);
+    USOCK_OR_EFAULT(new_sockpath);
 
     if (!this->make_unix())
         return -1;
@@ -291,37 +360,11 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
         return ret;
 
     if (!this->binding) {
-        SockAddr local;
-        local.ss_family = this->domain;
-
-        if (addr.is_loopback()) {
-            if (!local.set_host(addr)) {
-                errno = EADDRNOTAVAIL;
-                return -1;
-            }
-        } else {
-            ucred local_cred;
-            local_cred.uid = getuid();
-            local_cred.gid = getgid();
-            local_cred.pid = getpid();
-
-            // Our local sockaddr, which we only need if we didn't have a
-            // bind() before our connect.
-            if (!local.set_host(local_cred)) {
-                errno = EADDRNOTAVAIL;
-                return -1;
-            }
-        }
-
-        uint16_t local_port = this->ports.acquire();
-        this->ports.reserve(remote_port.value());
-
-        if (!local.set_port(local_port)) {
+        if (!this->create_binding(addr)) {
             errno = EADDRNOTAVAIL;
             return -1;
         }
-
-        this->binding = local;
+        this->ports.reserve(remote_port.value());
     }
 
     this->connection = addr;
@@ -404,6 +447,99 @@ int Socket::getsockname(struct sockaddr *addr, socklen_t *addrlen)
         errno = EFAULT;
         return -1;
     }
+}
+
+/* Apply source address to pointers from recvfrom/recvmsg. */
+bool Socket::rewrite_src(const SockAddr &real_addr, struct sockaddr *addr,
+                         socklen_t *addrlen)
+{
+    if (!this->binding)
+        return true;
+
+    std::optional<std::string> path = real_addr.get_sockpath();
+    if (!path)
+        return true;
+
+    auto found = this->revpeermap.find(path.value());
+    if (found != this->revpeermap.end()) {
+        found->second.apply_addr(addr, addrlen);
+        return true;
+    }
+
+    SockAddr peer;
+    peer.ss_family = this->domain;
+
+    peer.set_port(this->ports.acquire());
+
+    if (this->binding.value().is_loopback()) {
+        if (!peer.set_host(this->binding.value()))
+            return false;
+    } else {
+        if (!peer.set_random_host())
+            return false;
+    }
+
+    this->peermap[peer] = path.value();
+    this->revpeermap[path.value()] = peer;
+
+    peer.apply_addr(addr, addrlen);
+    return true;
+}
+
+std::optional<SockAddr>
+Socket::rewrite_dest_peermap(const SockAddr &addr) const
+{
+    auto found = this->peermap.find(addr);
+    if (found != this->peermap.end()) {
+        USOCK_OR_FAIL(found->second, std::nullopt);
+        return dest;
+    }
+    return std::nullopt;
+}
+
+/* Rewrite address provided by sendto/sendmsg. */
+std::optional<SockAddr> Socket::rewrite_dest(const SockAddr &addr,
+                                             const std::string &path)
+{
+    if (this->type != SocketType::UDP)
+        return std::nullopt;
+
+    std::optional<SockAddr> destpath =
+        SockAddr::unix(this->format_sockpath(path, addr));
+
+    if (!destpath)
+        return std::nullopt;
+
+    if (!this->make_unix())
+        return std::nullopt;
+
+    /* In order to be able to distinguish the current peer on the remote side
+     * we need to have a binding on our side. Otherwise all the remote side
+     * will get is a null pointer of the peer address and there is no way to
+     * find out anything about the peer, not even using SO_PEERCRED as we're
+     * using datagrams.
+     */
+    if (!this->binding) {
+        std::unique_ptr<BlackHole> bh = std::make_unique<BlackHole>();
+        std::optional<std::string> bh_path = bh->get_path();
+        if (!bh_path) return std::nullopt;
+
+        USOCK_OR_FAIL(bh_path.value(), std::nullopt);
+        int ret = real::bind(this->fd, dest.cast(), dest.size());
+        if (ret != 0) return std::nullopt;
+
+        if (!this->create_binding(addr))
+            return std::nullopt;
+
+        this->is_blackhole = true;
+
+        /* Persist the blackhole, because the remote might want to connect() or
+         * send additional packets.
+         */
+        this->blackhole_ref = std::move(bh);
+    }
+
+    return destpath;
 }
 
 int Socket::close(void)

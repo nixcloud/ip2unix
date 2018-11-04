@@ -12,9 +12,12 @@ CURDIR = os.path.dirname(os.path.abspath(__file__))
 CONNECTOR = os.path.join(CURDIR, 'connector.py')
 
 
-class ConnectionTest(unittest.TestCase):
+class TcpConnectionTest(unittest.TestCase):
+    SOTYPE = 'tcp'
+
     def assert_client(self, rules, *args):
         cmd = [sys.executable, CONNECTOR] + list(map(str, args))
+        cmd += ['-t', self.SOTYPE]
         with helper.ip2unix(rules, cmd, stderr=subprocess.STDOUT,
                             stdout=subprocess.PIPE) as process:
             stdout = process.communicate()[0]
@@ -26,6 +29,7 @@ class ConnectionTest(unittest.TestCase):
         pre_cmd = kwargs.pop('pre_cmd', None)
         sync = kwargs.pop('sync', False)
         cmd = [sys.executable, CONNECTOR, '-l'] + list(map(str, args))
+        cmd += ['-t', self.SOTYPE]
         with helper.ip2unix(rules, cmd, stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             pre_cmd=pre_cmd) as proc:
@@ -81,8 +85,8 @@ class ConnectionTest(unittest.TestCase):
     def test_path_placeholders(self):
         args = ['127.0.0.1', 111]
         srule = {'socketPath': os.path.join(self.tmpdir, '%a-%t-%p.sock')}
-        crule = {'socketPath': os.path.join(self.tmpdir,
-                                            '127.0.0.1-tcp-111.sock')}
+        clipath = '127.0.0.1-' + self.SOTYPE + '-111.sock'
+        crule = {'socketPath': os.path.join(self.tmpdir, clipath)}
         self.assert_connection(crule, srule, args, args)
 
     @helper.systemd_sa_helper_only
@@ -90,6 +94,8 @@ class ConnectionTest(unittest.TestCase):
         srule = {'socketActivation': True}
         args = ['-c', 10, '4.3.2.1', 321]
         pre_cmd = [helper.SYSTEMD_SA_PATH, '-l', self.sockpath]
+        if self.SOTYPE == 'udp':
+            pre_cmd.append('-d')
         self.assert_connection({}, srule, args, args, pre_cmd_srv=pre_cmd)
 
     @helper.systemd_sa_helper_only
@@ -97,6 +103,8 @@ class ConnectionTest(unittest.TestCase):
         srule = {'socketActivation': True}
         args = ['-m', 'threading', '-p', 10, '-c', 20, '4.3.2.1', 321]
         pre_cmd = [helper.SYSTEMD_SA_PATH, '-l', self.sockpath]
+        if self.SOTYPE == 'udp':
+            pre_cmd.append('-d')
         self.assert_connection({}, srule, args, args, pre_cmd_srv=pre_cmd)
 
     @helper.systemd_sa_helper_only
@@ -105,9 +113,15 @@ class ConnectionTest(unittest.TestCase):
         srule = {'socketActivation': True, 'fdName': 'foo', 'port': 333}
         args = ['-c', 10, '4.3.2.1', 333]
         extrasock = os.path.join(self.tmpdir, 'extra.sock')
-        pre_cmd = [helper.SYSTEMD_SA_PATH, '-l', extrasock,
-                   '-l', self.sockpath, '--fdname=:foo']
+        pre_cmd = [helper.SYSTEMD_SA_PATH, '-l', extrasock]
+        if self.SOTYPE == 'udp':
+            pre_cmd.append('-d')
+        pre_cmd += ['-l', self.sockpath, '--fdname=:foo']
         try:
             self.assert_connection({}, srule, args, args, pre_cmd_srv=pre_cmd)
         finally:
             os.unlink(extrasock)
+
+
+class UdpConnectionTest(TcpConnectionTest):
+    SOTYPE = 'udp'

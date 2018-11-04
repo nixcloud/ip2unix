@@ -61,6 +61,12 @@ namespace real {
 #ifdef SOCKET_ACTIVATION
     DLSYM_FUN(listen, int, int, int);
 #endif
+    DLSYM_FUN(recvfrom, ssize_t, int, void*, size_t, int, struct sockaddr*,
+              socklen_t*);
+    DLSYM_FUN(recvmsg, ssize_t, int, struct msghdr*, int);
+    DLSYM_FUN(sendmsg, ssize_t, int, const struct msghdr*, int);
+    DLSYM_FUN(sendto, ssize_t, int, const void*, size_t, int,
+              const struct sockaddr*, socklen_t);
     DLSYM_FUN(setsockopt, int, int, int, int, const void*, socklen_t);
     DLSYM_FUN(socket, int, int, int, int);
 }

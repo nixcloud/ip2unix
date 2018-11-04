@@ -13,6 +13,7 @@
 #include "sockaddr.hh"
 #include "sockopts.hh"
 #include "dynports.hh"
+#include "blackhole.hh"
 
 struct Socket : std::enable_shared_from_this<Socket>
 {
@@ -56,11 +57,17 @@ struct Socket : std::enable_shared_from_this<Socket>
     int activate(const SockAddr&, int fd);
 #endif
     int bind(const SockAddr&, const std::string&);
+    std::optional<int> connect_peermap(const SockAddr&);
     int connect(const SockAddr&, const std::string&);
 
     int accept(int, sockaddr*, socklen_t*);
     int getsockname(sockaddr*, socklen_t*);
     int getpeername(sockaddr*, socklen_t*);
+
+    bool rewrite_src(const SockAddr&, sockaddr*, socklen_t*);
+    std::optional<SockAddr> rewrite_dest_peermap(const SockAddr&) const;
+    std::optional<SockAddr> rewrite_dest(const SockAddr&, const std::string&);
+
     int close(void);
 
     private:
@@ -77,6 +84,13 @@ struct Socket : std::enable_shared_from_this<Socket>
 
         SockOpts sockopts;
         DynPorts ports;
+
+        /* This is used for recvfrom/recvmsg to generate random remote peers
+         * and look them up either in the next recvfrom/recvmsg or in a
+         * connect().
+         */
+        std::unordered_map<SockAddr, std::string> peermap;
+        std::unordered_map<std::string, SockAddr> revpeermap;
 
         /* Constructor and reference getter. */
         Socket(int, int, int, int);
@@ -103,9 +117,13 @@ struct Socket : std::enable_shared_from_this<Socket>
         /* Set if this socket is bound to an unlinked socket path. */
         bool is_blackhole = false;
 
+        /* We need this if we need ta persist a blackhole path for a while. */
+        std::optional<std::unique_ptr<BlackHole>> blackhole_ref;
+
         /* Various helper functions. */
         bool apply_sockopts(int);
         bool make_unix(int = -1);
+        bool create_binding(const SockAddr&);
 
         std::string format_sockpath(const std::string&, const SockAddr&) const;
 };

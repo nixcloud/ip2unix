@@ -2,9 +2,9 @@
 #include <cstring>
 #include <stdexcept>
 #include <optional>
+#include <sstream>
 
 #include <arpa/inet.h>
-#include <sys/un.h>
 
 #include "sockaddr.hh"
 
@@ -128,6 +128,26 @@ bool SockAddr::set_host(const ucred &peercred)
     return false;
 }
 
+bool SockAddr::set_random_host(void)
+{
+    // TODO: Actually implement the random generator!
+    if (this->ss_family == AF_INET)
+        return this->set_host("1.2.3.4");
+    else if (this->ss_family == AF_INET6)
+        return this->set_host("1234::5678");
+
+    return false;
+}
+
+std::optional<std::string> SockAddr::get_sockpath(void) const
+{
+    if (this->ss_family == AF_UNIX) {
+        return std::string(this->cast_un()->sun_path);
+    }
+
+    return std::nullopt;
+}
+
 std::optional<uint16_t> SockAddr::get_port(void) const
 {
     if (this->ss_family == AF_INET)
@@ -178,4 +198,55 @@ socklen_t SockAddr::size() const
         return sizeof(sockaddr_un);
     else
         return sizeof(sockaddr_storage);
+}
+
+bool SockAddr::operator==(const SockAddr &other) const
+{
+    if (this->ss_family != other.ss_family)
+        return false;
+
+    if (this->ss_family == AF_INET) {
+        const sockaddr_in *addr = this->cast4();
+        const sockaddr_in *othr = other.cast4();
+        return addr->sin_port == othr->sin_port
+            && addr->sin_addr.s_addr == othr->sin_addr.s_addr;
+    } else if (this->ss_family == AF_INET6) {
+        const sockaddr_in6 *addr = this->cast6();
+        const sockaddr_in6 *othr = other.cast6();
+        if (!std::equal(std::begin(addr->sin6_addr.s6_addr),
+                        std::end(addr->sin6_addr.s6_addr),
+                        std::begin(othr->sin6_addr.s6_addr)))
+            return false;
+        return addr->sin6_port == othr->sin6_port;
+    } else if (this->ss_family == AF_UNIX) {
+        const sockaddr_un *addr = this->cast_un();
+        const sockaddr_un *othr = other.cast_un();
+        return std::string(addr->sun_path) == std::string(othr->sun_path);
+    }
+
+    return false;
+}
+
+std::size_t SockAddr::get_hash(void) const
+{
+    // FIXME: This function is pretty slow and dumb, but at least accurate.
+    std::ostringstream hashprep;
+    hashprep << this->ss_family;
+
+    if (this->ss_family == AF_INET) {
+        const sockaddr_in *addr = this->cast4();
+        hashprep << '|' << addr->sin_port;
+        hashprep << '|' << addr->sin_addr.s_addr;
+    } else if (this->ss_family == AF_INET6) {
+        const sockaddr_in6 *addr = this->cast6();
+        hashprep << '|' << addr->sin6_port;
+        hashprep << '|';
+        for (const unsigned char &comp : addr->sin6_addr.s6_addr)
+            hashprep << comp;
+    } else if (this->ss_family == AF_UNIX) {
+        const sockaddr_un *addr = this->cast_un();
+        hashprep << '|' << std::string(addr->sun_path);
+    }
+
+    return std::hash<std::string>{}(hashprep.str());
 }
