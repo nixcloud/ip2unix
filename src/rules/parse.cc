@@ -84,7 +84,7 @@ static std::optional<std::string> validate_rule(Rule &rule)
  * digits and whether the length is short enough for a 16 bit unsigned int and
  * then convert to uint32_t and check the upper bound.
  */
-static inline std::optional<uint16_t> string2port(const std::string &str)
+static std::optional<uint16_t> string2port(const std::string &str)
 {
     std::string value(str);
     value.erase(0, str.find_first_not_of('0'));
@@ -106,7 +106,7 @@ static inline std::optional<uint16_t> string2port(const std::string &str)
     return std::nullopt;
 }
 
-static inline std::optional<int> parse_errno(const std::string &str)
+static std::optional<int> parse_errno(const std::string &str)
 {
     if (str.empty())
         return std::nullopt;
@@ -129,7 +129,7 @@ static inline std::optional<int> parse_errno(const std::string &str)
     }
 
 static std::optional<Rule> parse_rule(const std::string &file, int pos,
-                                            const YAML::Node &doc)
+                                      const YAML::Node &doc)
 {
     Rule rule;
 
