@@ -74,21 +74,21 @@ int main(int argc, char *argv[])
     bool check_only = false;
     bool show_rules = false;
 
-    static struct option options[] = {
-        {"help", no_argument, 0, 'h'},
-        {"check", no_argument, 0, 'c'},
-        {"print", no_argument, 0, 'p'},
-        {"rule", required_argument, 0, 0},
-        {"rules-file", required_argument, 0, 0},
-        {"rules-data", required_argument, 0, 0},
-        {0, 0, 0, 0}
+    static struct option lopts[] = {
+        {"help", no_argument, nullptr, 'h'},
+        {"check", no_argument, nullptr, 'c'},
+        {"print", no_argument, nullptr, 'p'},
+        {"rule", required_argument, nullptr, 0},
+        {"rules-file", required_argument, nullptr, 0},
+        {"rules-data", required_argument, nullptr, 0},
+        {nullptr, 0, nullptr, 0}
     };
 
     std::optional<std::string> rulefile = std::nullopt;
     std::optional<std::string> ruledata = std::nullopt;
     std::vector<std::string> rule_args;
 
-    while ((c = getopt_long(argc, argv, "+hcpr:f:F:", options, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "+hcpr:f:F:", lopts, nullptr)) != -1) {
         switch (c) {
             case 'h':
                 print_usage(self, stdout);

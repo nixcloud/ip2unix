@@ -10,6 +10,7 @@ warning_flags = [
   '-Wcast-qual',
   '-Wold-style-cast',
   '-Wswitch-enum',
+  '-Wzero-as-null-pointer-constant',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warning_flags),
