@@ -15,7 +15,8 @@ def make_handler(sotype):
     elif sotype == 'udp':
         def _handle(self):
             data = self.request[0]
-            self.sendto(data.upper(), self.client_address)
+            sock = self.request[1]
+            sock.sendto(data.upper(), self.client_address)
     else:
         raise Exception('Unknown IP socket type')
 
