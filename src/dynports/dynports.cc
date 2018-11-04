@@ -16,7 +16,8 @@
 static std::default_random_engine initalize_generator(void)
 {
     auto now = std::chrono::system_clock::now();
-    uint64_t seed = now.time_since_epoch().count() ^ getpid();
+    uint64_t seed = static_cast<uint64_t>(now.time_since_epoch().count())
+                  ^ static_cast<uint64_t>(getpid());
     std::default_random_engine gen(seed);
     return gen;
 }
@@ -25,7 +26,7 @@ static std::default_random_engine generator = initalize_generator();
 
 static uint16_t get_random_port(void)
 {
-    std::uniform_int_distribution<> dist(1024, 65535);
+    std::uniform_int_distribution<uint16_t> dist(1024, 65535);
     return dist(generator);
 }
 
@@ -38,7 +39,7 @@ static uint16_t get_random_port(void)
  */
 static uint16_t get_random_offset(void)
 {
-    std::uniform_int_distribution<> dist(0, PORT_OFFSETS.size() - 1);
+    std::uniform_int_distribution<uint16_t> dist(0, PORT_OFFSETS.size() - 1);
     return PORT_OFFSETS[dist(generator)];
 }
 
@@ -55,7 +56,7 @@ uint16_t DynPorts::rotate_port(uint16_t port, uint16_t off) const
     uint32_t bounds = 65536 - 1024;
 
     do {
-        uint32_t base = port - 1024;
+        uint32_t base = static_cast<uint32_t>(port) - 1024;
         base = (base + off) % bounds;
         port = base + 1024;
 

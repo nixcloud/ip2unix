@@ -109,7 +109,8 @@ bool SockAddr::set_host(const SockAddr &other)
 bool SockAddr::set_host(const ucred &peercred)
 {
     if (this->ss_family == AF_INET) {
-        this->cast4()->sin_addr.s_addr = htonl(peercred.pid);
+        this->cast4()->sin_addr.s_addr =
+            htonl(static_cast<uint32_t>(peercred.pid));
         return true;
     } else if (this->ss_family == AF_INET6) {
         sockaddr_in6 *addr = this->cast6();
@@ -117,11 +118,11 @@ bool SockAddr::set_host(const ucred &peercred)
         addr->sin6_addr.s6_addr[1] = 0x80;
         addr->sin6_addr.s6_addr[2] = 0x00;
         addr->sin6_addr.s6_addr[3] = 0x00;
-        uint32_t part = htonl(peercred.uid);
+        uint32_t part = htonl(static_cast<uint32_t>(peercred.uid));
         memcpy(addr->sin6_addr.s6_addr + 4, &part, 4);
-        part = htonl(peercred.gid);
+        part = htonl(static_cast<uint32_t>(peercred.gid));
         memcpy(addr->sin6_addr.s6_addr + 8, &part, 4);
-        part = htonl(peercred.pid);
+        part = htonl(static_cast<uint32_t>(peercred.pid));
         memcpy(addr->sin6_addr.s6_addr + 12, &part, 4);
         return true;
     }

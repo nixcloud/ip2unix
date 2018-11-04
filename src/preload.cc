@@ -340,7 +340,8 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
             return real::sendto(fd, buf, len, flags, ptr,
                                 newdest.value().size());
         } else {
-            return real::sendto(fd, buf, len, flags, nullptr, 0);
+            return real::sendto(fd, buf, len, flags, nullptr,
+                                static_cast<socklen_t>(0));
         }
     }, [&]() {
         return real::sendto(fd, buf, len, flags, addr, addrlen);

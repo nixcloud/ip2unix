@@ -12,6 +12,7 @@ warning_flags = [
   '-Wswitch-enum',
   '-Wzero-as-null-pointer-constant',
   '-Wuseless-cast',
+  '-Wsign-conversion',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warning_flags),

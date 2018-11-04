@@ -96,7 +96,7 @@ static std::optional<uint16_t> string2port(const std::string &str)
         return std::nullopt;
 
     if (std::all_of(value.begin(), value.end(), isdigit)) {
-        uint32_t intval = std::stoi(value);
+        uint32_t intval = std::stoul(value);
         if (value.length() <= 6 && intval <= 65535)
             return static_cast<uint16_t>(intval);
         else
