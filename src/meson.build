@@ -10,6 +10,8 @@ errnos = custom_target('errno_list',
                        command: [python, '@INPUT@'] + cc.cmd_array(),
                        capture: true)
 
+dynports_sources = [dynports, files('rng.cc')]
+
 sources += files('ip2unix.cc',
                  'blackhole.cc',
                  'preload.cc',
@@ -19,6 +21,6 @@ sources += files('ip2unix.cc',
                  'socket.cc',
                  'sockaddr.cc',
                  'sockopts.cc')
-sources += dynports
+sources += dynports_sources
 sources += errnos
 includes += include_directories('.')

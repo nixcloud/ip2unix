@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <chrono>
-#include <random>
-
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "rng.hh"
 #include "dynports.hh"
 
 /*
@@ -13,21 +11,9 @@
  */
 @PORT_OFFSETS@
 
-static std::default_random_engine initalize_generator(void)
-{
-    auto now = std::chrono::system_clock::now();
-    uint64_t seed = static_cast<uint64_t>(now.time_since_epoch().count())
-                  ^ static_cast<uint64_t>(getpid());
-    std::default_random_engine gen(seed);
-    return gen;
-}
-
-static std::default_random_engine generator = initalize_generator();
-
 static uint16_t get_random_port(void)
 {
-    std::uniform_int_distribution<uint16_t> dist(1024, 65535);
-    return dist(generator);
+    return RNG::get<uint16_t>(1024, 65535);
 }
 
 /*
@@ -39,8 +25,7 @@ static uint16_t get_random_port(void)
  */
 static uint16_t get_random_offset(void)
 {
-    std::uniform_int_distribution<uint16_t> dist(0, PORT_OFFSETS.size() - 1);
-    return PORT_OFFSETS[dist(generator)];
+    return PORT_OFFSETS[RNG::get<uint16_t>(0, PORT_OFFSETS.size() - 1)];
 }
 
 DynPorts::DynPorts()
