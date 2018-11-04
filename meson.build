@@ -41,6 +41,13 @@ deps = [
   cc.find_library('dl')
 ]
 
+libcpath = run_command(python, 'meson/findlibc.py', cc.cmd_array())
+if libcpath.returncode() == 0
+  fullpath = libcpath.stdout()
+  message('Found C library at ' + fullpath)
+  cflags += ['-DLIBC_PATH="' + fullpath + '"']
+endif
+
 systemd_no_fdnames = false
 
 libsystemd = dependency('libsystemd', required: false)

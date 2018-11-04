@@ -14,7 +14,24 @@
 #define IP2UNIX_REALCALL_EXTERN extern
 #endif
 
+struct DlsymHandle
+{
+    DlsymHandle();
+    ~DlsymHandle();
+
+    inline void *get(void) const {
+        return this->handle;
+    }
+
+    private:
+        DlsymHandle(const DlsymHandle&) = delete;
+        DlsymHandle &operator=(const DlsymHandle&) = delete;
+
+        void *handle;
+};
+
 extern std::mutex g_dlsym_mutex;
+extern DlsymHandle dlsym_handle;
 
 /* This namespace is here so that we can autogenerate and call wrappers for C
  * library functions in a convenient way. For example to call the wrapper for
@@ -31,7 +48,7 @@ namespace real {
         {
             g_dlsym_mutex.lock();
             if (this->fptr == nullptr) {
-                void *result = dlsym(RTLD_NEXT, Self::fname);
+                void *result = dlsym(dlsym_handle.get(), Self::fname);
                 if (result == nullptr) {
                     std::string msg("dlsym(" + std::string(Self::fname) + ")");
                     perror(msg.c_str());
