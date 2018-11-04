@@ -10,8 +10,8 @@ SockOpts::SockOpts() : entries() {}
 
 void SockOpts::cache_sockopt(int lvl, int name, const void *val, socklen_t len)
 {
-    std::vector<uint8_t> valcopy((uint8_t*)val,
-                                 (uint8_t*)val + len);
+    std::vector<uint8_t> valcopy((const uint8_t*)val,
+                                 (const uint8_t*)val + len);
     SockOpts::EntrySockopt entry{lvl, name, valcopy};
     this->entries.push(entry);
 }
@@ -26,8 +26,8 @@ void SockOpts::cache_ioctl(unsigned long request, const void *arg)
         default: return;
     }
 
-    std::vector<uint8_t> argcopy((uint8_t*)arg,
-                                 (uint8_t*)arg + len);
+    std::vector<uint8_t> argcopy((const uint8_t*)arg,
+                                 (const uint8_t*)arg + len);
     SockOpts::EntryIoctl entry{request, argcopy};
     this->entries.push(entry);
 }

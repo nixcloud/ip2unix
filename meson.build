@@ -7,6 +7,7 @@ warning_flags = [
   '-Wextra',
   '-Wshadow',
   '-Weffc++',
+  '-Wcast-qual',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warning_flags),
