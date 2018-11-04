@@ -382,7 +382,8 @@ ifdef::manmanual[]
 *recvmsg*(2),
 *sendmsg*(2),
 *sendto*(2),
-*socket*(2){systemd_comma}
+*socket*(2),
+*unix*(7){systemd_comma}
 ifndef::without-systemd[*systemd.socket*(5)]
 
 endif::[]
