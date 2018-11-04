@@ -43,7 +43,8 @@ static uint16_t get_random_offset(void)
 }
 
 DynPorts::DynPorts()
-    : current(get_random_port())
+    : reserved()
+    , current(get_random_port())
     , offset(get_random_offset())
 {
 }

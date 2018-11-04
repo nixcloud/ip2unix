@@ -62,6 +62,7 @@ Socket::Socket(int sfd, int sdomain, int stype, int sproto)
     , ports()
     , peermap()
     , revpeermap()
+    , blackhole_ref(std::nullopt)
 {
 }
 

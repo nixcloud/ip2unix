@@ -6,6 +6,7 @@ cc = meson.get_compiler('cpp')
 warning_flags = [
   '-Wextra',
   '-Wshadow',
+  '-Weffc++',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warning_flags),
