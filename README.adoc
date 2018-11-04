@@ -378,6 +378,10 @@ ifdef::manmanual[]
 *bind*(2),
 *connect*(2),
 *listen*(2),
+*recvfrom*(2),
+*recvmsg*(2),
+*sendmsg*(2),
+*sendto*(2),
 *socket*(2){systemd_comma}
 ifndef::without-systemd[*systemd.socket*(5)]
 
