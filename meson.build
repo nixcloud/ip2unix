@@ -4,15 +4,15 @@ project('ip2unix', 'cpp', default_options: ['cpp_std=c++17'],
 cc = meson.get_compiler('cpp')
 
 warning_flags = [
-  '-Wextra',
-  '-Wshadow',
-  '-Weffc++',
   '-Wcast-qual',
+  '-Weffc++',
+  '-Wextra',
   '-Wold-style-cast',
-  '-Wswitch-enum',
-  '-Wzero-as-null-pointer-constant',
-  '-Wuseless-cast',
+  '-Wshadow',
   '-Wsign-conversion',
+  '-Wswitch-enum',
+  '-Wuseless-cast',
+  '-Wzero-as-null-pointer-constant',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warning_flags),
