@@ -9,6 +9,7 @@ warning_flags = [
   '-Weffc++',
   '-Wcast-qual',
   '-Wold-style-cast',
+  '-Wswitch-enum',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warning_flags),

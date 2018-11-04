@@ -154,6 +154,7 @@ std::string Socket::format_sockpath(const std::string &path,
                     switch (this->type) {
                         case SocketType::TCP: out += "tcp"; break;
                         case SocketType::UDP: out += "udp"; break;
+                        case SocketType::INVALID:
                         default: out += "unknown"; break;
                     }
                     i++;
