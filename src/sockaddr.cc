@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 
 #include "sockaddr.hh"
+#include "rng.hh"
 
 SockAddr::SockAddr()
 {
@@ -131,11 +132,21 @@ bool SockAddr::set_host(const ucred &peercred)
 
 bool SockAddr::set_random_host(void)
 {
-    // TODO: Actually implement the random generator!
-    if (this->ss_family == AF_INET)
-        return this->set_host("1.2.3.4");
-    else if (this->ss_family == AF_INET6)
-        return this->set_host("1234::5678");
+    if (this->ss_family == AF_INET) {
+        this->cast4()->sin_addr.s_addr =
+            htonl(RNG::get<uint32_t>(0, 0x00ffffff));
+        return true;
+    } else if (this->ss_family == AF_INET6) {
+        sockaddr_in6 *addr = this->cast6();
+        addr->sin6_addr.s6_addr[0] = 0xfe;
+        addr->sin6_addr.s6_addr[1] = 0x80;
+        addr->sin6_addr.s6_addr[2] = 0x00;
+        addr->sin6_addr.s6_addr[3] = 0x00;
+        memset(addr->sin6_addr.s6_addr + 4, 0, 8);
+        uint32_t randsuf = htonl(RNG::get<uint32_t>(0, 0xffffffff));
+        memcpy(addr->sin6_addr.s6_addr + 12, &randsuf, 4);
+        return true;
+    }
 
     return false;
 }
