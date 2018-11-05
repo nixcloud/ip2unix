@@ -72,6 +72,202 @@ ifndef::manmanual[]
 Use `ip2unix --help` or `man ip2unix` to see a detailed list of options
 available.
 
+== Build from source
+
+=== Requirements
+
+* https://mesonbuild.com/[Meson], at least version 0.46.0
+* https://ninja-build.org/[Ninja], at least version 1.5
+* https://github.com/jbeder/yaml-cpp[yaml-cpp], at least version 0.5.0
+* {cpp} compiler supporting {cpp}17 (GNU G++ version 7.0 onwards)
+
+.Optional dependencies:
+* http://asciidoc.org/[AsciiDoc] or https://asciidoctor.org/[Asciidoctor] for
+  generating the manpage
+* https://www.freedesktop.org/wiki/Software/systemd/[systemd] development
+  libraries to support socket activation
+* https://pytest.org/[pytest] for running automated tests
+
+=== Cloning the repository
+
+The source code can be fetched via https://git-scm.com/[Git] using the
+following command:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ git clone https://github.com/nixcloud/ip2unix.git
+---------------------------------------------------------------------
+
+You will get an `ip2unix` directory inside your current working directory. All
+of the following steps are to be performed inside this `ip2unix` directory.
+
+==== Using the Nix package manager
+
+This is the easiest and recommended way to compile it from source and it should
+work on any distribution.
+
+If you're not running https://nixos.org/[NixOS] you can install
+https://nixos.org/nix/[Nix] via the following command:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ curl https://nixos.org/nix/install | sh
+---------------------------------------------------------------------
+
+In order to build *ip2unix* issue the following command from the top of the
+source tree:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ nix-build
+---------------------------------------------------------------------
+
+This takes care of fetching the dependencies, building and running the test
+suite. The resulting command can now be found in `result/bin/ip2unix`.
+
+If you want to add the package to your user environment, you can install it
+using the command:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ nix-env -f . -i
+---------------------------------------------------------------------
+
+==== Debian and derivatives
+
+Fetching the requirements on Debian 9 can be tricky because only GCC version 6
+is available, so
+<<Using the Nix package manager,using the Nix package manager>> is recommended
+here as it doesn't interfere with the rest of the system.
+
+However if you still want to build it on Debian 9, you can install `g++-7` from
+testing. Please be aware that mixing packages from `testing` might update
+unrelated packages and might make your system less stable.
+
+In addition to the C++ compiler, the version of Meson on Debian 9 is too old as
+well. However it can be installed from the Python Package Index using `pip`:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo apt-get install python3-pip
+$ pip3 install meson
+---------------------------------------------------------------------
+
+After you're done getting a newer Meson and C++ compiler, you can use the
+following command to install the other required dependencies:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo apt-get install ninja-build pkg-config libyaml-cpp-dev
+---------------------------------------------------------------------
+
+If you want to have a manpage and support for systemd socket activation:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo apt-get install asciidoctor libsystemd-dev
+---------------------------------------------------------------------
+
+In case you want to run the test suite, pytest is required:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo apt-get install python3-pytest
+---------------------------------------------------------------------
+
+==== RPM-based distributions
+
+On Fedora 29, all of the dependencies are recent enough, so in order to install
+the required dependencies:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo yum install meson gcc-c++ yaml-cpp-devel
+---------------------------------------------------------------------
+
+The optional dependencies for the manpage and for systemd socket activation:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo yum install asciidoctor systemd-devel
+---------------------------------------------------------------------
+
+If you want to run the test suite:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo yum install python3-pytest
+---------------------------------------------------------------------
+
+==== Arch Linux and derivatives
+
+To install the required dependencies:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo pacman -S yaml-cpp meson gcc pkg-config
+---------------------------------------------------------------------
+
+If you want to have the manpage:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo pacman -S asciidoctor
+---------------------------------------------------------------------
+
+In case you want to run the test suite:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo pacman -S python-pytest
+---------------------------------------------------------------------
+
+=== Building
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ meson build
+---------------------------------------------------------------------
+
+If you want to specify a different compiler executable, eg. `g++-7`:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ CXX=g++-7 meson build
+---------------------------------------------------------------------
+
+Compile:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ ninja -C build
+---------------------------------------------------------------------
+
+The executable is then placed in `build/ip2unix`, so to show the usage:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ build/ip2unix --help
+---------------------------------------------------------------------
+
+=== Installation
+
+To install *ip2unix*, run the following command:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ ninja -C build install
+---------------------------------------------------------------------
+
+By default, this will install *ip2unix* in `/usr/local/bin/ip2unix`.
+
+=== Running tests
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ ninja -C build test
+---------------------------------------------------------------------
+
 endif::[]
 
 ifdef::manmanual[]
