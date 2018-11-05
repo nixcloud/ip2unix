@@ -1,5 +1,5 @@
 project('ip2unix', 'cpp', default_options: ['cpp_std=c++17'],
-        meson_version: '>=0.46.0', version: '0.1.0')
+        meson_version: '>=0.46.0', version: '1.0.0')
 
 cc = meson.get_compiler('cpp')
 
