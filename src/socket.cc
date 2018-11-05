@@ -178,6 +178,7 @@ std::string Socket::format_sockpath(const std::string &path,
 bool Socket::make_unix(int oldfd)
 {
     int newfd;
+    int old_errno = errno;
 
     if (this->is_unix)
         return true;
@@ -186,20 +187,25 @@ bool Socket::make_unix(int oldfd)
         newfd = oldfd;
     } else if ((newfd = real::socket(AF_UNIX, this->typearg, 0)) == -1) {
         perror("socket(AF_UNIX)");
+        errno = old_errno;
         return false;
     }
 
     if (!this->sockopts.replay(this->fd, newfd)) {
         real::close(newfd);
+        errno = old_errno;
         return false;
     }
 
-    if (dup2(newfd, this->fd) == -1) {
+    if (real::dup2(newfd, this->fd) == -1) {
         perror("dup2");
         real::close(newfd);
+        errno = old_errno;
         return false;
     }
 
+    real::close(newfd);
+    errno = old_errno;
     this->is_unix = true;
     return true;
 }
@@ -542,6 +548,27 @@ std::optional<SockAddr> Socket::rewrite_dest(const SockAddr &addr,
     }
 
     return destpath;
+}
+
+int Socket::dup(void)
+{
+    int newfd = real::dup(this->fd);
+    if (newfd != -1)
+        Socket::registry[newfd] = this->getptr();
+    return newfd;
+}
+
+int Socket::dup(int newfd, int flags)
+{
+    std::optional<Socket::Ptr> existing = Socket::find(newfd);
+    if (existing)
+        existing.value()->close();
+
+    int ret = real::dup3(this->fd, newfd, flags);
+    if (ret != -1)
+        Socket::registry[ret] = this->getptr();
+
+    return ret;
 }
 
 int Socket::close(void)

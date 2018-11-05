@@ -68,6 +68,8 @@ struct Socket : std::enable_shared_from_this<Socket>
     std::optional<SockAddr> rewrite_dest_peermap(const SockAddr&) const;
     std::optional<SockAddr> rewrite_dest(const SockAddr&, const std::string&);
 
+    int dup(void);
+    int dup(int, int);
     int close(void);
 
     private:

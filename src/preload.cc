@@ -393,6 +393,37 @@ extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
     });
 }
 
+extern "C" int WRAP_SYM(dup)(int oldfd)
+{
+    return Socket::when<int>(oldfd, [&](Socket::Ptr sock) {
+        return sock->dup();
+    }, [&]() {
+        return real::dup(oldfd);
+    });
+}
+
+static int handle_dup3(int oldfd, int newfd, int flags)
+{
+    if (oldfd == newfd)
+        return real::dup3(oldfd, newfd, flags);
+
+    return Socket::when<int>(oldfd, [&](Socket::Ptr sock) {
+        return sock->dup(newfd, flags);
+    }, [&]() {
+        return real::dup3(oldfd, newfd, flags);
+    });
+}
+
+extern "C" int WRAP_SYM(dup2)(int oldfd, int newfd)
+{
+    return handle_dup3(oldfd, newfd, 0);
+}
+
+extern "C" int WRAP_SYM(dup3)(int oldfd, int newfd, int flags)
+{
+    return handle_dup3(oldfd, newfd, flags);
+}
+
 extern "C" int WRAP_SYM(close)(int fd)
 {
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
