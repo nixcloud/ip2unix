@@ -1,4 +1,5 @@
-pytest = find_program('pytest', required: false)
+pytest_canidates = ['pytest-3', 'py.test-3', 'pytest', 'py.test']
+pytest = find_program(pytest_canidates, required: false)
 if pytest.found()
   pytest_args = [
     '-p', 'no:cacheprovider',
