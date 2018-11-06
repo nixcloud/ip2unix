@@ -1,42 +1,38 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include "../rules.hh"
-
 #include <cstring>
 #include <unordered_map>
 #include <queue>
 
-#include <arpa/inet.h>
-
-#ifdef SOCKET_ACTIVATION
 #include <systemd/sd-daemon.h>
 
-/*
- * Get a systemd socket file descriptor for the given rule either via name if
- * fd_name is set or just the next file descriptor available.
- */
-std::optional<int> get_systemd_fd_for_rule(const Rule &rule)
+#include "rules.hh"
+#include "systemd.hh"
+
+static std::unordered_map<std::string, int> names;
+static std::queue<int> fds;
+static int fd_count;
+
+void Systemd::init(void)
 {
-    static std::unordered_map<std::string, int> names;
-    static std::queue<int> fds;
     static bool fetch_done = false;
 
     if (!fetch_done) {
         char **raw_names = nullptr;
 #ifdef NO_FDNAMES
-        int count = sd_listen_fds(1);
+        fd_count = sd_listen_fds(1);
 #else
-        int count = sd_listen_fds_with_names(1, &raw_names);
+        fd_count = sd_listen_fds_with_names(1, &raw_names);
 #endif
-        if (count < 0) {
+        if (fd_count < 0) {
             fprintf(stderr, "FATAL: Unable to get systemd sockets: %s\n",
                     strerror(errno));
             std::abort();
-        } else if (count == 0) {
+        } else if (fd_count == 0) {
             fputs("FATAL: Needed at least one systemd socket file descriptor,"
                   " but found zero.\n", stderr);
             std::abort();
         }
-        for (int i = 0; i < count; ++i) {
+        for (int i = 0; i < fd_count; ++i) {
 #ifdef NO_FDNAMES
             fds.push(SD_LISTEN_FDS_START + i);
 #else
@@ -51,7 +47,14 @@ std::optional<int> get_systemd_fd_for_rule(const Rule &rule)
             free(raw_names);
         fetch_done = true;
     }
+}
 
+/*
+ * Get a systemd socket file descriptor for the given rule either via name if
+ * fd_name is set or just the next file descriptor available.
+ */
+std::optional<int> Systemd::get_fd_for_rule(const Rule &rule)
+{
 #ifndef NO_FDNAMES
     if (rule.fd_name) {
         auto found = names.find(rule.fd_name.value());
@@ -72,4 +75,9 @@ std::optional<int> get_systemd_fd_for_rule(const Rule &rule)
     fds.pop();
     return fd;
 }
-#endif
+
+/* Check whether the given file descriptor is passed by systemd. */
+bool Systemd::has_fd(int fd)
+{
+    return fd >= SD_LISTEN_FDS_START && fd < SD_LISTEN_FDS_START + fd_count;
+}

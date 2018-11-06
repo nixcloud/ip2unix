@@ -18,6 +18,10 @@
 #include "realcalls.hh"
 #include "socket.hh"
 
+#ifdef SOCKET_ACTIVATION
+#include "systemd.hh"
+#endif
+
 static std::mutex g_rules_mutex;
 
 static std::shared_ptr<const std::vector<Rule>> g_rules = nullptr;
@@ -42,6 +46,16 @@ static void init_rules(void)
 
     if (!rules)
         _exit(EXIT_FAILURE);
+
+#ifdef SOCKET_ACTIVATION
+    for (const Rule &rule : rules.value()) {
+        if (!rule.socket_activation)
+            continue;
+
+        Systemd::init();
+        break;
+    }
+#endif
 
     g_rules = std::make_shared<std::vector<Rule>>(rules.value());
 }
@@ -172,7 +186,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
 
 #ifdef SOCKET_ACTIVATION
         if (rule.value().socket_activation) {
-            std::optional<int> newfd = get_systemd_fd_for_rule(rule.value());
+            std::optional<int> newfd = Systemd::get_fd_for_rule(rule.value());
             if (newfd) {
                 return sock->activate(inaddr, newfd.value());
             } else {
@@ -426,6 +440,15 @@ extern "C" int WRAP_SYM(dup3)(int oldfd, int newfd, int flags)
 
 extern "C" int WRAP_SYM(close)(int fd)
 {
+#ifdef SOCKET_ACTIVATION
+    {
+        std::scoped_lock<std::mutex> lock(g_rules_mutex);
+        init_rules();
+        if (Systemd::has_fd(fd))
+            return 0;
+    }
+#endif
+
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         return sock->close();
     }, [&]() {

@@ -20,20 +20,11 @@ add_project_arguments(cc.get_supported_arguments(warning_flags),
 
 python = import('python').find_installation()
 
-sources = []
-includes = []
-subdir('src')
-
-generate_sym_map = [python, files('meson/gensyms.py'), '@INPUT@']
-sym_map = custom_target('symmap', input: sources, output: 'symbols.map',
-                        command: generate_sym_map, capture: true)
-
 cflags = ['-fPIC']
 
 ldflags = [
   '-pie',
   '-Wl,-E',
-  '-Wl,--version-script,@0@'.format(sym_map.full_path()),
 ]
 
 deps = [
@@ -59,6 +50,15 @@ if libsystemd.found()
     cflags += ['-DNO_FDNAMES']
   endif
 endif
+
+sources = []
+includes = []
+subdir('src')
+
+generate_sym_map = [python, files('meson/gensyms.py'), '@INPUT@']
+sym_map = custom_target('symmap', input: sources, output: 'symbols.map',
+                        command: generate_sym_map, capture: true)
+cflags += ['-Wl,--version-script,@0@'.format(sym_map.full_path())]
 
 ip2unix = executable('ip2unix', sources, install: true, dependencies: deps,
                      link_args: ldflags, link_depends: sym_map,

@@ -16,11 +16,13 @@ sources += files('ip2unix.cc',
                  'blackhole.cc',
                  'preload.cc',
                  'realcalls.cc',
-                 'rules/match.cc',
                  'rules/parse.cc',
                  'socket.cc',
                  'sockaddr.cc',
                  'sockopts.cc')
+if libsystemd.found()
+  sources += files('systemd.cc')
+endif
 sources += dynports_sources
 sources += errnos
 includes += include_directories('.')

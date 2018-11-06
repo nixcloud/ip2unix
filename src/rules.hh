@@ -38,8 +38,4 @@ std::optional<Rule> parse_rule_arg(size_t, const std::string&);
 std::string encode_rules(std::vector<Rule>);
 void print_rules(std::vector<Rule>&, std::ostream&);
 
-#ifdef SOCKET_ACTIVATION
-std::optional<int> get_systemd_fd_for_rule(const Rule&);
-#endif
-
 #endif
