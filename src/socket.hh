@@ -82,7 +82,7 @@ struct Socket : std::enable_shared_from_this<Socket>
         bool bound;
         std::optional<SockAddr> binding;
         std::optional<SockAddr> connection;
-        std::optional<std::string> sockpath;
+        std::optional<std::string> unlink_sockpath;
 
         SockOpts sockopts;
         DynPorts ports;

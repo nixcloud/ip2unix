@@ -57,7 +57,7 @@ Socket::Socket(int sfd, int sdomain, int stype, int sproto)
     , bound(false)
     , binding()
     , connection()
-    , sockpath()
+    , unlink_sockpath()
     , sockopts()
     , ports()
     , peermap()
@@ -74,9 +74,9 @@ Socket::~Socket()
      * We can however unlink() the socket path, because the application thinks
      * it's an AF_INET/AF_INET6 socket so it won't know about that path.
      */
-    if (this->sockpath && this->bound && !this->activated) {
+    if (this->unlink_sockpath && this->bound && !this->activated) {
         int old_errno = errno;
-        unlink(this->sockpath.value().c_str());
+        unlink(this->unlink_sockpath.value().c_str());
         errno = old_errno;
     }
 }
@@ -301,7 +301,7 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
         ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0) {
             Socket::sockpath_registry.insert(newpath);
-            this->sockpath = newpath;
+            this->unlink_sockpath = newpath;
         }
     }
 
@@ -323,7 +323,6 @@ std::optional<int> Socket::connect_peermap(const SockAddr &addr)
             if (ret != 0)
                 return ret;
             this->connection = addr;
-            this->sockpath = found->second;
             return ret;
         }
     }
@@ -344,10 +343,8 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
         }
         SockAddr dest = maybe_dest.value();
         int ret = real::connect(this->fd, dest.cast(), dest.size());
-        if (ret == 0) {
+        if (ret == 0)
             this->connection = addr;
-            this->sockpath = dest.get_sockpath();
-        }
         return ret;
     }
 
@@ -376,7 +373,6 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
     }
 
     this->connection = addr;
-    this->sockpath = new_sockpath;
     return ret;
 }
 
@@ -580,12 +576,12 @@ int Socket::close(void)
     } else {
         ret = real::close(this->fd);
 
-        if (this->sockpath && this->bound && !this->is_blackhole) {
+        if (this->unlink_sockpath && this->bound && !this->is_blackhole) {
             int old_errno = errno;
-            unlink(this->sockpath.value().c_str());
+            unlink(this->unlink_sockpath.value().c_str());
             errno = old_errno;
-            Socket::sockpath_registry.erase(this->sockpath.value());
-            this->sockpath = std::nullopt;
+            Socket::sockpath_registry.erase(this->unlink_sockpath.value());
+            this->unlink_sockpath = std::nullopt;
         }
     }
 
