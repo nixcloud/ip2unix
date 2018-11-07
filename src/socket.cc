@@ -54,7 +54,6 @@ Socket::Socket(int sfd, int sdomain, int stype, int sproto)
     , typearg(stype)
     , protocol(sproto)
     , activated(false)
-    , bound(false)
     , binding()
     , connection()
     , unlink_sockpath()
@@ -74,7 +73,7 @@ Socket::~Socket()
      * We can however unlink() the socket path, because the application thinks
      * it's an AF_INET/AF_INET6 socket so it won't know about that path.
      */
-    if (this->unlink_sockpath && this->bound && !this->activated) {
+    if (this->unlink_sockpath) {
         int old_errno = errno;
         unlink(this->unlink_sockpath.value().c_str());
         errno = old_errno;
@@ -246,7 +245,6 @@ int Socket::activate(const SockAddr &addr, int filedes)
     if (!this->make_unix(filedes))
         return -1;
 
-    this->bound = true;
     this->binding = addr;
     this->activated = true;
     return 0;
@@ -307,7 +305,6 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
 
     if (ret == 0) {
         if (port) this->ports.reserve(port.value());
-        this->bound = true;
         this->binding = newaddr;
     }
     return ret;
@@ -576,7 +573,7 @@ int Socket::close(void)
     } else {
         ret = real::close(this->fd);
 
-        if (this->unlink_sockpath && this->bound && !this->is_blackhole) {
+        if (this->unlink_sockpath) {
             int old_errno = errno;
             unlink(this->unlink_sockpath.value().c_str());
             errno = old_errno;
