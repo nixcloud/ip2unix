@@ -41,6 +41,17 @@ static std::optional<std::string> validate_rule(Rule &rule)
         }
     }
 
+    if (!rule.port && rule.port_end)
+        return "Port range has an ending port but no starting port.";
+
+    if (rule.port && rule.port_end) {
+        if (rule.port.value() > rule.port_end.value())
+            return "Starting port in port range is bigger than end port.";
+        if (rule.port.value() == rule.port_end.value())
+            return "Ending port in port range has the same value as the"
+                   " starting port.";
+    }
+
     if (rule.socket_path) {
         if (rule.socket_path.value().empty())
             return "Socket path has to be non-empty.";
@@ -169,6 +180,17 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
                 rule.port = port.value();
             } else {
                 RULE_ERROR("Port number is not a 16 bit unsigned int.");
+                return std::nullopt;
+            }
+        } else if (key == "portEnd") {
+            std::string val;
+            RULE_CONVERT(val, "portEnd", std::string, "16 bit unsigned int");
+            std::optional<uint16_t> portend = string2port(val);
+            if (portend) {
+                rule.port_end = portend.value();
+            } else {
+                RULE_ERROR("Port range end number is not a "
+                           "16 bit unsigned int.");
                 return std::nullopt;
             }
 #ifdef SOCKET_ACTIVATION
@@ -310,7 +332,27 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                 } else if (key.value() == "addr" || key.value() == "address") {
                     rule.address = buf;
                 } else if (key.value() == "port") {
-                    std::optional<uint16_t> port = string2port(buf);
+                    /* Handle port ranges, like "1000-2000". */
+                    std::size_t rangesep = buf.find('-');
+                    std::string portbuf;
+                    if (rangesep == std::string::npos || rangesep == 0) {
+                        portbuf = buf;
+                    } else {
+                        portbuf = buf.substr(0, rangesep);
+                        std::optional<uint16_t> portend =
+                            string2port(buf.substr(rangesep + 1));
+                        if (portend) {
+                            rule.port_end = portend.value();
+                        } else {
+                            print_arg_error(rulepos, arg,
+                                            valpos + rangesep + 1,
+                                            i - valpos - rangesep - 1,
+                                            "invalid end port in range");
+                            return std::nullopt;
+                        }
+                    }
+
+                    std::optional<uint16_t> port = string2port(portbuf);
                     if (port) {
                         rule.port = port.value();
                     } else {
@@ -407,6 +449,9 @@ std::string encode_rules(std::vector<Rule> rules)
         if (rule.port)
             node["port"] = rule.port.value();
 
+        if (rule.port_end)
+            node["portEnd"] = rule.port_end.value();
+
         if (rule.socket_path)
             node["socketPath"] = rule.socket_path.value();
 
@@ -464,8 +509,15 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
         out << "Rule #" << ++pos << ':' << std::endl
             << "  Direction: " << dirstr << std::endl
             << "  IP Type: " << typestr << std::endl
-            << "  Address: " << rule.address.value_or("<any>") << std::endl
-            << "  Port: " << portstr << std::endl;
+            << "  Address: " << rule.address.value_or("<any>") << std::endl;
+
+        if (rule.port_end) {
+            out << "  Ports: " << portstr << " - "
+                << std::to_string(rule.port_end.value())
+                << std::endl;
+        } else {
+            out << "  Port: " << portstr << std::endl;
+        }
 
 #ifdef SOCKET_ACTIVATION
         if (rule.socket_activation) {

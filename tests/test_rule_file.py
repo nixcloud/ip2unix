@@ -68,6 +68,23 @@ class RuleFileTest(unittest.TestCase):
         self.assert_bad_rules([{'socketPath': '/aaa', 'port': -1}])
         self.assert_bad_rules([{'socketPath': '/aaa', 'port': 65536}])
 
+    def test_port_range(self):
+        self.assert_good_rules([{'socketPath': '/aaa', 'port': 123,
+                                 'portEnd': 124}])
+        self.assert_good_rules([{'socketPath': '/aaa', 'port': 1000,
+                                 'portEnd': 65535}])
+
+    def test_invalid_port_range(self):
+        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 123,
+                                'portEnd': 10}])
+        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 123,
+                                'portEnd': 123}])
+        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 123,
+                                'portEnd': 65536}])
+
+    def test_missing_start_port_in_range(self):
+        self.assert_bad_rules([{'socketPath': '/aaa', 'portEnd': 123}])
+
     def test_valid_address(self):
         valid_addrs = [
             '127.0.0.1', '0.0.0.0', '9.8.7.6', '255.255.255.255', '::',

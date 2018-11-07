@@ -126,8 +126,16 @@ static std::optional<const Rule> match_rule(const SockAddr &addr,
         if (rule.address && addr.get_host() != rule.address)
             continue;
 
-        if (rule.port && addr.get_port() != rule.port)
-            continue;
+        if (rule.port) {
+            std::optional<uint16_t> addrport = addr.get_port();
+            if (addrport && rule.port_end) {
+                if (rule.port.value() > addrport.value())
+                    continue;
+                if (rule.port_end < addrport.value())
+                    continue;
+            } else if (addrport != rule.port)
+                continue;
+        }
 
 #ifdef SOCKET_ACTIVATION
         if (rule.socket_activation)

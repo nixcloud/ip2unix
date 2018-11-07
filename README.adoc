@@ -346,9 +346,10 @@ These options are available:
   Optional, specifies an IPv4 or IPv6 address, see
   <<rule-opt-address,*`address`*>> rule file option.
 
-*port=PORT*::
-  Optional, specifies a port to match, see <<rule-opt-port,*`port`*>> rule file
-  option.
+*port=PORT[-PORT_END]*::
+  Optional, specifies a port to match, see the <<rule-opt-port,*`port`*>> and
+  optionally the <<rule-opt-port-end,*`portEnd`*>> rule file option if you want
+  to specify a port range.
 
 *path=SOCKET_PATH*::
   The path to the socket file to either bind or connect to, which is similar to
@@ -385,6 +386,12 @@ The IP address to match, which can be either an IPv4 or an IPv6 address.
 UDP or TCP port number (depending on which <<rule-opt-type,*`type`*>> is set),
 which for outgoing connections specifies the target port and for incomping
 connections the port that the socket is bound to.
+
+[[rule-opt-port-end]]*`portEnd`*::
+
+Optionally specifies the end of a port range to match, so for example if
+<<rule-opt-port,*`port`*>> is `2000` and *`portEnd`* is `3000` all ports in the
+range from 2000 to 3000 (inclusive) are matched.
 
 [[rule-socket-path]]*`socketPath`*::
 

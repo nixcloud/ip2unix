@@ -22,6 +22,10 @@ class RulesTest(unittest.TestCase):
         syntax_errors = {
             'unknown key': ["=123", "321=", "=", "xxx=", "==", "blackhole=1"],
             'invalid port': ["port=", "port=-1", "port=65536", "port=1000000"],
+            'invalid end port': ["port=12-", "port=12--1", "port=12-65536",
+                                 "port=12-1000000"],
+            "is bigger than end port": ["port=3000-2000", "port=1000-0"],
+            "has the same value": ["port=3000-3000"],
             'invalid reject error code': ["reject=", "reject=-1",
                                           "reject=INVALIDERRORCODE"],
             'unknown flag': [",", "", "/", "path=/a\\\\,xxx"],
@@ -44,6 +48,7 @@ class RulesTest(unittest.TestCase):
         fixtures = {
             "path=/aaa\\\\,port=0": "Port: 0\n",
             "path=/bbb\\\\,port=65535": "Port: 65535\n",
+            "path=/xxx\\\\,port=2000-6000": "Ports: 2000 - 6000\n",
             "path=/ccc\\\\": "Direction: both\n",
             "path=/ddd\\\\,in": "Direction: incoming\n",
             "path=/eee\\\\,out": "Direction: outgoing\n",

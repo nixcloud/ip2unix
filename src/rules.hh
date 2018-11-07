@@ -17,6 +17,7 @@ struct Rule {
     std::optional<SocketType> type = std::nullopt;
     std::optional<std::string> address = std::nullopt;
     std::optional<uint16_t> port = std::nullopt;
+    std::optional<uint16_t> port_end = std::nullopt;
 
 #ifdef SOCKET_ACTIVATION
     bool socket_activation = false;
