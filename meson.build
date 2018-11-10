@@ -80,6 +80,6 @@ if systemd_no_fdnames
 endif
 
 # For generating the manpage
-subdir('meson')
+subdir('doc')
 
 subdir('tests')
