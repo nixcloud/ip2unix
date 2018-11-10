@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Fixed
 - Don't fail when building the manual with AsciiDoc and xmllint.
 
+### Added
+- Create a release.nix for building and testing with Hydra.
+
 ## [1.1.1] - 2018-11-07
 
 ### Fixed
