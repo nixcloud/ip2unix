@@ -1,11 +1,11 @@
 dynports = custom_target('dynports',
-                         input: ['dynports/genoffsets.py',
+                         input: [script_genoffsets,
                                  'dynports/dynports.cc'],
                          output: 'dynports.cc',
                          command: [python, '@INPUT@', '@OUTPUT@'])
 
 errnos = custom_target('errno_list',
-                       input: 'rules/generrno.py',
+                       input: script_generrno,
                        output: 'errno_list.cc',
                        command: [python, '@INPUT@'] + cc.cmd_array(),
                        capture: true)
