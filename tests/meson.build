@@ -8,10 +8,10 @@ if pytest.found()
 
   has_timeout_plugin = run_command(pytest, '--timeout=20', '--version')
   if has_timeout_plugin.returncode() == 0
-    pytest_args += ['--timeout=30']
-    timeout = 60
+    pytest_args += ['--timeout=60']
+    timeout = 120
   else
-    timeout = 30
+    timeout = 60
   endif
 
   if libsystemd.found()
