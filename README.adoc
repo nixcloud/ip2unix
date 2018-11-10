@@ -425,7 +425,7 @@ systemd socket option.
 endif::systemd-no-fdnames[]
 endif::[]
 
-*`reject`*::
+[[rule-reject]]*`reject`*::
   If true, reject calls to *connect* and *bind* with *`EACCES`*.
 
 *`rejectError`*:
