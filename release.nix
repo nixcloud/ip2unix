@@ -123,9 +123,9 @@ in {
 
   tests.full = fullForEachSystem (lib.const {});
 
-  tests.repeat1000 = fullForEachSystem (pkgs: {
+  tests.repeat100 = fullForEachSystem (pkgs: {
     checkPhase = ''
-      meson test --print-errorlogs --repeat=1000
+      meson test --print-errorlogs --repeat=100
     '';
   });
 
