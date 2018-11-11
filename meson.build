@@ -23,7 +23,7 @@ warning_flags = [
 add_project_arguments(cc.get_supported_arguments(warning_flags),
                       language: 'cpp')
 
-python = import('python').find_installation()
+python = import('python').find_installation('python3')
 
 cflags = ['-fPIC']
 

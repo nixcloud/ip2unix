@@ -80,6 +80,8 @@ available.
 * https://ninja-build.org/[Ninja], at least version 1.5
 * https://github.com/jbeder/yaml-cpp[yaml-cpp], at least version 0.5.0
 * {cpp} compiler supporting {cpp}17 (GNU G++ version 7.0 onwards)
+* https://www.python.org/[Python] 3, at least version 3.6 is needed for running
+  the integration tests
 
 .Optional dependencies:
 * http://asciidoc.org/[AsciiDoc] or https://asciidoctor.org/[Asciidoctor] for
