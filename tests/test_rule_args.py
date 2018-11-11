@@ -59,6 +59,7 @@ class RulesTest(unittest.TestCase):
             "path=/jjj\\,,in": "Socket path: /jjj,\n",
             "reject": "Reject connect() and bind() calls.\n",
             "reject=EPERM": "connect() and bind() calls with errno EPERM.\n",
+            "reject=999999": "calls with errno <unknown>.\n",
             "in,blackhole": "Blackhole the socket.\n",
             "path=foo": "Socket path: " + os.getcwd() + "/foo\n",
         }
