@@ -1,3 +1,4 @@
+import json
 import sys
 import subprocess
 
@@ -31,6 +32,19 @@ def test_rules_and_rulefile():
 def test_rulefile_and_ruledata():
     stderr = check_error([IP2UNIX, '-f', '/nonexistent', '-F', '{}'])
     assert b"rule file path and inline rules at the same time" in stderr
+
+
+def test_rule_longopts(tmpdir):
+    rulesfile = str(tmpdir.join('rules.yml'))
+    rulesdata = json.dumps([{'socketPath': '/test'}])
+    open(rulesfile, 'w').write(rulesdata)
+    for cmd in [
+        [IP2UNIX, '-cp', '--rules-file', rulesfile],
+        [IP2UNIX, '-cp', '--rules-data', rulesdata],
+        [IP2UNIX, '-cp', '--rule', 'path=/test'],
+    ]:
+        stdout = subprocess.check_output(cmd)
+        assert b"path: /test\n" in stdout
 
 
 def test_no_program():

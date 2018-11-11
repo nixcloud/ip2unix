@@ -78,9 +78,9 @@ int main(int argc, char *argv[])
         {"help", no_argument, nullptr, 'h'},
         {"check", no_argument, nullptr, 'c'},
         {"print", no_argument, nullptr, 'p'},
-        {"rule", required_argument, nullptr, 0},
-        {"rules-file", required_argument, nullptr, 0},
-        {"rules-data", required_argument, nullptr, 0},
+        {"rule", required_argument, nullptr, 'r'},
+        {"rules-file", required_argument, nullptr, 'f'},
+        {"rules-data", required_argument, nullptr, 'F'},
         {nullptr, 0, nullptr, 0}
     };
 
