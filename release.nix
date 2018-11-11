@@ -12,6 +12,8 @@ let
   in pkgs.stdenv.mkDerivation (attrs // rec {
     inherit (import ./. { inherit pkgs; }) name version src;
 
+    mesonFlags = [ "-Dtest-timeout=3600" ] ++ attrs.mesonFlags or [];
+
     nativeBuildInputs = [ pkgs.meson pkgs.ninja pkgs.pkgconfig ]
                      ++ attrs.nativeBuildInputs or [];
     buildInputs = [ pkgs.libyamlcpp ] ++ attrs.buildInputs or [];
