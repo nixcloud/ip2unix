@@ -131,6 +131,7 @@ int main(int argc, char *argv[])
                 break;
 
             default:
+                fputc('\n', stderr);
                 print_usage(self, stderr);
                 return EXIT_FAILURE;
         }
