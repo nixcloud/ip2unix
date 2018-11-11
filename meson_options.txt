@@ -1,0 +1,2 @@
+option('test-timeout', type: 'integer', value: 60,
+       description: 'The timeout in seconds after which to abort tests')
