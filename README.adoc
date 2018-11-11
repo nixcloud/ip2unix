@@ -25,6 +25,7 @@ ip2unix - Turn IP sockets into Unix domain sockets
 *ip2unix* [-p] -c -F RULES_DATA +
 *ip2unix* [-p] -c -r RULE [-r RULE]... +
 *ip2unix* -h
+*ip2unix* --version
 
 endif::[]
 
@@ -283,7 +284,10 @@ ifdef::manmanual[]
   if validation was successful and *1* if not.
 
 *-h, --help*::
-  Show command line usage and help.
+  Show command line usage and exit.
+
+*--version*::
+  Show version information and exit.
 
 *-p, --print*::
   Print out the rules that are in effect in a tabular format. If you don't

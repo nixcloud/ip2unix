@@ -62,6 +62,16 @@ def test_exec_fail():
     assert b"No such file or directory" in stderr
 
 
+def test_version_longopt():
+    stdout = subprocess.check_output([IP2UNIX, '--version'])
+    assert b"This program is free software" in stdout
+
+
+def test_version_shortopt_fail():
+    stderr = check_error([IP2UNIX, '-V'])
+    assert b"invalid option" in stderr
+
+
 def test_existing_ld_preload():
     testprog = "import os; print(os.environ['LD_PRELOAD'])"
     cmd = [IP2UNIX, '-r', 'path=/foo', sys.executable, '-c', testprog]

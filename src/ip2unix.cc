@@ -52,18 +52,29 @@ static void print_usage(char *prog, FILE *fp)
     fprintf(fp, "       %s [-p] -c -F RULES_DATA\n", prog);
     fprintf(fp, "       %s [-p] -c -r RULE [-r RULE]...\n", prog);
     fprintf(fp, "       %s -h\n", prog);
+    fprintf(fp, "       %s --version\n", prog);
     fputs("\nTurn IP sockets into Unix domain sockets for PROGRAM\n", fp);
     fputs("according to the rules specified by either the YAML file\n", fp);
     fputs("given by RULES_FILE, inline via RULES_DATA or by directly\n", fp);
     fputs("specifying one or more individual RULE arguments.\n", fp);
     fputs("\nOptions:\n", fp);
     fputs("  -h, --help        Show this usage\n",                     fp);
+    fputs("      --version     Output version information and exit\n", fp);
     fputs("  -c, --check       Validate rules and exit\n",             fp);
     fputs("  -p, --print       Print out the table of rules\n",        fp);
     fputs("  -f, --rules-file  YAML/JSON file containing the rules\n", fp);
     fputs("  -F, --rules-data  Rules as inline YAML/JSON data\n",      fp);
     fputs("  -r, --rule        A single rule\n",                       fp);
     fputs("\nSee ip2unix(1) for details about specifying rules.\n", fp);
+}
+
+static void print_version(void)
+{
+    fputs("ip2unix " VERSION "\n"
+          "Copyright (C) 2018 aszlig\n"
+          "This program is free software; you may redistribute it under\n"
+          "the terms of the GNU Lesser General Public License version 3.\n",
+          stdout);
 }
 
 int main(int argc, char *argv[])
@@ -76,6 +87,7 @@ int main(int argc, char *argv[])
 
     static struct option lopts[] = {
         {"help", no_argument, nullptr, 'h'},
+        {"version", no_argument, nullptr, 'V'},
         {"check", no_argument, nullptr, 'c'},
         {"print", no_argument, nullptr, 'p'},
         {"rule", required_argument, nullptr, 'r'},
@@ -92,6 +104,10 @@ int main(int argc, char *argv[])
         switch (c) {
             case 'h':
                 print_usage(self, stdout);
+                return EXIT_SUCCESS;
+
+            case 'V':
+                print_version();
                 return EXIT_SUCCESS;
 
             case 'c':

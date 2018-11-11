@@ -25,7 +25,7 @@ add_project_arguments(cc.get_supported_arguments(warning_flags),
 
 python = import('python').find_installation('python3')
 
-cflags = ['-fPIC']
+cflags = ['-fPIC', '-DVERSION="' + meson.project_version() + '"']
 
 ldflags = [
   '-pie',
