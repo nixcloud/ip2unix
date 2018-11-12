@@ -11,7 +11,8 @@ pkgs.stdenv.mkDerivation rec {
   src = lib.cleanSource ./.;
 
   nativeBuildInputs = [
-    pkgs.meson pkgs.ninja pkgs.pkgconfig pkgs.asciidoctor
+    pkgs.meson pkgs.ninja pkgs.pkgconfig pkgs.asciidoc pkgs.libxslt.bin
+    pkgs.docbook_xml_dtd_45 pkgs.docbook_xsl pkgs.libxml2.bin pkgs.docbook5
     pkgs.python3Packages.pytest pkgs.python3Packages.pytest-timeout
   ];
   buildInputs = [ pkgs.libyamlcpp pkgs.systemd ];

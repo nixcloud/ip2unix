@@ -54,8 +54,10 @@ let
     funFull = pkgs: let
       funAttrs = fun pkgs;
     in funAttrs // {
-      nativeBuildInputs = lib.singleton pkgs.asciidoctor
-                       ++ funAttrs.nativeBuildInputs or [];
+      nativeBuildInputs = [
+        pkgs.asciidoc pkgs.libxslt.bin pkgs.docbook_xml_dtd_45 pkgs.docbook_xsl
+        pkgs.libxml2.bin pkgs.docbook5
+      ] ++ funAttrs.nativeBuildInputs or [];
       buildInputs = lib.singleton pkgs.systemd ++ funAttrs.buildInputs or [];
       postConfigure = ''
         grep -qF 'Native dependency libsystemd found: YES'\
@@ -121,6 +123,17 @@ in {
 
     systemd = mkManpageJobs (pkgs: { buildInputs = [ pkgs.systemd ]; });
     no-systemd = mkManpageJobs (lib.const {});
+
+    # This is to make sure AsciiDoc is picked over Asciidoctor when generating
+    # the manpage.
+    default-asciidoc = forEachSystem (pkgs: {
+      requireManpage = true;
+      nativeBuildInputs = [
+        pkgs.libxslt.bin pkgs.docbook_xml_dtd_45 pkgs.docbook_xsl
+        pkgs.libxml2.bin pkgs.docbook5 pkgs.asciidoc
+        (pkgs.writeScriptBin "asciidoctor" "#!${pkgs.stdenv.shell}\nexit 1")
+      ];
+    });
   };
 
   tests.full = fullForEachSystem (lib.const {});
