@@ -1,6 +1,7 @@
-= ip2unix(1)
+ip2unix(1)
+==========
 ifndef::manmanual[:doctitle: IP2Unix]
-:revdate: October 2018
+:revdate: November 2018
 ifndef::manmanual[]
 :toc: macro
 :numbered:
@@ -18,14 +19,15 @@ ip2unix - Turn IP sockets into Unix domain sockets
 
 == Synopsis
 
-*ip2unix* [-p] -f RULES_FILE        PROGRAM [ARGS...] +
-*ip2unix* [-p] -F RULES_DATA        PROGRAM [ARGS...] +
-*ip2unix* [-p] -r RULE [-r RULE]... PROGRAM [ARGS...] +
-*ip2unix* [-p] -c -f RULES_FILE +
-*ip2unix* [-p] -c -F RULES_DATA +
-*ip2unix* [-p] -c -r RULE [-r RULE]... +
-*ip2unix* -h
-*ip2unix* --version
+[verse]
+*ip2unix* [*-p*] *-f* 'RULES_FILE' 'PROGRAM' ['ARGS'...]
+*ip2unix* [*-p*] *-F* 'RULES_DATA' 'PROGRAM' ['ARGS'...]
+*ip2unix* [*-p*] *-r* 'RULE' [*-r* 'RULE']... 'PROGRAM' ['ARGS'...]
+*ip2unix* [*-p*] *-c* *-f* 'RULES_FILE'
+*ip2unix* [*-p*] *-c* *-F* 'RULES_DATA'
+*ip2unix* [*-p*] *-c* *-r* 'RULE' [*-r* 'RULE']...
+*ip2unix* *-h*
+*ip2unix* *--version*
 
 endif::[]
 
@@ -35,18 +37,20 @@ ifndef::manmanual[]
 :3: https://www.freedesktop.org/software/systemd/man/systemd.socket.html
 :4: pass:attributes,quotes[{3}#FileDescriptorName=]
 
-:LD_PRELOAD: pass:attributes,quotes[*`LD_PRELOAD`* ({1}[*ld.so*(8)])]
+:LD_PRELOAD: pass:attributes,quotes[*LD_PRELOAD* ({1}[*ld.so*(8)])]
 :syscall_accept: pass:attributes,quotes[{2}[*accept*(2)]]
 :systemd_socket: pass:attributes,quotes[{3}[*systemd.socket*(5)]]
 :fdname: pass:attributes,quotes[{4}[FileDescriptorName]]
 :rulefileformat: <<Rule file format>>
+:copy: (C) 2018 aszlig
 endif::[]
 ifdef::manmanual[]
-:LD_PRELOAD: pass:quotes[*`LD_PRELOAD`* (see *ld.so*(8))]
+:LD_PRELOAD: pass:quotes[*LD_PRELOAD* (see *ld.so*(8))]
 :syscall_accept: pass:quotes[*accept*(2)]
 :systemd_socket: pass:quotes[*systemd.socket*(5)]
 :fdname: pass:quotes[FileDescriptorName (see *systemd.socket*(5))]
 :rulefileformat: pass:quotes[*RULE FILE FORMAT*]
+:copy: \(C) 2018 aszlig
 endif::[]
 
 :lgpl_url: https://www.gnu.org/licenses/lgpl-3.0.html
@@ -62,11 +66,11 @@ ifdef::without-systemd[:systemd_backslash:]
 Turns IP sockets into Unix domain socket based on a list of rules (see
 {rulefileformat} below) specified via YAML/JSON file. This is done by the use
 of {LD_PRELOAD} environment variable and you can either directly specify the
-path of *`ip2unix`* via *`LD_PRELOAD`* or use the *`ip2unix`* command directly
-(it is a library and executable at the same time).
+path of *ip2unix* via *LD_PRELOAD* or use the *ip2unix* command directly (it is
+a library and executable at the same time).
 
-In order for the direct *`LD_PRELOAD`* variant to work, you also have to
-specify the *`IP2UNIX_RULE_FILE`* environment variable.
+In order for the direct *LD_PRELOAD* variant to work, you also have to specify
+the *IP2UNIX_RULE_FILE* environment variable.
 
 ifndef::manmanual[]
 
@@ -111,7 +115,7 @@ of the following steps are to be performed inside this `ip2unix` directory.
 This is the easiest and recommended way to compile it from source and it should
 work on any distribution.
 
-If you're not running https://nixos.org/[NixOS] you can install
+If you are not running https://nixos.org/[NixOS] you can install
 https://nixos.org/nix/[Nix] via the following command:
 
 [source,sh-session]
@@ -143,7 +147,7 @@ $ nix-env -f . -i
 Fetching the requirements on Debian 9 can be tricky because only GCC version 6
 is available, so
 <<Using the Nix package manager,using the Nix package manager>> is recommended
-here as it doesn't interfere with the rest of the system.
+here as it does not interfere with the rest of the system.
 
 However if you still want to build it on Debian 9, you can install `g++-7` from
 testing. Please be aware that mixing packages from `testing` might update
@@ -158,7 +162,7 @@ $ sudo apt-get install python3-pip
 $ pip3 install meson
 ---------------------------------------------------------------------
 
-After you're done getting a newer Meson and C++ compiler, you can use the
+After you are done getting a newer Meson and C++ compiler, you can use the
 following command to install the other required dependencies:
 
 [source,sh-session]
@@ -281,8 +285,8 @@ ifdef::manmanual[]
 
 *-c, --check*::
   This is to validate whether the rule file is correct and the program
-  just prints all validation errors to stderr and exits with exit code *0*
-  if validation was successful and *1* if not.
+  just prints all validation errors to stderr and exits with exit code `0`
+  if validation was successful and `1` if not.
 
 *-h, --help*::
   Show command line usage and exit.
@@ -291,18 +295,18 @@ ifdef::manmanual[]
   Show version information and exit.
 
 *-p, --print*::
-  Print out the rules that are in effect in a tabular format. If you don't
-  want to run the *PROGRAM*, you can use the *-c* option to exit after
+  Print out the rules that are in effect in a tabular format. If you do not
+  want to run the 'PROGRAM', you can use the *-c* option to exit after
   printing the rules.
 
-*-r RULESPEC, --rule=RULESPEC*::
+*-r, --rule*='RULE'::
   A single rule for one particular socket to match, can be used several times
   to specify a set of rules similar to the sequence of the rule file.
 
-*-f RULESFILE, --rules-file=RULESFILE*::
+*-f, --rules-file*='RULES_FILE'::
   Specifies a YAML or JSON file consisting of a sequence of rules.
 
-*-F RULESDATA, --rules-data=RULESDATA*::
+*-F, --rules-data*='RULES_DATA'::
   Similar to *-f*, but instead of specifying a file, directly pass the contents
   as an argument.
 
@@ -318,30 +322,30 @@ just use two consecutive backslashes instead.
 The following flags are available:
 
 *in* | *out*::
-  Corresponds to the <<rule-opt-direction,*`direction`*>> rule file option and
-  if it's not set, both incoming and outgoing connections are matched.
+  Corresponds to the <<rule-opt-direction,*direction*>> rule file option and
+  if it is not set, both incoming and outgoing connections are matched.
 
 *tcp* | *udp*::
   Either match TCP or UDP sockets or both if none of these flags are set
-  (<<rule-opt-type,*`type`*>> rule file option).
+  (<<rule-opt-type,*type*>> rule file option).
 
 ifndef::without-systemd[]
 ifndef::systemd-no-fdnames[]
-*systemd[=FD_NAME]*::
+*systemd*[='FD_NAME']::
   Enable systemd socket activation
-  (see <<rule-opt-socket-activation,*`socketActivation`*>> below), optionally
-  specifying a file descriptior name (<<rule-opt-fdname,*`fdName`*>>).
+  (see <<rule-opt-socket-activation,*socketActivation*>> below), optionally
+  specifying a file descriptior name (<<rule-opt-fdname,*fdName*>>).
 endif::systemd-no-fdnames[]
 ifdef::systemd-no-fdnames[]
 *systemd*::
   Enable systemd socket activation
-  (see <<rule-opt-socket-activation,*`socketActivation`*>> below).
+  (see <<rule-opt-socket-activation,*socketActivation*>> below).
 endif::systemd-no-fdnames[]
 endif::[]
 
-*reject[=ERRNO]*::
-  Reject calls to *connect* and *bind* with *`EACCES`* by default or the
-  *`ERRNO`* specified either via name or as an integer.
+*reject*[='ERRNO']::
+  Reject calls to *connect* and *bind* with `EACCES` by default or the 'ERRNO'
+  specified either via name or as an integer.
 
 *blackhole*::
   When binding the socket, use a temporary file system path and *unlink* it
@@ -350,18 +354,18 @@ endif::[]
 
 These options are available:
 
-*addr[ess]=ADDR*::
+*addr*[*ess*]='ADDRESS'::
   Optional, specifies an IPv4 or IPv6 address, see
-  <<rule-opt-address,*`address`*>> rule file option.
+  <<rule-opt-address,*address*>> rule file option.
 
-*port=PORT[-PORT_END]*::
-  Optional, specifies a port to match, see the <<rule-opt-port,*`port`*>> and
-  optionally the <<rule-opt-port-end,*`portEnd`*>> rule file option if you want
+*port*='PORT'[-'PORT_END']::
+  Optional, specifies a port to match, see the <<rule-opt-port,*port*>> and
+  optionally the <<rule-opt-port-end,*portEnd*>> rule file option if you want
   to specify a port range.
 
-*path=SOCKET_PATH*::
+*path*='SOCKET_PATH'::
   The path to the socket file to either bind or connect to, which is similar to
-  the <<rule-socket-path,*`socketPath`*>> rule file option but also allows
+  the <<rule-socket-path,*socketPath*>> rule file option but also allows
   relative paths.
 
 == Rule file format
@@ -374,34 +378,33 @@ and which Unix domain sockets to assign them to.
 
 === Rule file options
 
-[[rule-opt-direction]]*`direction`*::
+[[rule-opt-direction]]*direction*::
 
-Whether this rule applies to a server-side socket (*`incoming`*), a client-side
-socket (*`outgoing`*) or both if not defined.
+Whether this rule applies to a server-side socket (`incoming`), a client-side
+socket (`outgoing`) or both if not defined.
 
-[[rule-opt-type]]*`type`*::
+[[rule-opt-type]]*type*::
 
-Specifies the IP type, which currently is either *`tcp`* for TCP sockets,
-*`udp`* for UDP sockets or if it's not defined it matches both UDP and TCP
-sockets.
+Specifies the IP type, which currently is either `tcp` for TCP sockets, `udp`
+for UDP sockets or if it is not defined it matches both UDP and TCP sockets.
 
-[[rule-opt-address]]*`address`*::
+[[rule-opt-address]]*address*::
 
 The IP address to match, which can be either an IPv4 or an IPv6 address.
 
-[[rule-opt-port]]*`port`*::
+[[rule-opt-port]]*port*::
 
-UDP or TCP port number (depending on which <<rule-opt-type,*`type`*>> is set),
+UDP or TCP port number (depending on which <<rule-opt-type,*type*>> is set),
 which for outgoing connections specifies the target port and for incomping
 connections the port that the socket is bound to.
 
-[[rule-opt-port-end]]*`portEnd`*::
+[[rule-opt-port-end]]*portEnd*::
 
 Optionally specifies the end of a port range to match, so for example if
-<<rule-opt-port,*`port`*>> is `2000` and *`portEnd`* is `3000` all ports in the
+<<rule-opt-port,*port*>> is `2000` and *portEnd* is `3000` all ports in the
 range from 2000 to 3000 (inclusive) are matched.
 
-[[rule-socket-path]]*`socketPath`*::
+[[rule-socket-path]]*socketPath*::
 
 The path to the socket file to use for either binding or connecting to
 depending on whether the above options apply for a particular IP socket.
@@ -409,49 +412,48 @@ depending on whether the above options apply for a particular IP socket.
 Placeholders are allowed here and those are substituted accordingly:
 +
 [horizontal]
-*`%p`*;; port number
-*`%a`*;; IP address or *`unknown`*
-*`%t`*;; socket type (*`tcp`*, *`udp`* or *`unknown`*)
-*`%%`*;; verbatim *`%`*
+*%p*;; port number
+*%a*;; IP address or `unknown`
+*%t*;; socket type (`tcp`, `udp` or `unknown`)
+*%%*;; verbatim `%`
 
 ifndef::without-systemd[]
-[[rule-opt-socket-activation]]*`socketActivation`*::
+[[rule-opt-socket-activation]]*socketActivation*::
 ifndef::manmanual[]
-If *`ip2unix`* is compiled with systemd support, whether to use socket
-activation
+If *ip2unix* is compiled with systemd support, whether to use socket activation
 endif::[]
 ifdef::manmanual[]
 Whether to use systemd socket activation
 endif::[]
-instead of a <<rule-socket-path,*`socketPath`*>>. See {systemd_socket}.
+instead of a <<rule-socket-path,*socketPath*>>. See {systemd_socket}.
 
 ifndef::systemd-no-fdnames[]
-[[rule-opt-fdname]]*`fdName`*::
+[[rule-opt-fdname]]*fdName*::
 An optional file descriptor name for socket activation which can be used to
 distinguish between several socket units. This corresponds to the {fdname}
 systemd socket option.
 endif::systemd-no-fdnames[]
 endif::[]
 
-[[rule-reject]]*`reject`*::
-  If true, reject calls to *connect* and *bind* with *`EACCES`*.
+[[rule-reject]]*reject*::
+  If true, reject calls to *connect* and *bind* with `EACCES`.
 
-*`rejectError`*:
+*rejectError*::
   Specifies an alternative error code to be returned by
-  <<rule-reject,*`reject`*>> instead of *`EACCES`*. This can be either a string
-  such as *`EADDRINUSE`* (case doesn't matter) or an integer.
+  <<rule-reject,*reject*>> instead of `EACCES`. This can be either a string
+  such as `EADDRINUSE` (case does not matter) or an integer.
 
-*`blackhole`*::
+*blackhole*::
   If true, a temporary file system path is used and unlinked shortly
   thereafter, so the socket is effectively deactivated in a way that the
   application should not recognize. Only valid if
-  <<rule-opt-direction,*`direction`*>> is *`incoming`*.
+  <<rule-opt-direction,*direction*>> is `incoming`.
 
 == Examples
 
 === Simple HTTP client/server
 
-On the server side with the rule file *`rules-server.yaml`*:
+On the server side with the rule file `rules-server.yaml`:
 
 [source,yaml]
 ---------------------------------------------------------------------
@@ -460,7 +462,7 @@ On the server side with the rule file *`rules-server.yaml`*:
 ---------------------------------------------------------------------
 
 The following command spawns a small test web server listening on
-*`/tmp/test.socket`*:
+`/tmp/test.socket`:
 
 [source,sh-session]
 ---------------------------------------------------------------------
@@ -474,7 +476,7 @@ The same can be achieved using *-r*:
 $ ip2unix -r in,path=/tmp/test.socket python -m SimpleHTTPServer 8000
 ---------------------------------------------------------------------
 
-On the client side with *`rules-client.yaml`*:
+On the client side with `rules-client.yaml`:
 
 [source,yaml]
 ---------------------------------------------------------------------
@@ -482,7 +484,7 @@ On the client side with *`rules-client.yaml`*:
   socketPath: /tmp/test.socket
 ---------------------------------------------------------------------
 
-This connects to the test server listening on *`/tmp/test.socket`*
+This connects to the test server listening on `/tmp/test.socket`
 and should show the directory listing:
 
 [source,sh-session]
@@ -527,18 +529,18 @@ endif::without-systemd[]
 --------------------------------------------
 
 <1> This rule will redirect *all* TCP connections to the Unix domain socket at
-    *`/run/some.socket`*.
-<2> Matches the socket that listens to any port on the IPv4 address *`1.2.3.4`*
-    and instead binds it to the Unix domain socket at *`/run/another.socket`*.
-<3> The application may bind to the IPv6 address *`abcd::1`* on port 80 but it
-    won't get any connections, because no socket path exists.
-<4> Trying to bind to port 80 on addresses other than *`abcd::1`* will result
-    in an *`EADDRINUSE`* error.
+    `/run/some.socket`.
+<2> Matches the socket that listens to any port on the IPv4 address `1.2.3.4`
+    and instead binds it to the Unix domain socket at `/run/another.socket`.
+<3> The application may bind to the IPv6 address `abcd::1` on port 80 but it
+    will not receive any connections, because no socket path exists.
+<4> Trying to bind to port 80 on addresses other than `abcd::1` will result
+    in an `EADDRINUSE` error.
 ifndef::without-systemd[]
 <5> Will prevent the TCP socket that would listen on port 22 to not listen at
     all and instead use
 ifndef::systemd-no-fdnames[]
-    the systemd-provided file descriptor named *`ssh`*
+    the systemd-provided file descriptor named `ssh`
 endif::systemd-no-fdnames[]
 ifdef::systemd-no-fdnames[]
     the first systemd-provided file descriptor available
@@ -565,10 +567,10 @@ endif::without-systemd[]
 == Limitations
 
 If a client which is already using Unix *datagram* sockets sends packets via
-*`sendto`* or *`sendmsg`* to a socket provided by *ip2unix* without binding
+*sendto* or *sendmsg* to a socket provided by *ip2unix* without binding
 first, *ip2unix* is not able to identify the peer and will subsequently reject
 the packet. This is not the case when using *ip2unix* itself on the the client
-side and it also doesn't seem to be very common as the author so far didn't
+side and it also does not seem to be very common as the author so far did not
 find such an application in the wild.
 
 However, if this really is an issue to you, the recommended workaround is
@@ -579,7 +581,7 @@ ifdef::manmanual[]
 
 == Environment variables
 
-`IP2UNIX_RULE_FILE`::
+*IP2UNIX_RULE_FILE*::
   When used in conjunction with {LD_PRELOAD}, this environment variable has to
   be set as well, specifying the absolute path to the rule file (see
   {rulefileformat} above).
@@ -610,7 +612,7 @@ The goal is a different one here and its main use is testing. Instead of
 using rules, *socket_wrapper* turns *all* of the IP sockets into Unix sockets
 and uses a central directory to do the mapping.
 +
-Containing all Unix sockets into one directory has the nice effect that it's
+Containing all Unix sockets into one directory has the nice effect that it is
 easy to map *any* address/port combination to Unix sockets. While this is way
 easier to implement than our approach it has the drawback that everything is
 contained and no IP communication is possible anymore.
@@ -632,7 +634,7 @@ endif::[]
 
 == Copyright
 
-Copyright (C) 2018 aszlig. License LGPLv3: GNU LGPL version 3 only
+Copyright {copy}. License LGPLv3: GNU LGPL version 3 only
 <{lgpl_url}>.
 
 This is free software: you are free to change and redistribute it.

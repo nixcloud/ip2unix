@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Fixed
 - Don't fail when building the manual with AsciiDoc and xmllint.
 - Some long options (`--rule`, `--rules-file` and `--rules-data`) were ignored.
+- Manpage formatting is now more consistent.
 
 ### Added
 - A new --version command line argument for showing version information.
