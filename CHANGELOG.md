@@ -11,7 +11,6 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Some long options (`--rule`, `--rules-file` and `--rules-data`) were ignored.
 
 ### Added
-- Create a release.nix for building and testing with Hydra.
 - A new --version command line argument for showing version information.
 
 ## [1.1.1] - 2018-11-07
