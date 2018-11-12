@@ -466,14 +466,14 @@ The following command spawns a small test web server listening on
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ ip2unix -f rules-server.yaml python -m SimpleHTTPServer 8000
+$ ip2unix -f rules-server.yaml python3 -m http.server 8000
 ---------------------------------------------------------------------
 
 The same can be achieved using *-r*:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ ip2unix -r in,path=/tmp/test.socket python -m SimpleHTTPServer 8000
+$ ip2unix -r in,path=/tmp/test.socket python3 -m http.server 8000
 ---------------------------------------------------------------------
 
 On the client side with `rules-client.yaml`:
