@@ -17,4 +17,16 @@ pkgs.stdenv.mkDerivation rec {
   buildInputs = [ pkgs.libyamlcpp pkgs.systemd ];
 
   doCheck = true;
+
+  doInstallCheck = true;
+  installCheckPhase = ''
+    found=0
+    for man in "$out/share/man/man1"/ip2unix.1*; do
+      test -s "$man" && found=1
+    done
+    if [ $found -ne 1 ]; then
+      echo "ERROR: Manual page hasn't been generated." >&2
+      exit 1
+    fi
+  '';
 }
