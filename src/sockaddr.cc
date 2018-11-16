@@ -163,9 +163,9 @@ std::optional<std::string> SockAddr::get_sockpath(void) const
 std::optional<uint16_t> SockAddr::get_port(void) const
 {
     if (this->ss_family == AF_INET)
-        return htons(this->cast4()->sin_port);
+        return ntohs(this->cast4()->sin_port);
     else if (this->ss_family == AF_INET6)
-        return htons(this->cast6()->sin6_port);
+        return ntohs(this->cast6()->sin6_port);
     else
         return std::nullopt;
 }
