@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Fixed
 - Use right endian conversion functions in port matching.
 
+### Added
+- New `ignore` rule option, which prevents conversion to Unix socket.
+
 ## [1.2.0] - 2018-11-12
 
 ### Fixed

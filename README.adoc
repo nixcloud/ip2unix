@@ -352,6 +352,10 @@ endif::[]
   shortly after the *bind*. This is a way to deactivate a specific socket
   without the application noticing.
 
+*ignore*::
+  Don't handle the socket matching this rule, see the corresponding rule file
+  option <<rule-opt-ignore,*ignore>>.
+
 These options are available:
 
 *addr*[*ess*]='ADDRESS'::
@@ -449,6 +453,11 @@ endif::[]
   application should not recognize. Only valid if
   <<rule-opt-direction,*direction*>> is `incoming`.
 
+*ignore*::
+  Prevents a socket from being converted to a Unix domain socket if this is
+  true. This is useful to exempt specific sockets from being matched when
+  another rule matches a broad scope.
+
 == Examples
 
 === Simple HTTP client/server
@@ -504,21 +513,24 @@ $ ip2unix -r out,path=/tmp/test.socket curl http://1.2.3.4/
 [source,yaml]
 --------------------------------------------
 - direction: outgoing                 ## <1>
+  port: 53
+  ignore: true
+- direction: outgoing                 ## <2>
   type: tcp
   socketPath: /run/some.socket
-- direction: incoming                 ## <2>
+- direction: incoming                 ## <3>
   address: 1.2.3.4
   socketPath: /run/another.socket
-- direction: incoming                 ## <3>
+- direction: incoming                 ## <4>
   port: 80
   address: abcd::1
   blackhole: true
-- direction: incoming                 ## <4>
+- direction: incoming                 ## <5>
   port: 80
   reject: true
   rejectError: EADDRINUSE
 ifndef::without-systemd[]
-- direction: incoming                 ## <5>
+- direction: incoming                 ## <6>
   type: tcp
   port: 22
   socketActivation: true
@@ -528,16 +540,18 @@ endif::systemd-no-fdnames[]
 endif::without-systemd[]
 --------------------------------------------
 
-<1> This rule will redirect *all* TCP connections to the Unix domain socket at
-    `/run/some.socket`.
-<2> Matches the socket that listens to any port on the IPv4 address `1.2.3.4`
+<1> All outgoing connections to port 53 (no matter if it's TCP or UDP) will not
+    be converted into Unix domain sockets.
+<2> This rule will redirect all TCP connections except to port 53 (see above)
+    to use the Unix domain socket at `/run/some.socket`.
+<3> Matches the socket that listens to any port on the IPv4 address `1.2.3.4`
     and instead binds it to the Unix domain socket at `/run/another.socket`.
-<3> The application may bind to the IPv6 address `abcd::1` on port 80 but it
+<4> The application may bind to the IPv6 address `abcd::1` on port 80 but it
     will not receive any connections, because no socket path exists.
-<4> Trying to bind to port 80 on addresses other than `abcd::1` will result
+<5> Trying to bind to port 80 on addresses other than `abcd::1` will result
     in an `EADDRINUSE` error.
 ifndef::without-systemd[]
-<5> Will prevent the TCP socket that would listen on port 22 to not listen at
+<6> Will prevent the TCP socket that would listen on port 22 to not listen at
     all and instead use
 ifndef::systemd-no-fdnames[]
     the systemd-provided file descriptor named `ssh`
@@ -556,7 +570,8 @@ ifdef::systemd-no-fdnames[:example_fdname_arg:]
 [source,sh-session]
 [subs="attributes"]
 ----------------------------------------------------------------------------
-$ ip2unix -r out,tcp,path=/run/some.socket \
+$ ip2unix -r out,port=53,ignore \
+          -r out,tcp,path=/run/some.socket \
           -r in,addr=1.2.3.4,path=/run/another.socket \
           -r in,port=80,reject=EADDRINUSE {systemd_backslash}
 ifndef::without-systemd[]

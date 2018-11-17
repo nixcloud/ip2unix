@@ -137,6 +137,9 @@ static std::optional<const Rule> match_rule(const SockAddr &addr,
                 continue;
         }
 
+        if (rule.ignore)
+            return std::nullopt;
+
 #ifdef SOCKET_ACTIVATION
         if (rule.socket_activation)
             return rule;

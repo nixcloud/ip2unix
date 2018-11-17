@@ -61,6 +61,7 @@ class RulesTest(unittest.TestCase):
             "reject=EPERM": "connect() and bind() calls with errno EPERM.\n",
             "reject=999999": "calls with errno <unknown>.\n",
             "in,blackhole": "Blackhole the socket.\n",
+            "in,ignore": "Don't handle this socket.\n",
             "path=foo": "Socket path: " + os.getcwd() + "/foo\n",
         }
         for val, expect in fixtures.items():

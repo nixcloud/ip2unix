@@ -129,6 +129,19 @@ class RuleFileTest(unittest.TestCase):
     def test_blackhole_all(self):
         self.assert_good_rules([{'direction': 'incoming', 'blackhole': True}])
 
+    def test_ignore_with_sockpath(self):
+        self.assert_bad_rules([{'socketPath': '/foo', 'ignore': True}])
+
+    def test_ignore_with_reject(self):
+        self.assert_bad_rules([{'reject': True, 'ignore': True}])
+
+    def test_ignore_with_blackhole(self):
+        self.assert_bad_rules([{'blackhole': True, 'ignore': True}])
+
+    @systemd_only
+    def test_ignore_with_systemd(self):
+        self.assert_bad_rules([{'socketActivation': True, 'ignore': True}])
+
     @systemd_only
     def test_contradicting_systemd(self):
         self.assert_bad_rules([{'socketPath': '/foo',
