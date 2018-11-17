@@ -453,7 +453,7 @@ endif::[]
   application should not recognize. Only valid if
   <<rule-opt-direction,*direction*>> is `incoming`.
 
-*ignore*::
+[[rule-opt-ignore]]*ignore*::
   Prevents a socket from being converted to a Unix domain socket if this is
   true. This is useful to exempt specific sockets from being matched when
   another rule matches a broad scope.
