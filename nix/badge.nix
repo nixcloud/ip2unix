@@ -3,6 +3,7 @@
 , hydraUrl ? "https://headcounter.org/hydra"
 , hydraJobset ? "ip2unix/master"
 , constituents
+, purgeUrl ? null
 }:
 
 let
@@ -165,6 +166,10 @@ let
     ])
   ]);
 
+  maybePurge = lib.optionalString (purgeUrl != null) ''
+    curl -X PURGE ${lib.escapeShellArg purgeUrl}
+  '';
+
 in pkgs.runCommand drvName {
   failureCheck = pkgs.runCommand drvName {
     inherit hydraUrl hydraJobset;
@@ -233,11 +238,13 @@ in pkgs.runCommand drvName {
       done
       if [ "''${finStatus##*:}" -ne 0 ]; then
         cp ${lib.escapeShellArg collisions.bad} "$out"
+        ${maybePurge}
         exit 0
       fi
     done
 
     cp ${lib.escapeShellArg collisions.good} "$out"
+    ${maybePurge}
     exit 0
   '';
 } ''

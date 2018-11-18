@@ -178,5 +178,10 @@ in jobs // {
   badge = import nix/badge.nix {
     pkgs = import nixpkgs {};
     constituents = lib.collect lib.isDerivation jobs;
+    purgeUrl = "https://camo.githubusercontent.com/"
+             + "db651432b76ed2a8e41ced794713cce2acdfed27/"
+             + "68747470733a2f2f68656164636f756e7465722e6f72672f68796472612f6a"
+             + "6f622f697032756e69782f6d61737465722f62616467652f6c61746573742d"
+             + "66696e69736865642f646f776e6c6f61642f312f7374617475732e737667";
   };
 }
