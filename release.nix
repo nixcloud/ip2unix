@@ -116,7 +116,6 @@ let
     } // attrsFun pkgs);
   };
 
-in {
   tests.configurations = {
     minimal.no-tests = forEachSystem (lib.const { requireManpage = false; });
     minimal.tested = testForEachSystem (lib.const { requireManpage = false; });
@@ -170,4 +169,14 @@ in {
 
     doInstallCheck = false;
   });
+
+  jobs = {
+    inherit tests coverage;
+  };
+
+in jobs // {
+  badge = import nix/badge.nix {
+    pkgs = import nixpkgs {};
+    constituents = lib.collect lib.isDerivation jobs;
+  };
 }
