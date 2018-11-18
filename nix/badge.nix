@@ -218,8 +218,16 @@ in pkgs.runCommand drvName {
     for build in ''${builds//,/ }; do
       finished=0
       while [ "$finished" -ne 1 ]; do
-        finStatus="$(jcurl "$hydraUrl/build/$build" | \
-          jq -r '(.finished | tostring) + ":" + (.buildstatus | tostring)')"
+        finStatusName="$(jcurl "$hydraUrl/build/$build" | jq -r '
+          (.finished | tostring) + ":" +
+          (.buildstatus | tostring) + "!" +
+          .nixname
+        ')"
+        if [ "''${finStatusName#*!}" = "$name" ]; then
+          finStatus="1:0"
+        else
+          finStatus="''${finStatusName%%!*}"
+        fi
         finished="''${finStatus%%:*}"
         if [ "$finished" -ne 1 ]; then sleep 1; fi
       done
