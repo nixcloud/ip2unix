@@ -1,15 +1,13 @@
 ip2unix(1)
 ==========
-ifndef::manmanual[:doctitle: IP2Unix]
+ifndef::manmanual[]
+:doctitle: IP2Unix - Turn IP sockets into Unix domain sockets
+endif::[]
 :revdate: November 2018
 ifndef::manmanual[]
 :toc: macro
 :numbered:
 :toc-title:
-
-*Table of Contents*
-
-toc::[]
 endif::[]
 
 ifdef::manmanual[]
@@ -41,6 +39,7 @@ ifndef::manmanual[]
 :syscall_accept: pass:attributes,quotes[{2}[*accept*(2)]]
 :systemd_socket: pass:attributes,quotes[{3}[*systemd.socket*(5)]]
 :fdname: pass:attributes,quotes[{4}[FileDescriptorName]]
+:rulespec: <<Rule specification>>
 :rulefileformat: <<Rule file format>>
 :copy: (C) 2018 aszlig
 endif::[]
@@ -49,6 +48,7 @@ ifdef::manmanual[]
 :syscall_accept: pass:quotes[*accept*(2)]
 :systemd_socket: pass:quotes[*systemd.socket*(5)]
 :fdname: pass:quotes[FileDescriptorName (see *systemd.socket*(5))]
+:rulespec: pass:quotes[*RULE SPECIFICATION*]
 :rulefileformat: pass:quotes[*RULE FILE FORMAT*]
 :copy: \(C) 2018 aszlig
 endif::[]
@@ -61,21 +61,78 @@ ifdef::without-systemd[:systemd_comma:]
 ifndef::without-systemd[:systemd_backslash: \]
 ifdef::without-systemd[:systemd_backslash:]
 
+ifdef::manmanual[]
 == Description
+endif::manmanual[]
 
-Turns IP sockets into Unix domain socket based on a list of rules (see
-{rulefileformat} below) specified via YAML/JSON file. This is done by the use
-of {LD_PRELOAD} environment variable and you can either directly specify the
-path of *ip2unix* via *LD_PRELOAD* or use the *ip2unix* command directly (it is
-a library and executable at the same time).
+ifdef::env-github[]
+:hydra_url: https://headcounter.org/hydra
+:badge_job: pass:attributes[{hydra_url}/job/ip2unix/master/badge]
+:badge_url: pass:attributes[{badge_job}/latest-finished/download/1/status.svg]
+:latest_eval: pass:attributes[{hydra_url}/jobset/ip2unix/master]
+image:https://builtwithnix.org/badge.svg["built with nix",
+                                         link="https://builtwithnix.org/"]
+image:{badge_url}["build status", link="{latest_eval}"]
+endif::env-github[]
 
-In order for the direct *LD_PRELOAD* variant to work, you also have to specify
-the *IP2UNIX_RULE_FILE* environment variable.
+Executes a program and convert IP to Unix domain sockets based on a list of
+rules, either given via short command line options (see {rulespec}) or via a
+file with a list of rules (see {rulefileformat}). The first matching rule
+causes *ip2unix* to replace the current IP socket with a Unix domain socket
+based on the options given. For example if a <<rule-socket-path,*socketPath*>>
+is specified, the Unix domain socket will bind or listen to the given path.
 
 ifndef::manmanual[]
 
-Use `ip2unix --help` or `man ip2unix` to see a detailed list of options
-available.
+[discrete]
+== Problem statement
+
+A lot of programs are designed to only work with IP sockets, however very few
+of them allow to communicate via Unix domain sockets. Unix domain sockets
+usually are just files, so standard Unix file permissions apply to them.
+
+IP sockets also have the disadvantage that other programs on the same host are
+able to connect to them, unless you use complicated netfilter rules or network
+namespaces.
+
+So if you either have a multi-user system or just want to separate privileges,
+Unix domain sockets are a good way to achieve that.
+
+Another very common use case in nowadays systems is when you're using systemd
+and want to use socket units to allow parallel startup of services.
+
+[discrete]
+== Short example
+
+Let's say you have a small HTTP server you want to make available behind a HTTP
+reverse proxy.
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ ip2unix -r path=/run/my-http-server.socket my-http-server
+---------------------------------------------------------------------
+
+This will simply convert all IP sockets to the Unix domain socket available at
+`/run/my-http-server.socket`. If you use a web server like
+https://nginx.org/[nginx], you can use the following directive to connect to
+that socket:
+
+[source,nginx]
+---------------------------------------------------------------------
+proxy_pass http://unix:/run/my-http-server.socket;
+---------------------------------------------------------------------
+
+More examples can be found further below in section <<Examples>>.
+
+A short summary of all the options is available via `ip2unix --help` or
+`man ip2unix` if you want to see all the details and options available.
+
+ifndef::manmanual[]
+[discrete]
+= Table of Contents
+
+toc::[]
+endif::[]
 
 == Build from source
 
