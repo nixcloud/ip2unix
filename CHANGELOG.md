@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Added
 - New `ignore` rule option, which prevents conversion to Unix socket.
 
+### Changed
+- Improve wording and add more descriptions in README and manpage.
+
 ## [1.2.0] - 2018-11-12
 
 ### Fixed
