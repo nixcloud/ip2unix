@@ -75,9 +75,9 @@ image:https://builtwithnix.org/badge.svg["built with nix",
 image:{badge_url}["build status", link="{latest_eval}"]
 endif::env-github[]
 
-Executes a program and convert IP to Unix domain sockets based on a list of
-rules, either given via short command line options (see {rulespec}) or via a
-file with a list of rules (see {rulefileformat}). The first matching rule
+Executes a program and converts IP to Unix domain sockets at runtime based on a
+list of rules, either given via short command line options (see {rulespec}) or
+via a file with a list of rules (see {rulefileformat}). The first matching rule
 causes *ip2unix* to replace the current IP socket with a Unix domain socket
 based on the options given. For example if a <<rule-socket-path,*socketPath*>>
 is specified, the Unix domain socket will bind or listen to the given path.
