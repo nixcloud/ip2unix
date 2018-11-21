@@ -638,13 +638,18 @@ endif::without-systemd[]
 
 == Limitations
 
-If a client which is already using Unix *datagram* sockets sends packets via
-*sendto* or *sendmsg* to a socket provided by *ip2unix* without binding
-first, *ip2unix* is not able to identify the peer and will subsequently reject
-the packet. This is not the case when using *ip2unix* itself on the the client
-side and it also does not seem to be very common as the author so far did not
-find such an application in the wild.
+* The program uses {LD_PRELOAD}, so it will only work with programs that are
+dynamically linked against the C library. Using ip2unix on statically linked
+executables or on executables that don't use the socket family functions of the
+C library (like Go programs) will not work at the moment.
 
+* If a client which is already using Unix *datagram* sockets sends packets via
+*sendto* or *sendmsg* to a socket provided by *ip2unix* without binding first,
+*ip2unix* is not able to identify the peer and will subsequently reject the
+packet. This is not the case when using *ip2unix* itself on the the client side
+and it also does not seem to be very common as the author so far did not find
+such an application in the wild.
++
 However, if this really is an issue to you, the recommended workaround is
 either to use *ip2unix* to wrap the client (if it supports IP sockets) or fix
 the server to natively use Unix domain sockets.
