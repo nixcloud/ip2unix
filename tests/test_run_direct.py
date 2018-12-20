@@ -46,7 +46,7 @@ def test_run_direct_fail():
     with subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE) as proc:
         stdout, stderr = proc.communicate()
-        assert stderr.startswith(b'FATAL:')
+        assert stderr.startswith(b'ip2unix FATAL:')
         assert proc.poll() != 0
 
 

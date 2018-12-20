@@ -17,6 +17,7 @@
 #include "rules.hh"
 #include "realcalls.hh"
 #include "socket.hh"
+#include "logging.hh"
 
 #ifdef SOCKET_ACTIVATION
 #include "systemd.hh"
@@ -39,8 +40,7 @@ static void init_rules(void)
     } else if ((rule_source = getenv("IP2UNIX_RULE_FILE")) != nullptr) {
         rules = parse_rules(std::string(rule_source), true);
     } else {
-        fputs("FATAL: Unable to find __IP2UNIX_RULES or IP2UNIX_RULE_FILE!\n",
-              stderr);
+        LOG(FATAL) << "Unable to find __IP2UNIX_RULES or IP2UNIX_RULE_FILE!";
         _exit(EXIT_FAILURE);
     }
 

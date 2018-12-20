@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 
 #include "blackhole.hh"
+#include "logging.hh"
 
 static std::optional<std::string> getenv_str(const std::string &envar)
 {
@@ -69,7 +70,7 @@ static std::string get_tmpdir(void)
             return workdir;
     }
 
-    fputs("FATAL: Unable to get temporary directory.\n", stderr);
+    LOG(FATAL) << "Unable to get temporary directory.";
     std::abort();
 }
 

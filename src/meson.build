@@ -14,6 +14,7 @@ dynports_sources = [dynports, files('rng.cc')]
 
 sources += files('ip2unix.cc',
                  'blackhole.cc',
+                 'logging.cc',
                  'preload.cc',
                  'realcalls.cc',
                  'rules/parse.cc',

@@ -7,6 +7,7 @@
 
 #include "rules.hh"
 #include "systemd.hh"
+#include "logging.hh"
 
 static std::unordered_map<std::string, int> names;
 static std::queue<int> fds;
@@ -24,12 +25,11 @@ void Systemd::init(void)
         fd_count = sd_listen_fds_with_names(1, &raw_names);
 #endif
         if (fd_count < 0) {
-            fprintf(stderr, "FATAL: Unable to get systemd sockets: %s\n",
-                    strerror(errno));
+            LOG(FATAL) << "Unable to get systemd sockets: " << strerror(errno);
             std::abort();
         } else if (fd_count == 0) {
-            fputs("FATAL: Needed at least one systemd socket file descriptor,"
-                  " but found zero.\n", stderr);
+            LOG(FATAL) << "Needed at least one systemd socket file descriptor,"
+                       << " but found zero.";
             std::abort();
         }
         for (int i = 0; i < fd_count; ++i) {
@@ -59,8 +59,8 @@ std::optional<int> Systemd::get_fd_for_rule(const Rule &rule)
     if (rule.fd_name) {
         auto found = names.find(rule.fd_name.value());
         if (found == names.end()) {
-            fprintf(stderr, "FATAL: Can't get systemd socket for '%s'.\n",
-                    rule.fd_name.value().c_str());
+            LOG(FATAL) << "Can't get systemd socket for '"
+                       << rule.fd_name.value() << "'.";
             std::abort();
         }
         return found->second;
