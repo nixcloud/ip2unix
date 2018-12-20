@@ -18,12 +18,12 @@ ip2unix - Turn IP sockets into Unix domain sockets
 == Synopsis
 
 [verse]
-*ip2unix* [*-p*] *-f* 'RULES_FILE' 'PROGRAM' ['ARGS'...]
-*ip2unix* [*-p*] *-F* 'RULES_DATA' 'PROGRAM' ['ARGS'...]
-*ip2unix* [*-p*] *-r* 'RULE' [*-r* 'RULE']... 'PROGRAM' ['ARGS'...]
-*ip2unix* [*-p*] *-c* *-f* 'RULES_FILE'
-*ip2unix* [*-p*] *-c* *-F* 'RULES_DATA'
-*ip2unix* [*-p*] *-c* *-r* 'RULE' [*-r* 'RULE']...
+*ip2unix* [*-v*...] [*-p*] *-f* 'RULES_FILE' 'PROGRAM' ['ARGS'...]
+*ip2unix* [*-v*...] [*-p*] *-F* 'RULES_DATA' 'PROGRAM' ['ARGS'...]
+*ip2unix* [*-v*...] [*-p*] *-r* 'RULE' [*-r* 'RULE']... 'PROGRAM' ['ARGS'...]
+*ip2unix* [*-v*...] [*-p*] *-c* *-f* 'RULES_FILE'
+*ip2unix* [*-v*...] [*-p*] *-c* *-F* 'RULES_DATA'
+*ip2unix* [*-v*...] [*-p*] *-c* *-r* 'RULE' [*-r* 'RULE']...
 *ip2unix* *-h*
 *ip2unix* *--version*
 
@@ -366,6 +366,22 @@ ifdef::manmanual[]
 *-F, --rules-data*='RULES_DATA'::
   Similar to *-f*, but instead of specifying a file, directly pass the contents
   as an argument.
+
+*-v, --verbose*::
+  Increases the level of verbosity, according to the following table:
+
+  'FATAL' (default);;
+    Only prints fatal errors that causes the program to terminate.
+  'ERROR' (*-v*);;
+    Also print errors that are recoverable.
+  'WARNING' (*-vv*);;
+    Also print messages that might indicate possible problems.
+  'INFO' (*-vvv*);;
+    Also print informational messages about *ip2unix* behavior.
+  'DEBUG' (*-vvvv*);;
+    Also show messages about *ip2unix* internals along with source information.
+  'TRACE' (*-vvvvv*);;
+    Print every log message possible.
 
 endif::[]
 

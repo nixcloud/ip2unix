@@ -41,16 +41,17 @@ static bool run_preload(std::vector<Rule> &rules, char *argv[])
     return false;
 }
 
-#define PROG_ARGS "PROGRAM [ARGS...]"
+#define PROG "PROGRAM [ARGS...]"
+#define COMMON "[-v...] [-p]"
 
 static void print_usage(char *prog, FILE *fp)
 {
-    fprintf(fp, "Usage: %s [-p] -f RULES_FILE        " PROG_ARGS "\n", prog);
-    fprintf(fp, "       %s [-p] -F RULES_DATA        " PROG_ARGS "\n", prog);
-    fprintf(fp, "       %s [-p] -r RULE [-r RULE]... " PROG_ARGS "\n", prog);
-    fprintf(fp, "       %s [-p] -c -f RULES_FILE\n", prog);
-    fprintf(fp, "       %s [-p] -c -F RULES_DATA\n", prog);
-    fprintf(fp, "       %s [-p] -c -r RULE [-r RULE]...\n", prog);
+    fprintf(fp, "Usage: %s " COMMON " -f RULES_FILE        " PROG "\n", prog);
+    fprintf(fp, "       %s " COMMON " -F RULES_DATA        " PROG "\n", prog);
+    fprintf(fp, "       %s " COMMON " -r RULE [-r RULE]... " PROG "\n", prog);
+    fprintf(fp, "       %s " COMMON " -c -f RULES_FILE\n", prog);
+    fprintf(fp, "       %s " COMMON " -c -F RULES_DATA\n", prog);
+    fprintf(fp, "       %s " COMMON " -c -r RULE [-r RULE]...\n", prog);
     fprintf(fp, "       %s -h\n", prog);
     fprintf(fp, "       %s --version\n", prog);
     fputs("\nTurn IP sockets into Unix domain sockets for PROGRAM\n", fp);
@@ -65,6 +66,7 @@ static void print_usage(char *prog, FILE *fp)
     fputs("  -f, --rules-file  YAML/JSON file containing the rules\n", fp);
     fputs("  -F, --rules-data  Rules as inline YAML/JSON data\n",      fp);
     fputs("  -r, --rule        A single rule\n",                       fp);
+    fputs("  -v, --verbose     Increase level of verbosity\n",         fp);
     fputs("\nSee ip2unix(1) for details about specifying rules.\n", fp);
 }
 
@@ -84,6 +86,7 @@ int main(int argc, char *argv[])
 
     bool check_only = false;
     bool show_rules = false;
+    unsigned int verbosity = 0;
 
     static struct option lopts[] = {
         {"help", no_argument, nullptr, 'h'},
@@ -93,6 +96,7 @@ int main(int argc, char *argv[])
         {"rule", required_argument, nullptr, 'r'},
         {"rules-file", required_argument, nullptr, 'f'},
         {"rules-data", required_argument, nullptr, 'F'},
+        {"verbose", no_argument, nullptr, 'v'},
         {nullptr, 0, nullptr, 0}
     };
 
@@ -100,7 +104,8 @@ int main(int argc, char *argv[])
     std::optional<std::string> ruledata = std::nullopt;
     std::vector<std::string> rule_args;
 
-    while ((c = getopt_long(argc, argv, "+hcpr:f:F:", lopts, nullptr)) != -1) {
+    while ((c = getopt_long(argc, argv, "+hcpr:f:F:v",
+                            lopts, nullptr)) != -1) {
         switch (c) {
             case 'h':
                 print_usage(self, stdout);
@@ -128,6 +133,10 @@ int main(int argc, char *argv[])
 
             case 'F':
                 ruledata = std::string(optarg);
+                break;
+
+            case 'v':
+                verbosity++;
                 break;
 
             default:
@@ -187,6 +196,10 @@ int main(int argc, char *argv[])
     argv += optind;
 
     if (argc >= 1) {
+        if (verbosity > 0) {
+            setenv("__IP2UNIX_VERBOSITY",
+                   std::to_string(verbosity).c_str(), 1);
+        }
         run_preload(rules, argv);
     } else {
         fprintf(stderr, "%s: No program to execute specified.\n", self);
