@@ -20,6 +20,9 @@ constexpr std::string_view just_filename(const char *path) {
 #define LOG(level) Logger(Verbosity::level, just_filename(__FILE__), \
                           __LINE__, __func__, #level)
 
+#define TRACE_CALL(fname, ...) \
+    (LOG(TRACE) << fname "(").join_comma(__VA_ARGS__) << ')'
+
 enum class Verbosity { FATAL = 0, ERROR, WARNING, INFO, DEBUG, TRACE };
 
 class Logger
@@ -35,6 +38,17 @@ class Logger
         Logger &operator<<(T const &val) {
             if (this->logbuf)
                 this->logbuf.value() << val;
+            return *this;
+        }
+
+        template <typename Arg0, typename ... Args>
+        Logger &join_comma(Arg0 const &arg0, Args const &...rest) {
+            if (!this->logbuf) return *this;
+            *this->logbuf << arg0;
+            if constexpr (sizeof...(rest) > 0) {
+                *this->logbuf << ", ";
+                return this->join_comma(rest...);
+            }
             return *this;
         }
 };

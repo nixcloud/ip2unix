@@ -62,6 +62,8 @@ static void init_rules(void)
 
 extern "C" int WRAP_SYM(socket)(int domain, int type, int protocol)
 {
+    TRACE_CALL("socket", domain, type, protocol);
+
     int fd = real::socket(domain, type, protocol);
     if (fd != -1 && (domain == AF_INET || domain == AF_INET6))
         Socket::create(fd, domain, type, protocol);
@@ -75,6 +77,8 @@ extern "C" int WRAP_SYM(socket)(int domain, int type, int protocol)
 extern "C" int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
                                     const void *optval, socklen_t optlen)
 {
+    TRACE_CALL("setsockopt", sockfd, level, optname, optval, optlen);
+
     /* Only cache socket options for SOL_SOCKET, no IPPROTO_TCP etc... */
     if (level != SOL_SOCKET)
         return real::setsockopt(sockfd, level, optname, optval, optlen);
@@ -88,6 +92,8 @@ extern "C" int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
 
 extern "C" int WRAP_SYM(ioctl)(int fd, unsigned long request, void *arg)
 {
+    TRACE_CALL("ioctl", fd, request, arg);
+
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         return sock->ioctl(request, arg);
     }, [&]() {
@@ -102,6 +108,7 @@ extern "C" int WRAP_SYM(ioctl)(int fd, unsigned long request, void *arg)
  */
 extern "C" int WRAP_SYM(listen)(int sockfd, int backlog)
 {
+    TRACE_CALL("listen", sockfd, backlog);
     return Socket::when<int>(sockfd, [&](Socket::Ptr sock) {
         return sock->listen(backlog);
     }, [&]() {
@@ -217,6 +224,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
 extern "C" int WRAP_SYM(bind)(int fd, const struct sockaddr *addr,
                               socklen_t addrlen)
 {
+    TRACE_CALL("bind", fd, addr, addrlen);
     return bind_connect(&Socket::bind, real::bind, RuleDir::INCOMING,
                         fd, addr, addrlen);
 }
@@ -224,6 +232,7 @@ extern "C" int WRAP_SYM(bind)(int fd, const struct sockaddr *addr,
 extern "C" int WRAP_SYM(connect)(int fd, const struct sockaddr *addr,
                                  socklen_t addrlen)
 {
+    TRACE_CALL("connect", fd, addr, addrlen);
     return bind_connect(&Socket::connect, real::connect, RuleDir::OUTGOING,
                         fd, addr, addrlen);
 }
@@ -245,18 +254,22 @@ static int handle_accept(int fd, struct sockaddr *addr, socklen_t *addrlen,
 extern "C" int WRAP_SYM(accept)(int fd, struct sockaddr *addr,
                                 socklen_t *addrlen)
 {
+    TRACE_CALL("accept", fd, addr, addrlen);
     return handle_accept(fd, addr, addrlen, 0);
 }
 
 extern "C" int WRAP_SYM(accept4)(int fd, struct sockaddr *addr,
                                  socklen_t *addrlen, int flags)
 {
+    TRACE_CALL("accept4", fd, addr, addrlen, flags);
     return handle_accept(fd, addr, addrlen, flags);
 }
 
 extern "C" int WRAP_SYM(getpeername)(int fd, struct sockaddr *addr,
                                      socklen_t *addrlen)
 {
+    TRACE_CALL("getpeername", fd, addr, addrlen);
+
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         return sock->getpeername(addr, addrlen);
     }, [&]() {
@@ -267,6 +280,8 @@ extern "C" int WRAP_SYM(getpeername)(int fd, struct sockaddr *addr,
 extern "C" int WRAP_SYM(getsockname)(int fd, struct sockaddr *addr,
                                      socklen_t *addrlen)
 {
+    TRACE_CALL("getsockname", fd, addr, addrlen);
+
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         return sock->getsockname(addr, addrlen);
     }, [&]() {
@@ -278,6 +293,8 @@ extern "C" ssize_t WRAP_SYM(recvfrom)(int fd, void *buf, size_t len, int flags,
                                       struct sockaddr *addr,
                                       socklen_t *addrlen)
 {
+    TRACE_CALL("recvfrom", fd, buf, len, flags, addr, addrlen);
+
     if (addr == nullptr)
         return real::recvfrom(fd, buf, len, flags, addr, addrlen);
 
@@ -300,6 +317,8 @@ extern "C" ssize_t WRAP_SYM(recvfrom)(int fd, void *buf, size_t len, int flags,
 
 extern "C" ssize_t WRAP_SYM(recvmsg)(int fd, struct msghdr *msg, int flags)
 {
+    TRACE_CALL("recvmsg", fd, msg, flags);
+
     if (msg->msg_name == nullptr)
         return real::recvmsg(fd, msg, flags);
 
@@ -334,6 +353,8 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
                                     int flags, const struct sockaddr *addr,
                                     socklen_t addrlen)
 {
+    TRACE_CALL("sendto", fd, buf, len, flags, addr, addrlen);
+
     if (addr == nullptr)
         return real::sendto(fd, buf, len, flags, addr, addrlen);
 
@@ -376,6 +397,8 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
 extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
                                      int flags)
 {
+    TRACE_CALL("sendmsg", fd, msg, flags);
+
     if (msg->msg_name == nullptr)
         return real::sendmsg(fd, msg, flags);
 
@@ -420,6 +443,8 @@ extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
 
 extern "C" int WRAP_SYM(dup)(int oldfd)
 {
+    TRACE_CALL("dup", oldfd);
+
     return Socket::when<int>(oldfd, [&](Socket::Ptr sock) {
         return sock->dup();
     }, [&]() {
@@ -441,16 +466,20 @@ static int handle_dup3(int oldfd, int newfd, int flags)
 
 extern "C" int WRAP_SYM(dup2)(int oldfd, int newfd)
 {
+    TRACE_CALL("dup2", oldfd, newfd);
     return handle_dup3(oldfd, newfd, 0);
 }
 
 extern "C" int WRAP_SYM(dup3)(int oldfd, int newfd, int flags)
 {
+    TRACE_CALL("dup3", oldfd, newfd, flags);
     return handle_dup3(oldfd, newfd, flags);
 }
 
 extern "C" int WRAP_SYM(close)(int fd)
 {
+    TRACE_CALL("close", fd);
+
 #ifdef SOCKET_ACTIVATION
     {
         std::scoped_lock<std::mutex> lock(g_rules_mutex);
