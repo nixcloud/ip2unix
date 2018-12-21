@@ -38,10 +38,10 @@ extern DlsymHandle dlsym_handle;
  * close we can just use real::close(fd).
  */
 namespace real {
-    template <typename Self, typename Ret, typename ... FunArgs>
-    struct DlsymFun
+    template <typename Self, typename FunType>
+    struct DlsymFunBase
     {
-        Ret (*fptr)(FunArgs ...) = nullptr;
+        FunType *fptr = nullptr;
 
         template <typename ... Args>
         auto operator()(Args ... args) -> decltype(fptr(args ...))
@@ -62,8 +62,19 @@ namespace real {
         }
     };
 
+    template <typename Self, typename Ret, typename... FunArgs>
+    using DlsymFun = DlsymFunBase<Self, Ret(FunArgs...)>;
+
+    template <typename Self, typename Ret, typename... FunArgs>
+    using DlsymFunVaArgs = DlsymFunBase<Self, Ret(FunArgs..., ...)>;
+
 #define DLSYM_FUN(name, ...) IP2UNIX_REALCALL_EXTERN \
     struct name##_fun_t : public DlsymFun<name##_fun_t, __VA_ARGS__> { \
+        static constexpr const char *fname = #name; \
+    } name
+
+#define DLSYM_FUN_VA_ARGS(name, ...) IP2UNIX_REALCALL_EXTERN \
+    struct name##_fun_t : public DlsymFunVaArgs<name##_fun_t, __VA_ARGS__> { \
         static constexpr const char *fname = #name; \
     } name
 
