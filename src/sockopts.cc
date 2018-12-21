@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #include <cstdio>
+#include <cstring>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
 #include "realcalls.hh"
 #include "sockopts.hh"
+#include "logging.hh"
 
 SockOpts::SockOpts() : entries() {}
 
@@ -37,12 +39,14 @@ static bool copy_fd_owner(int old_sockfd, int new_sockfd)
     f_owner_ex owner;
 
     if (fcntl(old_sockfd, F_GETOWN_EX, &owner) == -1) {
-        perror("fcntl(F_GETOWN_EX)");
+        LOG(ERROR) << "Failure to get owner settings of socket fd "
+                   << old_sockfd << ": " << strerror(errno);
         return false;
     }
 
     if (fcntl(new_sockfd, F_SETOWN_EX, &owner) == -1) {
-        perror("fcntl(F_SETOWN_EX)");
+        LOG(ERROR) << "Failure to set owner settings on socket fd "
+                   << new_sockfd << ": " << strerror(errno);
         return false;
     }
 
@@ -54,12 +58,14 @@ static bool copy_fcntl(int old_sockfd, int new_sockfd, int get, int set)
     int value;
 
     if ((value = fcntl(old_sockfd, get)) == -1) {
-        perror("fcntl");
+        LOG(ERROR) << "Failure getting fcntl options from socket fd "
+                   << old_sockfd << ": " << strerror(errno);
         return false;
     }
 
     if (fcntl(new_sockfd, set, value) == -1) {
-        perror("fcntl");
+        LOG(ERROR) << "Failure setting fcntl options for socket fd "
+                   << new_sockfd << ": " << strerror(errno);
         return false;
     }
 
@@ -80,7 +86,10 @@ bool SockOpts::replay(int old_sockfd, int new_sockfd)
             if (real::setsockopt(this->fd, entry.level, entry.optname,
                                  entry.optval.data(),
                                  entry.optval.size()) == -1) {
-                perror("setsockopt");
+                LOG(WARNING) << "Failure replaying socket option "
+                             << entry.optname << " with level "
+                             << entry.level << " on socket fd " << this->fd
+                             << ": " << strerror(errno);
                 return false;
             }
 
@@ -90,7 +99,9 @@ bool SockOpts::replay(int old_sockfd, int new_sockfd)
         bool operator()(const SockOpts::EntryIoctl &entry)
         {
             if (real::ioctl(this->fd, entry.request, entry.arg.data()) == -1) {
-                perror("ioctl");
+                LOG(WARNING) << "Failure replaying ioctl "
+                             << entry.request << " on socket fd " << this->fd
+                             << ": " << strerror(errno);
                 return false;
             }
 

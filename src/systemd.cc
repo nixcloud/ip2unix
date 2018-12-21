@@ -32,11 +32,17 @@ void Systemd::init(void)
                        << " but found zero.";
             std::abort();
         }
+        LOG(INFO) << "Number of systemd file descriptors found in FD_NAMES: "
+                  << fd_count;
         for (int i = 0; i < fd_count; ++i) {
 #ifdef NO_FDNAMES
             fds.push(SD_LISTEN_FDS_START + i);
 #else
             std::string name = raw_names[i];
+
+            LOG(DEBUG) << "Got systemd file descriptor named '" << name
+                       << "' (" << SD_LISTEN_FDS_START + i << ").";
+
             if (name.empty() || name == "unknown" || name == "stored")
                 fds.push(SD_LISTEN_FDS_START + i);
             else
@@ -46,6 +52,7 @@ void Systemd::init(void)
         if (raw_names != nullptr)
             free(raw_names);
         fetch_done = true;
+        LOG(DEBUG) << "Finished getting systemd file descriptors.";
     }
 }
 

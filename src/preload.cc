@@ -208,6 +208,8 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
             if (newfd) {
                 return sock->activate(inaddr, newfd.value());
             } else {
+                LOG(INFO) << "Systemd file descriptor queue empty, "
+                          << "blackholing socket with fd " << fd << '.';
                 sock->blackhole();
                 return std::invoke(sockfun, sock, inaddr, "");
             }
@@ -484,8 +486,11 @@ extern "C" int WRAP_SYM(close)(int fd)
     {
         std::scoped_lock<std::mutex> lock(g_rules_mutex);
         init_rules();
-        if (Systemd::has_fd(fd))
+        if (Systemd::has_fd(fd)) {
+            LOG(DEBUG) << "Prevented socket fd " << fd << " from being closed,"
+                       << " because it's a file descriptor passed by systemd.";
             return 0;
+        }
     }
 #endif
 

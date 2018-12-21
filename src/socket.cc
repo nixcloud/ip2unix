@@ -6,6 +6,7 @@
 
 #include "socket.hh"
 #include "realcalls.hh"
+#include "logging.hh"
 
 std::optional<Socket::Ptr> Socket::find(int fd)
 {
@@ -28,7 +29,10 @@ Socket::Ptr Socket::create(int fd, int domain, int type, int protocol)
     std::scoped_lock<std::mutex> lock(Socket::registry_mutex);
     Socket::Ptr sock = std::shared_ptr<Socket>(new Socket(fd, domain, type,
                                                           protocol));
-    return Socket::registry[fd] = sock->getptr();
+    Socket::registry[fd] = sock->getptr();
+    LOG(INFO) << "Registered socket with fd " << fd << ", domain " << domain
+              << ", type " << type << " and protocol " << protocol << '.';
+    return Socket::registry[fd];
 }
 
 static inline SocketType get_sotype(const int type)
@@ -87,6 +91,9 @@ Socket::Ptr Socket::getptr(void)
 
 void Socket::blackhole(void)
 {
+    if (this->is_blackhole)
+        return;
+    LOG(INFO) << "Socket with fd " << this->fd << " blackholed.";
     this->is_blackhole = true;
 }
 
@@ -184,26 +191,39 @@ bool Socket::make_unix(int oldfd)
 
     if (oldfd != -1) {
         newfd = oldfd;
-    } else if ((newfd = real::socket(AF_UNIX, this->typearg, 0)) == -1) {
-        perror("socket(AF_UNIX)");
-        errno = old_errno;
-        return false;
+        LOG(INFO) << "Re-using Unix socket with fd " << newfd << '.';
+    } else {
+        if ((newfd = real::socket(AF_UNIX, this->typearg, 0)) == -1) {
+            LOG(ERROR) << "Unable to create new Unix socket with type "
+                       << this->typearg << ": " << strerror(errno);
+            errno = old_errno;
+            return false;
+        }
+        LOG(INFO) << "Created new Unix socket with fd " << newfd << '.';
     }
 
     if (!this->sockopts.replay(this->fd, newfd)) {
+        LOG(ERROR) << "Unable to replay socket options from fd " << this->fd
+                   << " to fd " << newfd << '.';
         real::close(newfd);
         errno = old_errno;
         return false;
     }
 
     if (real::dup2(newfd, this->fd) == -1) {
-        perror("dup2");
+        LOG(ERROR) << "Unable to replace socket fd " << this->fd
+                   << " by Unix socket with fd " << newfd << ": "
+                   << strerror(errno);
         real::close(newfd);
         errno = old_errno;
         return false;
     }
 
     real::close(newfd);
+
+    LOG(INFO) << "Replaced socket fd " << this->fd
+              << " by Unix socket with fd " << newfd << '.';
+
     errno = old_errno;
     this->is_unix = true;
     return true;
@@ -247,6 +267,8 @@ int Socket::activate(const SockAddr &addr, int filedes)
 
     this->binding = addr;
     this->activated = true;
+    LOG(INFO) << "Socket fd " << this->fd
+              << " marked for systemd socket activation.";
     return 0;
 }
 #endif
@@ -293,7 +315,7 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
         USOCK_OR_EFAULT(bh_path.value());
         ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0)
-            this->is_blackhole = true;
+            this->blackhole();
     } else {
         USOCK_OR_EFAULT(newpath);
         ret = real::bind(this->fd, dest.cast(), dest.size());
@@ -532,7 +554,7 @@ std::optional<SockAddr> Socket::rewrite_dest(const SockAddr &addr,
         if (!this->create_binding(addr))
             return std::nullopt;
 
-        this->is_blackhole = true;
+        this->blackhole();
 
         /* Persist the blackhole, because the remote might want to connect() or
          * send additional packets.
@@ -546,8 +568,11 @@ std::optional<SockAddr> Socket::rewrite_dest(const SockAddr &addr,
 int Socket::dup(void)
 {
     int newfd = real::dup(this->fd);
-    if (newfd != -1)
+    if (newfd != -1) {
+        LOG(INFO) << "Duplicated socket fd " << this->fd
+                  << " to " << newfd << '.';
         Socket::registry[newfd] = this->getptr();
+    }
     return newfd;
 }
 
@@ -558,8 +583,11 @@ int Socket::dup(int newfd, int flags)
         existing.value()->close();
 
     int ret = real::dup3(this->fd, newfd, flags);
-    if (ret != -1)
+    if (ret != -1) {
+        LOG(INFO) << "Duplicated socket fd " << this->fd
+                  << " to " << newfd << '.';
         Socket::registry[ret] = this->getptr();
+    }
 
     return ret;
 }
@@ -569,12 +597,17 @@ int Socket::close(void)
     int ret;
 
     if (this->activated) {
+        LOG(INFO) << "Not closing socket fd " << this->fd
+                  << " because it's a systemd socket.";
         ret = 0;
     } else {
+        LOG(INFO) << "Closing socket fd " << this->fd << '.';
         ret = real::close(this->fd);
 
         if (this->unlink_sockpath) {
             int old_errno = errno;
+            LOG(INFO) << "Unlinking socket path '" << *this->unlink_sockpath
+                      << "'.";
             unlink(this->unlink_sockpath.value().c_str());
             errno = old_errno;
             Socket::sockpath_registry.erase(this->unlink_sockpath.value());
@@ -583,5 +616,6 @@ int Socket::close(void)
     }
 
     Socket::registry.erase(this->fd);
+    LOG(INFO) << "Socket fd " << this->fd << " unregistered.";
     return ret;
 }

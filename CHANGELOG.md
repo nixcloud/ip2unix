@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Added
 - New `ignore` rule option, which prevents conversion to Unix socket.
 - A way to increase the verbosity via the `-v` command line argument.
+- Reams of log messages in addition to the FATAL errors we had so far.
 
 ### Changed
 - Improve wording and add more descriptions in README and manpage.

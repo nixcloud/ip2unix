@@ -2,10 +2,13 @@
 #ifndef IP2UNIX_REALCALLS_HH
 #define IP2UNIX_REALCALLS_HH
 
+#include <cstring>
 #include <mutex>
 
 #include <unistd.h>
 #include <dlfcn.h>
+
+#include "logging.hh"
 
 /* Let's declare all of the wrappers as extern, so that we can define them by
  * simply overriding IP2UNIX_REALCALL_EXTERN before the #include directive.
@@ -50,8 +53,8 @@ namespace real {
             if (this->fptr == nullptr) {
                 void *result = dlsym(dlsym_handle.get(), Self::fname);
                 if (result == nullptr) {
-                    std::string msg("dlsym(" + std::string(Self::fname) + ")");
-                    perror(msg.c_str());
+                    LOG(FATAL) << "Loading of symbol '" << Self::fname
+                               << "' failed: " << strerror(errno);
                     g_dlsym_mutex.unlock();
                     _exit(EXIT_FAILURE);
                 }
