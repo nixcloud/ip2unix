@@ -56,11 +56,10 @@ let
     in funAttrs // {
       nativeBuildInputs = [
         pkgs.asciidoc pkgs.libxslt.bin pkgs.docbook_xml_dtd_45 pkgs.docbook_xsl
-        pkgs.libxml2.bin pkgs.docbook5
+        pkgs.libxml2.bin pkgs.docbook5 pkgs.systemd
       ] ++ funAttrs.nativeBuildInputs or [];
-      buildInputs = lib.singleton pkgs.systemd ++ funAttrs.buildInputs or [];
       postConfigure = ''
-        grep -qF 'Native dependency libsystemd found: YES'\
+        grep -qF 'Program systemd-socket-activate found: YES' \
           meson-logs/meson-log.txt
         ${funAttrs.postConfigure or ""}
       '';
@@ -72,11 +71,11 @@ let
   fullForEachSystem = fun : lib.genAttrs systems (withSystemFull fun);
 
   mkManpageJobs = attrsFun: {
-    no-manpage = testForEachSystem (pkgs: {
+    no-manpage = testForEachSystem (pkgs: (attrsFun pkgs) // {
       requireManpage = false;
-    } // attrsFun pkgs);
+    });
 
-    asciidoc.with-validation = testForEachSystem (pkgs: {
+    asciidoc.with-validation = testForEachSystem (pkgs: (attrsFun pkgs) // {
       nativeBuildInputs = [
         pkgs.libxslt.bin pkgs.docbook_xml_dtd_45 pkgs.docbook_xsl
         pkgs.libxml2.bin pkgs.docbook5
@@ -93,35 +92,47 @@ let
           makeWrapper "$a2x" "$out/bin/a2x" --add-flags -v
           ln -s ${lib.escapeShellArg pkgs.asciidoc}/bin/asciidoc "$out/bin"
         '')
-      ];
+      ] ++ (attrsFun pkgs).nativeBuildInputs or [];
       postConfigure = ''
         grep -qF 'Program xmllint found: YES' meson-logs/meson-log.txt
+        ${(attrsFun pkgs).postConfigure or ""}
       '';
-    } // attrsFun pkgs);
+    });
 
-    asciidoc.without-validation = testForEachSystem (pkgs: {
+    asciidoc.without-validation = testForEachSystem (pkgs: (attrsFun pkgs) // {
       nativeBuildInputs = [
         pkgs.asciidoc pkgs.libxslt.bin pkgs.docbook_xml_dtd_45 pkgs.docbook_xsl
-      ];
+      ] ++ (attrsFun pkgs).nativeBuildInputs or [];
       postConfigure = ''
         grep -qF 'Program a2x found: YES' meson-logs/meson-log.txt
+        ${(attrsFun pkgs).postConfigure or ""}
       '';
-    } // attrsFun pkgs);
+    });
 
-    asciidoctor = testForEachSystem (pkgs: {
-      nativeBuildInputs = [ pkgs.asciidoctor ];
+    asciidoctor = testForEachSystem (pkgs: (attrsFun pkgs) // {
+      nativeBuildInputs = [ pkgs.asciidoctor ]
+                       ++ (attrsFun pkgs).nativeBuildInputs or [];
       postConfigure = ''
         grep -qF 'Program asciidoctor found: YES' meson-logs/meson-log.txt
+        ${(attrsFun pkgs).postConfigure or ""}
       '';
-    } // attrsFun pkgs);
+    });
   };
 
   tests.configurations = {
     minimal.no-tests = forEachSystem (lib.const { requireManpage = false; });
     minimal.tested = testForEachSystem (lib.const { requireManpage = false; });
 
-    systemd = mkManpageJobs (pkgs: { buildInputs = [ pkgs.systemd ]; });
-    no-systemd = mkManpageJobs (lib.const {});
+    systemd = mkManpageJobs (pkgs: {
+      nativeBuildInputs = [ pkgs.systemd ];
+      postConfigure = ''
+        grep -qF 'Program systemd-socket-activate found: YES' \
+          meson-logs/meson-log.txt
+      '';
+    });
+    no-systemd = mkManpageJobs (lib.const {
+      mesonFlags = [ "-Dsystemd-support=false" ];
+    });
 
     # This is to make sure AsciiDoc is picked over Asciidoctor when generating
     # the manpage.

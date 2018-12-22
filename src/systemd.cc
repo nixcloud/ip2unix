@@ -3,54 +3,66 @@
 #include <unordered_map>
 #include <queue>
 
-#include <systemd/sd-daemon.h>
-
 #include "rules.hh"
 #include "systemd.hh"
 #include "logging.hh"
 
+#define SD_LISTEN_FDS_START 3
+
 static std::unordered_map<std::string, int> names;
 static std::queue<int> fds;
-static int fd_count;
+static int fd_count = 0;
 
 void Systemd::init(void)
 {
     static bool fetch_done = false;
 
     if (!fetch_done) {
-        char **raw_names = nullptr;
-#ifdef NO_FDNAMES
-        fd_count = sd_listen_fds(1);
-#else
-        fd_count = sd_listen_fds_with_names(1, &raw_names);
-#endif
-        if (fd_count < 0) {
-            LOG(FATAL) << "Unable to get systemd sockets: " << strerror(errno);
+        const char *listen_fds = getenv("LISTEN_FDS");
+
+        if (listen_fds == nullptr) {
+            LOG(FATAL) << "No LISTEN_FDS environment variable set, but"
+                       << " systemd socket activation is used in rules.";
             std::abort();
-        } else if (fd_count == 0) {
+        }
+
+        if (*listen_fds < '0' || *listen_fds > '9') {
+            LOG(FATAL) << "Invalid value '" << listen_fds << "' for LISTEN_FDS"
+                       << " environment variable.";
+            std::abort();
+        }
+
+        if ((fd_count = atoi(listen_fds)) == 0) {
             LOG(FATAL) << "Needed at least one systemd socket file descriptor,"
                        << " but found zero.";
             std::abort();
         }
-        LOG(INFO) << "Number of systemd file descriptors found in FD_NAMES: "
+
+        LOG(INFO) << "Number of systemd file descriptors found in LISTEN_FDS: "
                   << fd_count;
+
+        const char *listen_fdnames = getenv("LISTEN_FDNAMES");
+
         for (int i = 0; i < fd_count; ++i) {
-#ifdef NO_FDNAMES
-            fds.push(SD_LISTEN_FDS_START + i);
-#else
-            std::string name = raw_names[i];
-
-            LOG(DEBUG) << "Got systemd file descriptor named '" << name
-                       << "' (" << SD_LISTEN_FDS_START + i << ").";
-
-            if (name.empty() || name == "unknown" || name == "stored")
-                fds.push(SD_LISTEN_FDS_START + i);
-            else
+            if (listen_fdnames != nullptr) {
+                const char *delim = strchr(listen_fdnames, ':');
+                std::string name;
+                if (delim == nullptr) {
+                    name = listen_fdnames;
+                } else {
+                    using lentype = std::string::size_type;
+                    lentype len = static_cast<lentype>(delim - listen_fdnames);
+                    name = std::string(listen_fdnames, len);
+                    listen_fdnames = delim + 1;
+                }
+                LOG(DEBUG) << "Got systemd file descriptor named '" << name
+                           << "' (" << SD_LISTEN_FDS_START + i << ").";
                 names[name] = SD_LISTEN_FDS_START + i;
-#endif
+            }
+
+            fds.push(SD_LISTEN_FDS_START + i);
         }
-        if (raw_names != nullptr)
-            free(raw_names);
+
         fetch_done = true;
         LOG(DEBUG) << "Finished getting systemd file descriptors.";
     }
@@ -62,7 +74,6 @@ void Systemd::init(void)
  */
 std::optional<int> Systemd::get_fd_for_rule(const Rule &rule)
 {
-#ifndef NO_FDNAMES
     if (rule.fd_name) {
         auto found = names.find(rule.fd_name.value());
         if (found == names.end()) {
@@ -72,9 +83,7 @@ std::optional<int> Systemd::get_fd_for_rule(const Rule &rule)
         }
         return found->second;
     }
-#else
-    std::ignore = rule;
-#endif
+
     if (fds.empty())
         return std::nullopt;
 

@@ -44,16 +44,10 @@ if libcpath.returncode() == 0
   cflags += ['-DLIBC_PATH="' + fullpath + '"']
 endif
 
-systemd_no_fdnames = false
+systemd_enabled = get_option('systemd-support')
 
-libsystemd = dependency('libsystemd', required: false)
-if libsystemd.found()
+if systemd_enabled
   cflags += ['-DSOCKET_ACTIVATION']
-  deps += [libsystemd]
-  if not cc.has_function('sd_listen_fds_with_names', dependencies: libsystemd)
-    systemd_no_fdnames = true
-    cflags += ['-DNO_FDNAMES']
-  endif
 endif
 
 sources = []
@@ -77,11 +71,8 @@ adoc_attrs = [
   '-a', 'revnumber=@0@'.format(meson.project_version()),
 ]
 
-if not libsystemd.found()
+if not systemd_enabled
   adoc_attrs += ['-a', 'without-systemd']
-endif
-if systemd_no_fdnames
-  adoc_attrs += ['-a', 'systemd-no-fdnames']
 endif
 
 # For generating the manpage

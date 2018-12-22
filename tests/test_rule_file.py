@@ -3,7 +3,7 @@ import subprocess
 import sys
 import unittest
 
-from helper import IP2UNIX, SYSTEMD_NO_FDNAMES, systemd_only, non_systemd_only
+from helper import IP2UNIX, systemd_only, non_systemd_only
 
 
 class RuleFileTest(unittest.TestCase):
@@ -149,11 +149,7 @@ class RuleFileTest(unittest.TestCase):
 
     @systemd_only
     def test_socket_fdname(self):
-        if SYSTEMD_NO_FDNAMES:
-            testfun = self.assert_bad_rules
-        else:
-            testfun = self.assert_good_rules
-        testfun([{'socketActivation': True, 'fdName': 'foo'}])
+        self.assert_good_rules([{'socketActivation': True, 'fdName': 'foo'}])
 
     @non_systemd_only
     def test_no_systemd_options(self):

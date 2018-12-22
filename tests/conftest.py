@@ -1,7 +1,6 @@
 IP2UNIX = None
 SYSTEMD_SUPPORT = False
 SYSTEMD_SA_PATH = None
-SYSTEMD_NO_FDNAMES = False
 
 
 def pytest_addoption(parser):
@@ -11,16 +10,12 @@ def pytest_addoption(parser):
                      help='Whether systemd support is compiled in')
     parser.addoption('--systemd-sa-path', action='store',
                      help='The path to the \'systemd-socket-activate\' helper')
-    parser.addoption('--systemd-no-fdnames', action='store_true',
-                     help='Whether systemd has support for FD names')
 
 
 def pytest_configure(config):
     global IP2UNIX
     global SYSTEMD_SUPPORT
     global SYSTEMD_SA_PATH
-    global SYSTEMD_NO_FDNAMES
     IP2UNIX = config.option.ip2unix_path
     SYSTEMD_SUPPORT = config.option.systemd_support
     SYSTEMD_SA_PATH = config.option.systemd_sa_path
-    SYSTEMD_NO_FDNAMES = config.option.systemd_no_fdnames

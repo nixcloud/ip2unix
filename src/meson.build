@@ -21,7 +21,7 @@ sources += files('ip2unix.cc',
                  'socket.cc',
                  'sockaddr.cc',
                  'sockopts.cc')
-if libsystemd.found()
+if systemd_enabled
   sources += files('systemd.cc')
 endif
 sources += dynports_sources

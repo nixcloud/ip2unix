@@ -108,7 +108,6 @@ class TcpConnectionTest(unittest.TestCase):
         self.assert_connection({}, srule, args, args, pre_cmd_srv=pre_cmd)
 
     @helper.systemd_sa_helper_only
-    @helper.systemd_with_fdnames_only
     def test_socket_activation_with_fdname(self):
         srule = {'socketActivation': True, 'fdName': 'foo', 'port': 333}
         args = ['-c', 10, '4.3.2.1', 333]

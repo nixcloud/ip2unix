@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Changed
 - Improve wording and add more descriptions in README and manpage.
+- The implementation for fetching systemd sockets now no longer uses
+  `libsystemd`, thus the build-time dependency is no longer required.
 
 ## [1.2.0] - 2018-11-12
 

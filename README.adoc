@@ -30,9 +30,12 @@ ip2unix - Turn IP sockets into Unix domain sockets
 endif::[]
 
 ifndef::manmanual[]
-:1: http://man7.org/linux/man-pages/man8/ld.so.8.html#ENVIRONMENT
-:2: http://man7.org/linux/man-pages/man2/accept.2.html
-:3: https://www.freedesktop.org/software/systemd/man/systemd.socket.html
+:man_url: http://man7.org/linux/man-pages
+:sysdman_url: https://www.freedesktop.org/software/systemd/man
+
+:1: {man_url}/man8/ld.so.8.html#ENVIRONMENT
+:2: {man_url}/man2/accept.2.html
+:3: {sysdman_url}/systemd.socket.html
 :4: pass:attributes,quotes[{3}#FileDescriptorName=]
 
 :LD_PRELOAD: pass:attributes,quotes[*LD_PRELOAD* ({1}[*ld.so*(8)])]
@@ -150,9 +153,9 @@ endif::[]
 * http://asciidoc.org/[AsciiDoc] or https://asciidoctor.org/[Asciidoctor] for
   generating the manpage. The former is recommended as it generates a better
   manpage and also provides validation.
-* https://www.freedesktop.org/wiki/Software/systemd/[systemd] development
-  libraries to support socket activation.
 * https://pytest.org/[pytest] for running automated tests.
+* {sysdman_url}/systemd-socket-activate.html[systemd-socket-activate]
+  helper to run test cases specific to systemd socket activation support.
 
 === Cloning the repository
 
@@ -403,17 +406,10 @@ The following flags are available:
   (<<rule-opt-type,*type*>> rule file option).
 
 ifndef::without-systemd[]
-ifndef::systemd-no-fdnames[]
 *systemd*[='FD_NAME']::
   Enable systemd socket activation
   (see <<rule-opt-socket-activation,*socketActivation*>> below), optionally
   specifying a file descriptior name (<<rule-opt-fdname,*fdName*>>).
-endif::systemd-no-fdnames[]
-ifdef::systemd-no-fdnames[]
-*systemd*::
-  Enable systemd socket activation
-  (see <<rule-opt-socket-activation,*socketActivation*>> below).
-endif::systemd-no-fdnames[]
 endif::[]
 
 *reject*[='ERRNO']::
@@ -504,12 +500,10 @@ Whether to use systemd socket activation
 endif::[]
 instead of a <<rule-socket-path,*socketPath*>>. See {systemd_socket}.
 
-ifndef::systemd-no-fdnames[]
 [[rule-opt-fdname]]*fdName*::
 An optional file descriptor name for socket activation which can be used to
 distinguish between several socket units. This corresponds to the {fdname}
 systemd socket option.
-endif::systemd-no-fdnames[]
 endif::[]
 
 [[rule-reject]]*reject*::
@@ -607,9 +601,7 @@ ifndef::without-systemd[]
   type: tcp
   port: 22
   socketActivation: true
-ifndef::systemd-no-fdnames[]
   fdName: ssh
-endif::systemd-no-fdnames[]
 endif::without-systemd[]
 --------------------------------------------
 
@@ -625,20 +617,11 @@ endif::without-systemd[]
     in an `EADDRINUSE` error.
 ifndef::without-systemd[]
 <6> Will prevent the TCP socket that would listen on port 22 to not listen at
-    all and instead use
-ifndef::systemd-no-fdnames[]
-    the systemd-provided file descriptor named `ssh`
-endif::systemd-no-fdnames[]
-ifdef::systemd-no-fdnames[]
-    the first systemd-provided file descriptor available
-endif::systemd-no-fdnames[]
-    for operations like {syscall_accept}.
+    all and instead use the systemd-provided file descriptor named `ssh` for
+    operations like {syscall_accept}.
 endif::[]
 
 The same can be achieved solely using *-r* commandline arguments:
-
-ifndef::systemd-no-fdnames[:example_fdname_arg: =ssh]
-ifdef::systemd-no-fdnames[:example_fdname_arg:]
 
 [source,sh-session]
 [subs="attributes"]
@@ -648,7 +631,7 @@ $ ip2unix -r out,port=53,ignore \
           -r in,addr=1.2.3.4,path=/run/another.socket \
           -r in,port=80,reject=EADDRINUSE {systemd_backslash}
 ifndef::without-systemd[]
-          -r in,tcp,port=22,systemd{example_fdname_arg}
+          -r in,tcp,port=22,systemd=ssh
 endif::without-systemd[]
 ----------------------------------------------------------------------------
 

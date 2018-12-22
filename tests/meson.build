@@ -14,7 +14,7 @@ if pytest.found()
     timeout = get_option('test-timeout')
   endif
 
-  if libsystemd.found()
+  if systemd_enabled
     pytest_args += ['--systemd-support']
     systemd_sa = find_program('systemd-socket-activate', required: false)
     if systemd_sa.found()
@@ -22,9 +22,6 @@ if pytest.found()
     else
       message('No \'systemd-socket-activate\' program found, can\'t run' +
               ' tests for socket activation.')
-    endif
-    if systemd_no_fdnames
-      pytest_args += ['--systemd-no-fdnames']
     endif
   endif
   test('integration', pytest, args: pytest_args, timeout: timeout,

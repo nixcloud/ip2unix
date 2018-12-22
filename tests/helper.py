@@ -4,12 +4,11 @@ import subprocess
 from contextlib import contextmanager
 
 import pytest
-from conftest import IP2UNIX, SYSTEMD_SUPPORT, SYSTEMD_SA_PATH, \
-                     SYSTEMD_NO_FDNAMES
+from conftest import IP2UNIX, SYSTEMD_SUPPORT, SYSTEMD_SA_PATH
 
 __all__ = ['IP2UNIX', 'SYSTEMD_SUPPORT', 'SYSTEMD_SA_PATH',
-           'SYSTEMD_NO_FDNAMES', 'ip2unix', 'systemd_only', 'non_systemd_only',
-           'systemd_sa_helper_only', 'systemd_with_fdnames_only']
+           'ip2unix', 'systemd_only', 'non_systemd_only',
+           'systemd_sa_helper_only']
 
 
 @contextmanager
@@ -30,7 +29,4 @@ non_systemd_only = pytest.mark.skipif(
 )
 systemd_sa_helper_only = pytest.mark.skipif(
     SYSTEMD_SA_PATH is None, reason="no 'systemd-socket-activate' helper"
-)
-systemd_with_fdnames_only = pytest.mark.skipif(
-    SYSTEMD_NO_FDNAMES, reason="no sd_listen_fds_with_names"
 )

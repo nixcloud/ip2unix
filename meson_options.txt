@@ -1,2 +1,3 @@
 option('test-timeout', type: 'integer', value: 60,
        description: 'The timeout in seconds after which to abort tests')
+option('systemd-support', type: 'boolean', value: true)
