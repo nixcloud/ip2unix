@@ -23,6 +23,9 @@ constexpr std::string_view just_filename(const char *path) {
 #define TRACE_CALL(fname, ...) \
     (LOG(TRACE) << fname "(").join_comma(__VA_ARGS__) << ')'
 
+/* NOTE: If you change anything here, be sure to sync it with sysdlvl in
+ * logging.cc.
+ */
 enum class Verbosity { FATAL = 0, ERROR, WARNING, INFO, DEBUG, TRACE };
 
 class Logger
