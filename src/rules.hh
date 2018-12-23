@@ -19,7 +19,7 @@ struct Rule {
     std::optional<uint16_t> port = std::nullopt;
     std::optional<uint16_t> port_end = std::nullopt;
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
     bool socket_activation = false;
     std::optional<std::string> fd_name = std::nullopt;
 #endif

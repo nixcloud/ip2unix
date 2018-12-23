@@ -47,7 +47,7 @@ endif
 systemd_enabled = get_option('systemd-support')
 
 if systemd_enabled
-  cflags += ['-DSOCKET_ACTIVATION']
+  cflags += ['-DSYSTEMD_SUPPORT']
 endif
 
 sources = []

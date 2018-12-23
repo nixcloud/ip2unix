@@ -53,7 +53,7 @@ struct Socket : std::enable_shared_from_this<Socket>
     int ioctl(unsigned long, const void*);
 
     int listen(int);
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
     int activate(const SockAddr&, int fd);
 #endif
     int bind(const SockAddr&, const std::string&);

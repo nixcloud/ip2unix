@@ -58,7 +58,7 @@ static std::optional<std::string> validate_rule(Rule &rule)
         if (rule.socket_path.value()[0] != '/')
             return "Socket path has to be absolute.";
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
         if (rule.socket_activation)
             return "Can't enable socket activation in conjunction with a"
                    " socket path.";
@@ -79,7 +79,7 @@ static std::optional<std::string> validate_rule(Rule &rule)
     } else if (rule.ignore && (rule.blackhole || rule.reject)) {
         return "Ignore action can't be used in conjunction with blackhole"
                " or reject.";
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
     } else if (rule.ignore && rule.socket_activation) {
         return "Ignore action can't be used in conjunction with socket"
                " activation.";
@@ -90,7 +90,7 @@ static std::optional<std::string> validate_rule(Rule &rule)
         if (rule.direction != RuleDir::INCOMING)
             return "Blackhole rules are only valid for incoming connections.";
         return std::nullopt;
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
     } else if (!rule.socket_activation) {
         return "Socket activation is disabled and no socket"
                " path, reject, ignore or blackhole action was specified.";
@@ -205,7 +205,7 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
                            "16 bit unsigned int.");
                 return std::nullopt;
             }
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
         } else if (key == "socketActivation") {
             RULE_CONVERT(rule.socket_activation, "socketActivation", bool,
                          "bool");
@@ -324,7 +324,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                 /* Handle key=value options. */
                 if (key.value() == "path") {
                     rule.socket_path = make_absolute(buf);
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
                 } else if (key.value() == "systemd") {
                     rule.socket_activation = true;
                     rule.fd_name = buf;
@@ -395,7 +395,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                 rule.direction = RuleDir::INCOMING;
             } else if (buf == "out") {
                 rule.direction = RuleDir::OUTGOING;
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
             } else if (buf == "systemd") {
                 rule.socket_activation = true;
 #endif
@@ -467,7 +467,7 @@ std::string encode_rules(std::vector<Rule> rules)
         if (rule.socket_path)
             node["socketPath"] = rule.socket_path.value();
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
         if (rule.socket_activation)
             node["socketActivation"] = true;
 
@@ -532,7 +532,7 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
             out << "  Port: " << portstr << std::endl;
         }
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
         if (rule.socket_activation) {
             out << "  Socket activation";
             if (rule.fd_name) {
@@ -557,7 +557,7 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
                 out << "  Socket path: " << rule.socket_path.value()
                     << std::endl;
             }
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
         }
 #endif
     }

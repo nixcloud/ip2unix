@@ -135,7 +135,7 @@ int Socket::ioctl(unsigned long request, const void *arg)
     return ret;
 }
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
 int Socket::listen(int backlog)
 {
     if (this->activated)
@@ -265,7 +265,7 @@ bool Socket::create_binding(const SockAddr &addr)
     return true;
 }
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
 int Socket::activate(const SockAddr &addr, int filedes)
 {
     if (!this->make_unix(filedes))

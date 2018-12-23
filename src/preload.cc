@@ -19,7 +19,7 @@
 #include "socket.hh"
 #include "logging.hh"
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
 #include "systemd.hh"
 #endif
 
@@ -47,7 +47,7 @@ static void init_rules(void)
     if (!rules)
         _exit(EXIT_FAILURE);
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
     for (const Rule &rule : rules.value()) {
         if (!rule.socket_activation)
             continue;
@@ -97,7 +97,7 @@ extern "C" int WRAP_SYM(ioctl)(int fd, unsigned long request, void *arg)
     });
 }
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
 /*
  * For systemd socket activation, we need to make sure the program doesn't run
  * listen on the socket, as this is already done by systemd.
@@ -143,7 +143,7 @@ static std::optional<const Rule> match_rule(const SockAddr &addr,
         if (rule.ignore)
             return std::nullopt;
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
         if (rule.socket_activation)
             return rule;
 #endif
@@ -198,7 +198,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
             return std::invoke(sockfun, sock, inaddr, "");
         }
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
         if (rule.value().socket_activation) {
             std::optional<int> newfd = Systemd::get_fd_for_rule(rule.value());
             if (newfd) {
@@ -478,7 +478,7 @@ extern "C" int WRAP_SYM(close)(int fd)
 {
     TRACE_CALL("close", fd);
 
-#ifdef SOCKET_ACTIVATION
+#ifdef SYSTEMD_SUPPORT
     {
         std::scoped_lock<std::mutex> lock(g_rules_mutex);
         init_rules();
