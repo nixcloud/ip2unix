@@ -445,6 +445,7 @@ int Socket::accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     sock->ports.reserve(local_port.value());
     sock->binding = local_addr;
     sock->connection = peer;
+    sock->is_unix = true;
     peer.apply_addr(addr, addrlen);
     Socket::registry[sockfd] = sock->getptr();
     return sockfd;

@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Fixed
 - Use right endian conversion functions in port matching.
+- Pass `is_unix` to child socket on `accept` to prevent accidentally replacing
+  an already converted Unix socket by a new Unix socket. The latter would be a
+  socket that's not accepted, which would eventually lead to an error.
 
 ### Added
 - New `ignore` rule option, which prevents conversion to Unix socket.
