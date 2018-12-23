@@ -79,10 +79,6 @@ extern "C" int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
 {
     TRACE_CALL("setsockopt", sockfd, level, optname, optval, optlen);
 
-    /* Only cache socket options for SOL_SOCKET, no IPPROTO_TCP etc... */
-    if (level != SOL_SOCKET)
-        return real::setsockopt(sockfd, level, optname, optval, optlen);
-
     return Socket::when<int>(sockfd, [&](Socket::Ptr sock) {
         return sock->setsockopt(level, optname, optval, optlen);
     }, [&]() {

@@ -100,15 +100,21 @@ void Socket::blackhole(void)
 int Socket::setsockopt(int level, int optname, const void *optval,
                        socklen_t optlen)
 {
+    if (this->is_unix && level != SOL_SOCKET) {
+        LOG(DEBUG) << "Prevented calling setsockopt on fd " << this->fd
+                   << " with incompatible level " << level << '.';
+        return 0;
+    }
+
     int ret = real::setsockopt(this->fd, level, optname, optval, optlen);
     if (ret != 0)
         return ret;
 
     /* Only add the socket option to the queue if the setsockopt() has
-     * succeeded, otherwise we risk a fatal error while replaying them on
-     * our end.
+     * succeeded (and it's using SOL_SOCKET level), otherwise we risk a fatal
+     * error while replaying them on our end.
      */
-    if (!this->is_unix)
+    if (!this->is_unix && level == SOL_SOCKET)
         this->sockopts.cache_sockopt(level, optname, optval, optlen);
 
     return ret;

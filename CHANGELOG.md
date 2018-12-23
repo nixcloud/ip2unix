@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Pass `is_unix` to child socket on `accept` to prevent accidentally replacing
   an already converted Unix socket by a new Unix socket. The latter would be a
   socket that's not accepted, which would eventually lead to an error.
+- Correctly handle `setsockopts` used with other levels than `SOL_SOCKET`.
 
 ### Added
 - New `ignore` rule option, which prevents conversion to Unix socket.
