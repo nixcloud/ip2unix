@@ -448,6 +448,9 @@ int Socket::accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     sock->is_unix = true;
     peer.apply_addr(addr, addrlen);
     Socket::registry[sockfd] = sock->getptr();
+    LOG(INFO) << "Accepted socket fd " << sockfd
+              << " registered as a children of socket fd "
+              << this->fd << '.';
     return sockfd;
 }
 
