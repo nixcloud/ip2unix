@@ -204,8 +204,8 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
             if (newfd) {
                 return sock->activate(inaddr, newfd.value());
             } else {
-                LOG(INFO) << "Systemd file descriptor queue empty, "
-                          << "blackholing socket with fd " << fd << '.';
+                LOG(WARNING) << "Systemd file descriptor queue empty, "
+                             << "blackholing socket with fd " << fd << '.';
                 sock->blackhole();
                 return std::invoke(sockfun, sock, inaddr, "");
             }
