@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "rules.hh"
+#include "serial.hh"
 
 extern char **environ;
 
@@ -29,9 +30,7 @@ static bool run_preload(std::vector<Rule> &rules, char *argv[])
         setenv("LD_PRELOAD", self, 1);
     }
 
-    std::string encoded = encode_rules(rules);
-
-    setenv("__IP2UNIX_RULES", encoded.c_str(), 1);
+    setenv("__IP2UNIX_RULES", serialise(rules).c_str(), 1);
 
     if (execvpe(argv[0], argv, environ) == -1) {
         std::string err = "execvpe(\"" + std::string(argv[0]) + "\")";

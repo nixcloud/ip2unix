@@ -57,5 +57,5 @@ def test_run_direct_invalid_rules():
     with subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE) as proc:
         stdout, stderr = proc.communicate()
-        assert stderr.startswith(b'<unknown>')
+        assert b'Invalid character' in stderr
         assert proc.poll() != 0

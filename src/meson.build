@@ -11,6 +11,7 @@ errnos = custom_target('errno_list',
                        capture: true)
 
 dynports_sources = [dynports, files('rng.cc')]
+serial_sources = files('serial.cc')
 
 sources += files('ip2unix.cc',
                  'blackhole.cc',
@@ -25,5 +26,6 @@ if systemd_enabled
   sources += files('systemd.cc')
 endif
 sources += dynports_sources
+sources += serial_sources
 sources += errnos
 includes += include_directories('.')

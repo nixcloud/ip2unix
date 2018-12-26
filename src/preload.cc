@@ -18,6 +18,7 @@
 #include "realcalls.hh"
 #include "socket.hh"
 #include "logging.hh"
+#include "serial.hh"
 
 #ifdef SYSTEMD_SUPPORT
 #include "systemd.hh"
@@ -36,7 +37,12 @@ static void init_rules(void)
     const char *rule_source;
 
     if ((rule_source = getenv("__IP2UNIX_RULES")) != nullptr) {
-        rules = parse_rules(std::string(rule_source), false);
+        rules.emplace();
+        MaybeError err = deserialise(std::string(rule_source), &*rules);
+        if (err) {
+            LOG(FATAL) << "Unable to decode __IP2UNIX_RULES: " << *err;
+            _exit(EXIT_FAILURE);
+        }
     } else if ((rule_source = getenv("IP2UNIX_RULE_FILE")) != nullptr) {
         rules = parse_rules(std::string(rule_source), true);
     } else {

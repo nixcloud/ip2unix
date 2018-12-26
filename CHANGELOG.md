@@ -23,6 +23,9 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Improve wording and add more descriptions in README and manpage.
 - The implementation for fetching systemd sockets now no longer uses
   `libsystemd`, thus the build-time dependency is no longer required.
+- New serialiser for passing rules to the preloaded library in a more compact
+  form instead of using YAML, so it's less likely that we'll hit the maximum
+  stack size.
 
 ## [1.2.0] - 2018-11-12
 
