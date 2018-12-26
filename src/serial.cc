@@ -14,8 +14,6 @@ void serialise(const std::string &str, std::ostream &out)
             case '\0':
                 break;
             default:
-                if (c >= '0' && c <= '9')
-                    out.put('\\');
                 out.put(c);
                 break;
         }
