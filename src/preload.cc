@@ -28,6 +28,8 @@ static std::mutex g_rules_mutex;
 
 static std::shared_ptr<const std::vector<Rule>> g_rules = nullptr;
 
+using RuleMatch = std::optional<std::pair<size_t, const Rule>>;
+
 static void init_rules(void)
 {
     if (g_rules != nullptr)
@@ -119,12 +121,12 @@ extern "C" int WRAP_SYM(listen)(int sockfd, int backlog)
 }
 #endif
 
-static std::optional<const Rule> match_rule(const SockAddr &addr,
-                                            const Socket::Ptr sock,
-                                            const RuleDir dir)
+static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
+                            const RuleDir dir)
 {
     init_rules();
 
+    size_t rulepos = 0;
     for (auto &rule : *g_rules) {
         if (rule.direction && rule.direction != dir)
             continue;
@@ -151,12 +153,12 @@ static std::optional<const Rule> match_rule(const SockAddr &addr,
 
 #ifdef SYSTEMD_SUPPORT
         if (rule.socket_activation)
-            return rule;
+            return std::make_pair(rulepos, rule);
 #endif
         if (!rule.socket_path && !rule.reject && !rule.blackhole)
             continue;
 
-        return rule;
+        return std::make_pair(rulepos, rule);
     }
 
     return std::nullopt;
@@ -189,24 +191,24 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
 
         std::scoped_lock<std::mutex> lock(g_rules_mutex);
 
-        std::optional<const Rule> rule = match_rule(inaddr, sock, dir);
+        RuleMatch rule = match_rule(inaddr, sock, dir);
 
         if (!rule)
             return std::invoke(realfun, fd, addr, addrlen);
 
-        if (rule.value().reject) {
-            errno = rule.value().reject_errno.value_or(EACCES);
+        if (rule->second.reject) {
+            errno = rule->second.reject_errno.value_or(EACCES);
             return -1;
         }
 
-        if (rule.value().blackhole) {
+        if (rule->second.blackhole) {
             sock->blackhole();
             return std::invoke(sockfun, sock, inaddr, "");
         }
 
 #ifdef SYSTEMD_SUPPORT
-        if (rule.value().socket_activation) {
-            std::optional<int> newfd = Systemd::get_fd_for_rule(rule.value());
+        if (rule->second.socket_activation) {
+            std::optional<int> newfd = Systemd::get_fd_for_rule(rule->second);
             if (newfd) {
                 return sock->activate(inaddr, newfd.value());
             } else {
@@ -218,8 +220,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
         }
 #endif
 
-        return std::invoke(sockfun, sock, inaddr,
-                           rule.value().socket_path.value());
+        return std::invoke(sockfun, sock, inaddr, *rule->second.socket_path);
     }, [&]() {
         return std::invoke(realfun, fd, addr, addrlen);
     });
@@ -370,19 +371,17 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
         if (!newdest) {
             std::scoped_lock<std::mutex> lock(g_rules_mutex);
 
-            std::optional<const Rule> rule = match_rule(addrcopy, sock,
-                                                        RuleDir::OUTGOING);
+            RuleMatch rule = match_rule(addrcopy, sock, RuleDir::OUTGOING);
 
-            if (!rule || !rule.value().socket_path)
+            if (!rule || !rule->second.socket_path)
                 return real::sendto(fd, buf, len, flags, addr, addrlen);
 
-            if (rule.value().reject) {
-                errno = rule.value().reject_errno.value_or(EACCES);
+            if (rule->second.reject) {
+                errno = rule->second.reject_errno.value_or(EACCES);
                 return static_cast<ssize_t>(-1);
             }
 
-            newdest = sock->rewrite_dest(addrcopy,
-                                         rule.value().socket_path.value());
+            newdest = sock->rewrite_dest(addrcopy, *rule->second.socket_path);
         }
 
         if (newdest) {
@@ -414,19 +413,17 @@ extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
         if (!newdest) {
             std::scoped_lock<std::mutex> lock(g_rules_mutex);
 
-            std::optional<const Rule> rule = match_rule(addrcopy, sock,
-                                                        RuleDir::OUTGOING);
+            RuleMatch rule = match_rule(addrcopy, sock, RuleDir::OUTGOING);
 
-            if (!rule || !rule.value().socket_path)
+            if (!rule || !rule->second.socket_path)
                 return real::sendmsg(fd, msg, flags);
 
-            if (rule.value().reject) {
-                errno = rule.value().reject_errno.value_or(EACCES);
+            if (rule->second.reject) {
+                errno = rule->second.reject_errno.value_or(EACCES);
                 return static_cast<ssize_t>(-1);
             }
 
-            newdest = sock->rewrite_dest(addrcopy,
-                                         rule.value().socket_path.value());
+            newdest = sock->rewrite_dest(addrcopy, *rule->second.socket_path);
         }
 
         msghdr newmsg;
