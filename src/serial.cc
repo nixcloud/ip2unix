@@ -12,6 +12,7 @@ void serialise(const std::string &str, std::ostream &out)
                 out.put(c);
                 break;
             case '\0':
+                out << "\\@";
                 break;
             default:
                 out.put(c);
@@ -26,7 +27,7 @@ MaybeError deserialise(std::istream &in, std::string *out)
     char c;
     while ((c = in.get()) != '&') {
         if (c == '\\')
-            *out += in.get();
+            *out += (c = in.get()) == '@' ? '\0' : c;
         else
             *out += c;
     }

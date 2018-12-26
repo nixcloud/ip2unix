@@ -18,6 +18,9 @@ static std::vector<std::optional<SocketType>> sotypes = {
 static std::vector<std::optional<std::string>> strings = {
     std::nullopt,
     "",
+    "\0",
+    "aaa@\0bbb",
+    "aaa\\@\0bbb",
     "!",
     "\\!",
     "!\\",
