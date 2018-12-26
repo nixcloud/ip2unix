@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog], and this project adheres to
 - A way to increase the verbosity via the `-v` command line argument.
 - Reams of log messages in addition to the FATAL errors we had so far.
 - Use Syslog format for logging if `stderr` is a socket.
+- Set `FD_CLOEXEC` on systemd socket file descriptors as soon as they're
+  associated.
 
 ### Changed
 - Improve wording and add more descriptions in README and manpage.

@@ -4,6 +4,8 @@
 #include <unordered_set>
 #include <deque>
 
+#include <fcntl.h>
+
 #include "rules.hh"
 #include "systemd.hh"
 #include "logging.hh"
@@ -227,6 +229,40 @@ void Systemd::init(const std::vector<Rule> &rules)
     }
 }
 
+/* Remove the file descriptor and set the FD_CLOEXEC flag. */
+static void remove_fd(int fd)
+{
+    int old_flags, flags;
+
+    LOG(INFO) << "Disassociating systemd file descriptor " << fd << ".";
+
+    all_fds.erase(fd);
+    update_env();
+
+    int old_errno = errno;
+
+    if ((old_flags = fcntl(fd, F_GETFD, 0)) == -1) {
+        LOG(WARNING) << "Can't query flags for fd " << fd
+                     << ": " << strerror(errno);
+        old_flags = 0;
+    }
+
+    if (old_flags == (flags = old_flags | FD_CLOEXEC)) {
+        errno = old_errno;
+        return;
+    }
+
+    LOG(DEBUG) << "Setting new flags " << flags << " on fd " << fd
+               << ", previos flags were " << old_flags << '.';
+
+    if (fcntl(fd, F_SETFD, flags) == -1) {
+        LOG(WARNING) << "Unable to set FD_CLOEXEC flag for fd " << fd
+                     << ": " << strerror(errno);
+    }
+
+    errno = old_errno;
+}
+
 /*
  * Get a systemd socket file descriptor for the given rule either via name if
  * fd_name is set or just the next file descriptor available.
@@ -239,8 +275,7 @@ std::optional<int> Systemd::acquire_fd_for_rulepos(size_t rulepos)
     if (found != fdmap.end()) {
         int fd = found->second;
         fdmap.erase(found);
-        all_fds.erase(fd);
-        update_env();
+        remove_fd(fd);
         return fd;
     }
 
@@ -249,8 +284,7 @@ std::optional<int> Systemd::acquire_fd_for_rulepos(size_t rulepos)
 
     int fd = fds.front();
     fds.pop_front();
-    all_fds.erase(fd);
-    update_env();
+    remove_fd(fd);
     return fd;
 }
 
