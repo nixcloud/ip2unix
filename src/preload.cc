@@ -56,11 +56,11 @@ static void init_rules(void)
         _exit(EXIT_FAILURE);
 
 #ifdef SYSTEMD_SUPPORT
-    for (const Rule &rule : rules.value()) {
+    for (const Rule &rule : *rules) {
         if (!rule.socket_activation)
             continue;
 
-        Systemd::init();
+        Systemd::init(*rules);
         break;
     }
 #endif
@@ -208,7 +208,8 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
 
 #ifdef SYSTEMD_SUPPORT
         if (rule->second.socket_activation) {
-            std::optional<int> newfd = Systemd::get_fd_for_rule(rule->second);
+            std::optional<int> newfd =
+                Systemd::acquire_fd_for_rulepos(rule->first);
             if (newfd) {
                 return sock->activate(inaddr, newfd.value());
             } else {

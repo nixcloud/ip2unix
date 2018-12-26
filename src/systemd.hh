@@ -2,9 +2,11 @@
 #ifndef IP2UNIX_SYSTEMD_HH
 #define IP2UNIX_SYSTEMD_HH
 
+#include "rules.hh"
+
 namespace Systemd {
-    void init(void);
-    std::optional<int> get_fd_for_rule(const Rule&);
+    void init(const std::vector<Rule>&);
+    std::optional<int> acquire_fd_for_rulepos(size_t);
     bool has_fd(int);
 }
 

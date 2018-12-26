@@ -1,23 +1,146 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #include <cstring>
 #include <unordered_map>
-#include <queue>
+#include <unordered_set>
+#include <deque>
 
 #include "rules.hh"
 #include "systemd.hh"
 #include "logging.hh"
+#include "serial.hh"
 
 #define SD_LISTEN_FDS_START 3
 
-static std::unordered_map<std::string, int> names;
-static std::queue<int> fds;
-static int fd_count = 0;
+static std::unordered_map<size_t, int> fdmap;
+static std::deque<int> fds;
+static std::unordered_set<int> all_fds;
 
-void Systemd::init(void)
+/* Fetch a colon-separated environment variable and split it into a vector. */
+static std::vector<std::string> get_env_vector(const char *name)
+{
+    const char *ptr;
+    std::vector<std::string> result;
+
+    const char *value = getenv(name);
+
+    if (value == nullptr || *value == '\0')
+        return result;
+
+    LOG(DEBUG) << "Splitting value of " << name << ": " << value;
+
+    while ((ptr = strchr(value, ':')) != nullptr) {
+        using lentype = std::string::size_type;
+        lentype len = static_cast<lentype>(ptr - value);
+        std::string elem(value, len);
+        LOG(DEBUG) << "Got element '" << elem << "' from " << name << '.';
+        result.push_back(std::string(value, len));
+        value = ptr + 1;
+    }
+
+    LOG(DEBUG) << "Got last element '" << value << "' from " << name << '.';
+    result.push_back(std::string(value));
+    return result;
+}
+
+static std::string join(const std::string &delim,
+                        const std::vector<std::string> &chunks)
+{
+    std::string result;
+
+    for (const std::string &chunk : chunks) {
+        if (!result.empty())
+            result += delim;
+        result += chunk;
+    }
+
+    return result;
+}
+
+/*
+ * Update the bookkeeping environment variables needed to associate systemd
+ * socket file descriptors to rules.
+ */
+static void update_env(void)
+{
+    int ret;
+
+    std::string fdval = serialise(fds);
+
+    LOG(DEBUG) << "Setting __IP2UNIX_SYSTEMD_FDS to '"
+               << fdval << "'.";
+
+    ret = setenv("__IP2UNIX_SYSTEMD_FDS", fdval.c_str(), 1);
+    if (ret == -1) {
+        LOG(FATAL) << "Unable to set __IP2UNIX_SYSTEMD_FDS: "
+                   << strerror(errno);
+        std::abort();
+    }
+
+    std::string fdmapval = serialise(fdmap);
+    LOG(DEBUG) << "Setting __IP2UNIX_SYSTEMD_FDMAP to '"
+               << fdmapval << "'.";
+
+    ret = setenv("__IP2UNIX_SYSTEMD_FDMAP", fdmapval.c_str(), 1);
+    if (ret == -1) {
+        LOG(FATAL) << "Unable to set __IP2UNIX_SYSTEMD_FDMAP: "
+                   << strerror(errno);
+        std::abort();
+    }
+}
+
+/*
+ * Reinitialises the data structures from previous values written by
+ * update_env().
+ */
+static bool init_from_env(void)
+{
+    MaybeError err;
+    const char *fds_raw = getenv("__IP2UNIX_SYSTEMD_FDS");
+    const char *fdmap_raw = getenv("__IP2UNIX_SYSTEMD_FDMAP");
+
+    if (fds_raw == nullptr || fdmap_raw == nullptr)
+        return false;
+
+    if (err = deserialise(std::string(fds_raw), &fds)) {
+        LOG(FATAL) << "Unable to deserialise __IP2UNIX_SYSTEMD_FDS: "
+                   << *err;
+        std::abort();
+    }
+
+    if (err = deserialise(std::string(fdmap_raw), &fdmap)) {
+        LOG(FATAL) << "Unable to deserialise __IP2UNIX_SYSTEMD_FDMAP: "
+                   << *err;
+        std::abort();
+    }
+
+    LOG(INFO) << "Reinitialising systemd file descriptors from internal"
+              << " __IP2UNIX_SYSTEMD_FD* variables.";
+
+    for (const std::pair<size_t, int> &item : fdmap) {
+        LOG(DEBUG) << "Got systemd file descriptor " << item.second
+                   << " connected to rule #" << item.first << '.';
+        all_fds.insert(item.second);
+    }
+
+    for (const int &fd : fds) {
+        LOG(DEBUG) << "Got systemd file descriptor " << fd << '.';
+        all_fds.insert(fd);
+    }
+
+    return true;
+}
+
+void Systemd::init(const std::vector<Rule> &rules)
 {
     static bool fetch_done = false;
 
     if (!fetch_done) {
+        if (init_from_env()) {
+            fetch_done = true;
+            return;
+        }
+
+        size_t fd_count;
         const char *listen_fds = getenv("LISTEN_FDS");
 
         if (listen_fds == nullptr) {
@@ -32,7 +155,7 @@ void Systemd::init(void)
             std::abort();
         }
 
-        if ((fd_count = atoi(listen_fds)) == 0) {
+        if ((fd_count = strtoul(listen_fds, nullptr, 10)) == 0) {
             LOG(FATAL) << "Needed at least one systemd socket file descriptor,"
                        << " but found zero.";
             std::abort();
@@ -41,26 +164,62 @@ void Systemd::init(void)
         LOG(INFO) << "Number of systemd file descriptors found in LISTEN_FDS: "
                   << fd_count;
 
-        const char *listen_fdnames = getenv("LISTEN_FDNAMES");
+        std::vector<std::string> fdnames = get_env_vector("LISTEN_FDNAMES");
+        size_t fdnames_size = fdnames.size();
 
-        for (int i = 0; i < fd_count; ++i) {
-            if (listen_fdnames != nullptr) {
-                const char *delim = strchr(listen_fdnames, ':');
-                std::string name;
-                if (delim == nullptr) {
-                    name = listen_fdnames;
-                } else {
-                    using lentype = std::string::size_type;
-                    lentype len = static_cast<lentype>(delim - listen_fdnames);
-                    name = std::string(listen_fdnames, len);
-                    listen_fdnames = delim + 1;
-                }
-                LOG(DEBUG) << "Got systemd file descriptor named '" << name
-                           << "' (" << SD_LISTEN_FDS_START + i << ").";
-                names[name] = SD_LISTEN_FDS_START + i;
+        if (fdnames_size > 0 && fdnames_size != fd_count) {
+            LOG(WARNING) << "Mismatch between " << fdnames_size
+                         << " element(s) in LISTEN_FDNAMES ("
+                         << join(", ", fdnames) << ") and " << fd_count
+                         << " LISTEN_FDS.";
+        }
+
+        std::unordered_set<int> avail_fds;
+        for (size_t i = 0; i < fd_count; ++i) {
+            int fd = SD_LISTEN_FDS_START + i;
+            avail_fds.insert(fd);
+            all_fds.insert(fd);
+        }
+
+        size_t rulepos = 0;
+        for (const Rule &rule : rules) {
+            if (!rule.socket_activation || !rule.fd_name) {
+                rulepos++;
+                continue;
             }
 
-            fds.push(SD_LISTEN_FDS_START + i);
+            size_t elems = std::min(fdnames_size, fd_count);
+            for (size_t i = 0; i < elems; ++i) {
+                int fd = SD_LISTEN_FDS_START + i;
+
+                if (fdnames[i] == *rule.fd_name) {
+                    LOG(DEBUG) << "Matched systemd file descriptor name '"
+                               << fdnames[i] << "' (fd " << fd << ")"
+                               << " with rule #" << rulepos << '.';
+                    fdmap[rulepos] = fd;
+                    avail_fds.erase(fd);
+                    continue;
+                }
+            }
+
+            rulepos++;
+        }
+
+        std::copy(avail_fds.begin(), avail_fds.end(),
+                  std::inserter(fds, fds.end()));
+
+        update_env();
+
+        if (unsetenv("LISTEN_FDNAMES") == -1) {
+            LOG(FATAL) << "Unable to unset LISTEN_FDNAMES: "
+                       << strerror(errno);
+            std::abort();
+        }
+
+        if (unsetenv("LISTEN_FDS") == -1) {
+            LOG(FATAL) << "Unable to unset LISTEN_FDS: "
+                       << strerror(errno);
+            std::abort();
         }
 
         fetch_done = true;
@@ -72,28 +231,31 @@ void Systemd::init(void)
  * Get a systemd socket file descriptor for the given rule either via name if
  * fd_name is set or just the next file descriptor available.
  */
-std::optional<int> Systemd::get_fd_for_rule(const Rule &rule)
+std::optional<int> Systemd::acquire_fd_for_rulepos(size_t rulepos)
 {
-    if (rule.fd_name) {
-        auto found = names.find(rule.fd_name.value());
-        if (found == names.end()) {
-            LOG(FATAL) << "Can't get systemd socket for '"
-                       << rule.fd_name.value() << "'.";
-            std::abort();
-        }
-        return found->second;
+    using itype = decltype(fdmap)::const_iterator;
+    itype found = fdmap.find(rulepos);
+
+    if (found != fdmap.end()) {
+        int fd = found->second;
+        fdmap.erase(found);
+        all_fds.erase(fd);
+        update_env();
+        return fd;
     }
 
     if (fds.empty())
         return std::nullopt;
 
     int fd = fds.front();
-    fds.pop();
+    fds.pop_front();
+    all_fds.erase(fd);
+    update_env();
     return fd;
 }
 
 /* Check whether the given file descriptor is passed by systemd. */
 bool Systemd::has_fd(int fd)
 {
-    return fd >= SD_LISTEN_FDS_START && fd < SD_LISTEN_FDS_START + fd_count;
+    return all_fds.find(fd) != all_fds.end();
 }

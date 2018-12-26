@@ -2,7 +2,9 @@
 #ifndef IP2UNIX_SERIAL_HH
 #define IP2UNIX_SERIAL_HH
 
+#include <deque>
 #include <sstream>
+#include <unordered_map>
 
 #include "rules.hh"
 
@@ -23,14 +25,14 @@ MaybeError deserialise(std::istream&, SocketType*);
 void serialise(const Rule&, std::ostream&);
 MaybeError deserialise(std::istream&, Rule*);
 
-inline void serialise(const int &val, std::ostream &out)
+template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>>
+inline void serialise(const T &val, std::ostream &out)
 {
     out << val;
     out.put('&');
 }
 
-template <typename T,
-          typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
+template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>>
 MaybeError deserialise(std::istream &in, T *out)
 {
     char c;
@@ -67,6 +69,26 @@ MaybeError deserialise(std::istream &in, std::optional<T> *out)
 }
 
 template <typename T>
+void serialise(const std::deque<T> &val, std::ostream &out)
+{
+    for (const T &item : val)
+        serialise(item, out);
+}
+
+template <typename T>
+MaybeError deserialise(std::istream &in, std::deque<T> *out)
+{
+    while (in.peek() != EOF) {
+        T outval;
+        MaybeError err;
+        if (err = deserialise(in, &outval))
+            return err;
+        out->push_back(outval);
+    }
+    return std::nullopt;
+}
+
+template <typename T>
 void serialise(const std::vector<T> &val, std::ostream &out)
 {
     for (const T &item : val)
@@ -82,6 +104,45 @@ MaybeError deserialise(std::istream &in, std::vector<T> *out)
         if (err = deserialise(in, &outval))
             return err;
         out->push_back(outval);
+    }
+    return std::nullopt;
+}
+
+template <typename K, typename V>
+void serialise(const std::unordered_map<K, V> &val, std::ostream &out)
+{
+    for (const std::pair<K, V> &item : val) {
+        serialise(item.first, out);
+        out.put('=');
+        serialise(item.second, out);
+        out.put(';');
+    }
+}
+
+template <typename K, typename V>
+MaybeError deserialise(std::istream &in, std::unordered_map<K, V> *out)
+{
+    char c;
+    while (in.peek() != EOF) {
+        MaybeError err;
+
+        K outkey;
+        if (err = deserialise(in, &outkey))
+            return err;
+
+        if ((c = in.get()) != '=')
+            return std::string("Invalid character '") + c + "' after map key.";
+
+        V outval;
+        if (err = deserialise(in, &outval))
+            return err;
+
+        if ((c = in.get()) != ';') {
+            return std::string("Invalid character '") + c
+                 + "' after map record.";
+        }
+
+        (*out)[outkey] = outval;
     }
     return std::nullopt;
 }
