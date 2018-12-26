@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog], and this project adheres to
 - New serialiser for passing rules to the preloaded library in a more compact
   form instead of using YAML, so it's less likely that we'll hit the maximum
   stack size.
+- Systemd sockets are now associated during rule initialisation and thus behave
+  more predictable in complex setups.
 
 ## [1.2.0] - 2018-11-12
 
