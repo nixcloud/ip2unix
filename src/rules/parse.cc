@@ -434,65 +434,6 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
     return rule;
 }
 
-std::string encode_rules(std::vector<Rule> rules)
-{
-    YAML::Node doc;
-
-    for (const auto &rule : rules) {
-        YAML::Node node;
-
-        if (rule.direction) {
-            if (rule.direction.value() == RuleDir::OUTGOING)
-                node["direction"] = "outgoing";
-            else if (rule.direction.value() == RuleDir::INCOMING)
-                node["direction"] = "incoming";
-        }
-
-        if (rule.type) {
-            if (rule.type.value() == SocketType::TCP)
-                node["type"] = "tcp";
-            else if (rule.type.value() == SocketType::UDP)
-                node["type"] = "udp";
-        }
-
-        if (rule.address)
-            node["address"] = rule.address.value();
-
-        if (rule.port)
-            node["port"] = rule.port.value();
-
-        if (rule.port_end)
-            node["portEnd"] = rule.port_end.value();
-
-        if (rule.socket_path)
-            node["socketPath"] = rule.socket_path.value();
-
-#ifdef SYSTEMD_SUPPORT
-        if (rule.socket_activation)
-            node["socketActivation"] = true;
-
-        if (rule.fd_name)
-            node["fdName"] = rule.fd_name.value();
-#endif
-
-        if (rule.reject)
-            node["reject"] = true;
-
-        if (rule.reject_errno)
-            node["rejectError"] = rule.reject_errno.value();
-
-        if (rule.blackhole)
-            node["blackhole"] = true;
-
-        if (rule.ignore)
-            node["ignore"] = true;
-
-        doc.push_back(node);
-    }
-
-    return YAML::Dump(doc);
-}
-
 void print_rules(std::vector<Rule> &rules, std::ostream &out)
 {
     int pos = 0;
