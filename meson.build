@@ -18,6 +18,7 @@ warning_flags = [
   '-Wswitch-enum',
   '-Wuseless-cast',
   '-Wzero-as-null-pointer-constant',
+  '-Wno-trigraphs',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warning_flags),
