@@ -9,6 +9,7 @@ enum class MatchResult {
     EndOfInput,
     Invalid,
     GotSlash,
+    GotRecursive,
 };
 
 class GlobPath {
@@ -16,11 +17,12 @@ class GlobPath {
     std::string_view path;
     const size_t patlen;
     size_t pathlen;
-    size_t patpos;
-    size_t pathpos;
 
     MatchResult match_cclass(size_t*, const char&);
-    MatchResult match_fixed(void);
+    MatchResult match_fixed(size_t*, size_t*);
+    MatchResult match_norec(size_t*, size_t*);
+
+    std::optional<size_t> skip_component(const size_t&);
 
     public:
         GlobPath(const std::string&, const std::string&);
@@ -32,8 +34,6 @@ GlobPath::GlobPath(const std::string &needle, const std::string &haystack)
     , path(haystack)
     , patlen(needle.size())
     , pathlen(haystack.size())
-    , patpos(0)
-    , pathpos(0)
 {
 }
 
@@ -87,51 +87,143 @@ MatchResult GlobPath::match_cclass(size_t *pattern_pos, const char &pathchar)
          : MatchResult::NotMatched;
 }
 
-MatchResult GlobPath::match_fixed(void)
+MatchResult GlobPath::match_fixed(size_t *pattern_pos, size_t *path_pos)
 {
-    size_t ppos = this->patpos;
-    size_t cpos = this->pathpos;
+    size_t patpos = *pattern_pos;
+    size_t pathpos = *path_pos;
 
-    while (ppos < this->patlen) {
-        const char &p = this->pattern[ppos];
+    while (patpos < this->patlen) {
+        const char &p = this->pattern[patpos];
 
         if (p == '*') {
-            this->patpos = ppos;
-            this->pathpos = cpos;
+            *pattern_pos = patpos;
+            *path_pos = pathpos;
             return MatchResult::Matched;
-        } else if (cpos >= this->pathlen) {
+        } else if (pathpos >= this->pathlen) {
             return MatchResult::EndOfInput;
-        } else if (this->path[cpos] == '/') {
+        } else if (this->path[pathpos] == '/') {
             // Handle escaped forward slash.
-            if (this->pattern[ppos] == '\\' && ppos + 1 < this->patlen) {
-                if (this->pattern[ppos + 1] == '/')
-                    ppos++;
+            if (this->pattern[patpos] == '\\' && patpos + 1 < this->patlen) {
+                if (this->pattern[patpos + 1] == '/')
+                    patpos++;
             }
-            this->patpos = ppos;
-            this->pathpos = cpos;
+            *pattern_pos = patpos;
+            *path_pos = pathpos;
             return MatchResult::GotSlash;
         } else if (p == '[') {
-            MatchResult result = this->match_cclass(&ppos, this->path[cpos]);
-            if (result == MatchResult::NotMatched)
+            MatchResult res = this->match_cclass(&patpos, this->path[pathpos]);
+            if (res == MatchResult::NotMatched)
                 return MatchResult::NotMatched;
         } else if (p != '?') {
             if (p == '\\') {
-                if (++ppos >= this->patlen)
+                if (++patpos >= this->patlen)
                     return MatchResult::NotMatched;
             }
-            if (this->pattern[ppos] != this->path[cpos])
+            if (this->pattern[patpos] != this->path[pathpos])
                 return MatchResult::NotMatched;
         }
 
-        ppos++;
-        cpos++;
+        patpos++;
+        pathpos++;
     }
 
-    this->patpos = ppos;
-    this->pathpos = cpos;
-    return this->pathpos >= this->pathlen
+    *pattern_pos = patpos;
+    *path_pos = pathpos;
+    return pathpos >= this->pathlen
          ? MatchResult::Matched
          : MatchResult::NotMatched;
+}
+
+MatchResult GlobPath::match_norec(size_t *pattern_pos, size_t *path_pos)
+{
+    size_t patpos = *pattern_pos;
+    size_t pathpos = *path_pos;
+    size_t last_slash = *pattern_pos;
+
+    while (patpos < this->patlen) {
+        if (this->pattern[patpos] == '*') {
+            size_t anum;
+            // Eat up all consecutive "any string" wildcard characters.
+            for (anum = 0; this->pattern[patpos] == '*'; ++anum) {
+                // If the wildcard is the last character in pattern, anything
+                // from the rest of path will match.
+                if (patpos >= this->patlen) {
+                    *pattern_pos = patpos;
+                    *path_pos = pathpos;
+                    return MatchResult::Matched;
+                } else {
+                    patpos++;
+                }
+            }
+
+            // If the number of asterisks is two followed by a slash, we need
+            // to do recursive globbing, like eg. "a/**/b" or "**/foo".
+            bool is_slash = this->pattern[patpos] == '/';
+            if (anum == 2 && last_slash + 2 == patpos && is_slash) {
+                *pattern_pos = patpos + 1;
+                *path_pos = pathpos;
+                return MatchResult::GotRecursive;
+            }
+
+            for (;;) {
+                MatchResult result = this->match_fixed(&patpos, &pathpos);
+                // If the fixed match fails, we need to skip one character and
+                // retry until we either get a match or we reach the end.
+                if (result == MatchResult::NotMatched) {
+                    pathpos++;
+                // Only return MatchResult::Matched if there are no more
+                // patterns left, because the next match could be a wildcard
+                // matching an empty character sequence.
+                } else if (result == MatchResult::EndOfInput &&
+                           patpos >= this->patlen) {
+                    *pattern_pos = patpos;
+                    *path_pos = pathpos;
+                    return MatchResult::Matched;
+                } else {
+                    break;
+                }
+            }
+            continue;
+        }
+
+        MatchResult result = this->match_fixed(&patpos, &pathpos);
+        if (result == MatchResult::GotSlash) {
+            if (this->pattern[patpos++] == '/') {
+                last_slash = patpos;
+                pathpos++;
+            } else {
+                return MatchResult::NotMatched;
+            }
+        }  else if (result == MatchResult::EndOfInput) {
+            return MatchResult::NotMatched;
+        } else if (result == MatchResult::NotMatched) {
+            return MatchResult::NotMatched;
+        }
+    }
+
+    if (pathpos >= this->pathlen) {
+        *pattern_pos = patpos;
+        *path_pos = pathpos;
+        return MatchResult::Matched;
+    }
+
+    return MatchResult::NotMatched;
+}
+
+/*
+ * Strip one path component from the current this->path and return the new
+ * offset. For example given "foo/bar/blah" and an offset of 0 will return a
+ * new offset 4, so a substr(4) on the path will result in "bar/blah".
+ */
+std::optional<size_t> GlobPath::skip_component(const size_t &pathpos)
+{
+    std::string_view pathpart = this->path.substr(pathpos);
+
+    const size_t &pos = pathpart.find_first_of('/');
+    if (pos != std::string_view::npos)
+        return pathpos + pos + 1;
+
+    return std::nullopt;
 }
 
 bool GlobPath::match(void)
@@ -149,7 +241,7 @@ bool GlobPath::match(void)
         }
     }
 
-    // If no slash is found, we need to strip the directory parts.
+    // If no slash is found, we need to strip all of the directory parts.
     if (!slash_found) {
         const size_t pos = this->path.find_last_of('/');
         if (pos != std::string_view::npos) {
@@ -158,49 +250,47 @@ bool GlobPath::match(void)
         }
     }
 
-    while (this->patpos < this->patlen) {
-        if (this->pattern[this->patpos] == '*') {
-            // Eat up all consecutive "any string" wildcard characters.
-            while (this->pattern[this->patpos] == '*') {
-                // If the wildcard is the last character in pattern, anything
-                // from the rest of path will match.
-                if (this->patpos >= this->patlen)
-                    return true;
-                else
-                    this->patpos++;
-            }
-            for (;;) {
-                MatchResult result = this->match_fixed();
-                // If the fixed match fails, we need to skip one character and
-                // retry until we either get a match or we reach the end.
-                if (result == MatchResult::NotMatched)
-                    this->pathpos++;
-                // Only return true if there are no more patterns left, because
-                // the next match could be a wildcard matching an empty
-                // character sequence.
-                else if (result == MatchResult::EndOfInput &&
-                         this->patpos >= this->patlen)
-                    return true;
-                else
-                    break;
-            }
+    size_t patpos = 0;
+    size_t pathpos = 0;
+
+    bool is_recursive = false;
+
+    for (;;) {
+        MatchResult result = this->match_norec(&patpos, &pathpos);
+
+        // We got a full match, so we can return early even if is_recursive is
+        // true.
+        if (result == MatchResult::Matched)
+            return true;
+
+        if (is_recursive) {
+            // Another recursive pattern found, so we need to treat it as a
+            // successful match but repeat the cycle nonetheless.
+            if (result == MatchResult::GotRecursive)
+                continue;
+
+            // Retry the recursive match by skipping the next path component
+            // until we got none left (which means that the match has failed).
+            std::optional<size_t> newpos = this->skip_component(pathpos);
+            if (newpos)
+                pathpos = *newpos;
+            else
+                return false;
+
             continue;
         }
 
-        MatchResult result = this->match_fixed();
-        if (result == MatchResult::GotSlash) {
-            if (this->pattern[this->patpos++] == '/')
-                this->pathpos++;
-            else
-                return false;
-        }  else if (result == MatchResult::EndOfInput) {
-            return false;
-        } else if (result == MatchResult::NotMatched) {
-            return false;
+        // This sets is_recursive, which will work differently than
+        // non-recursive matches in that it will retry if we got
+        // MatchResult::NotMatched from match_norec until there are no path
+        // components left.
+        if (result == MatchResult::GotRecursive) {
+            is_recursive = true;
+            continue;
         }
-    }
 
-    return this->pathpos >= this->pathlen;
+        return false;
+    }
 }
 
 bool globpath(const std::string &pattern, const std::string &path)

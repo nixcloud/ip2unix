@@ -187,5 +187,37 @@ int main(void)
     SUCCESS("[Z-\\]]",             "\\");
     SUCCESS("[Z-\\]]",             "]");
     NOMATCH("[Z-\\]]",             "-");
+
+    SUCCESS("**/foo",              "foo");
+    SUCCESS("**/foo",              "xxx/foo");
+    SUCCESS("**/foo",              "y/xxx/foo");
+    SUCCESS("**/foo",              "/y/xxx/foo");
+    SUCCESS("a/**/foo",            "a/b/cde/foo");
+    SUCCESS("a/**/foo",            "a/foo");
+    NOMATCH("a**/foo",             "a/b/foo");
+    SUCCESS("**",                  "xxx");
+    SUCCESS("**",                  "xxx/");
+    SUCCESS("**/*",                "xxx/");
+    SUCCESS("**/*",                "xxx/yyy");
+    SUCCESS("**/*",                "yyy");
+    SUCCESS("a/**b/ccc",           "a/b/ccc");
+    SUCCESS("a/b**/ccc",           "a/b/ccc");
+    NOMATCH("a/b**/ccc",           "a/xxx/ccc");
+    NOMATCH("a/**b/ccc",           "a/xxx/ccc");
+    SUCCESS("b/**",                "b/xxx");
+    SUCCESS("b/**",                "b/xxx/yyy");
+    NOMATCH("b/****/c",            "b/xxx/yyy/c");
+    NOMATCH("b/***/c",             "b/xxx/yyy/c");
+    NOMATCH("b/*/c",               "b/xxx/yyy/c");
+    NOMATCH("a**b",                "aaa/bbb");
+    SUCCESS("**/foo/**/bar",       "foo/a/b/bar");
+    SUCCESS("**/foo/**/bar",       "a/b/foo/c/d/bar");
+    SUCCESS("**/foo/**/bar",       "foo/bar");
+    SUCCESS("**/foo/aaa/**/bar",   "/a/b/foo/aaa/bar/foo/bar");
+    NOMATCH("**/foo/aaa/**/bar",   "/a/b/foo/bbb/bar/foo/bar");
+    SUCCESS("a/**/**/b",           "a/b");
+    SUCCESS("a/**/**/b",           "a/x/b");
+    SUCCESS("a/**/**/b",           "a/x/y/b");
+
     return 0;
 }
