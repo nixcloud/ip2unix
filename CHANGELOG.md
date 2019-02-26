@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Fixed
 - Unregister socket as soon as we know that no rule matches.
 
+### Removed
+- The `encode_rules()` function is no longer needed because the serializer has
+  been refactored in version 2.0.0.
+
 ## [2.0.0] - 2018-12-26
 
 ### Fixed
