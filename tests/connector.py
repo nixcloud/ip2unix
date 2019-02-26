@@ -108,7 +108,11 @@ if __name__ == '__main__':
             srvthread = threading.Thread(target=server.serve_forever)
             srvthread.daemon = True
             srvthread.start()
-            sys.stdout.write('READY\n')
+            if args.port == 0:
+                msg = 'READY:{:5d}\n'.format(server.server_address[1])
+                sys.stdout.write(msg)
+            else:
+                sys.stdout.write('READY\n')
             sys.stdout.flush()
             sys.stdin.read(1)
             server.shutdown()
