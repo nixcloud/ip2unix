@@ -35,14 +35,23 @@ class TcpConnectionTest(unittest.TestCase):
                             pre_cmd=pre_cmd) as proc:
             if sync:
                 sync_event = proc.stdout.read(6)
-                expected = b'READY\n'
-                if sync_event != expected:
-                    stderr = proc.communicate()[1]
-                    msg = 'Wrong sync event from server, expected '
-                    msg += '{} but got {}:\n'.format(expected, sync_event)
-                    msg += stderr.decode()
-                    raise AssertionError(msg)
-            yield proc
+                if sync_event == b'READY:':
+                    portstr = proc.stdout.read(6)
+                    assert portstr.endswith(b'\n'), \
+                        "Sync event must end with newline."
+                    port = int(portstr)
+                    yield port
+                else:
+                    expected = b'READY\n'
+                    if sync_event != expected:
+                        stderr = proc.communicate()[1]
+                        msg = 'Wrong sync event from server, expected '
+                        msg += '{} but got {}:\n'.format(expected, sync_event)
+                        msg += stderr.decode()
+                        raise AssertionError(msg)
+                    yield proc
+            else:
+                yield proc
             proc.stdin.write(b'\n')
 
     def assert_connection(self, crule, srule, cargs, sargs, pre_cmd_srv=None):
@@ -88,6 +97,11 @@ class TcpConnectionTest(unittest.TestCase):
         clipath = '127.0.0.1-' + self.SOTYPE + '-111.sock'
         crule = {'socketPath': os.path.join(self.tmpdir, clipath)}
         self.assert_connection(crule, srule, args, args)
+
+    def test_nomatch(self):
+        rules = [{'ignore': True}]
+        with self.run_server(rules, '127.0.0.1', 0, sync=True) as port:
+            self.assert_client(rules, '127.0.0.1', port)
 
     @helper.systemd_sa_helper_only
     def test_socket_activation(self):

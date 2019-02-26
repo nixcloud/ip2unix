@@ -71,6 +71,7 @@ struct Socket : std::enable_shared_from_this<Socket>
     int dup(void);
     int dup(int, int);
     int close(void);
+    void unregister(void);
 
     private:
         const int fd;

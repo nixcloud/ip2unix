@@ -193,8 +193,12 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
 
         RuleMatch rule = match_rule(inaddr, sock, dir);
 
-        if (!rule)
+        if (!rule) {
+            LOG(DEBUG) << "Socket " << fd << " doesn't match any rule or "
+                       << "is explicitly ignored, unregistering.";
+            sock->unregister();
             return std::invoke(realfun, fd, addr, addrlen);
+        }
 
         if (rule->second.reject) {
             errno = rule->second.reject_errno.value_or(EACCES);

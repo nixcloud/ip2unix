@@ -629,3 +629,9 @@ int Socket::close(void)
     LOG(INFO) << "Socket fd " << this->fd << " unregistered.";
     return ret;
 }
+
+void Socket::unregister(void)
+{
+    LOG(DEBUG) << "Unregistering socket fd " << this->fd << '.';
+    Socket::registry.erase(this->fd);
+}
