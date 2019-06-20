@@ -68,6 +68,38 @@ MaybeError deserialise(std::istream &in, std::optional<T> *out)
     return std::nullopt;
 }
 
+template <typename A, typename B>
+void serialise(const std::pair<A, B> &val, std::ostream &out)
+{
+    serialise(val.first, out);
+    out.put('#');
+    serialise(val.second, out);
+    out.put('$');
+}
+
+template <typename A, typename B>
+MaybeError deserialise(std::istream &in, std::pair<A, B> *out)
+{
+    char c;
+    MaybeError err;
+
+    if (err = deserialise(in, &out->first))
+        return err;
+
+    if ((c = in.get()) != '#')
+        return std::string("Invalid character '")
+             + c + "' after first pair value.";
+
+    if (err = deserialise(in, &out->second))
+        return err;
+
+    if ((c = in.get()) != '$')
+        return std::string("Invalid character '")
+             + c + "' after second pair value.";
+
+    return std::nullopt;
+}
+
 template <typename T>
 void serialise(const std::deque<T> &val, std::ostream &out)
 {
@@ -146,6 +178,8 @@ MaybeError deserialise(std::istream &in, std::unordered_map<K, V> *out)
     }
     return std::nullopt;
 }
+
+/* The following two functions are just std::string convenience wrappers. */
 
 template <typename T>
 std::string serialise(const T &val)
