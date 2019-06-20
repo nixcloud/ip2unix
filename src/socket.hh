@@ -21,6 +21,7 @@ struct Socket : std::enable_shared_from_this<Socket>
 
     ~Socket();
     const SocketType type;
+    bool rewrite_peer_address;
 
     /* If we find a socket in Socket::registry, call the first function,
      * otherwise call the second function (providing default value).
@@ -54,7 +55,7 @@ struct Socket : std::enable_shared_from_this<Socket>
 
     int listen(int);
 #ifdef SYSTEMD_SUPPORT
-    int activate(const SockAddr&, int fd);
+    int activate(const SockAddr&, int, bool);
 #endif
     int bind(const SockAddr&, const std::string&);
     std::optional<int> connect_peermap(const SockAddr&);

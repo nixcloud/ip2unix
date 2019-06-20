@@ -10,11 +10,12 @@
 #include "systemd.hh"
 #include "logging.hh"
 #include "serial.hh"
+#include "systemd.hh"
 
 #define SD_LISTEN_FDS_START 3
 
-static std::unordered_map<size_t, int> fdmap;
-static std::deque<int> fds;
+static std::unordered_map<size_t, Systemd::FdInfo> fdmap;
+static std::deque<Systemd::FdInfo> fds;
 static std::unordered_set<int> all_fds;
 
 /* Fetch a colon-separated environment variable and split it into a vector. */
@@ -54,6 +55,29 @@ static std::string join(const std::string &delim,
             result += delim;
         result += chunk;
     }
+
+    return result;
+}
+
+/*
+ * Check whether the given socket file descriptor is an inet socket.
+ *
+ * This is important later, because we want to make sure that socket functions
+ * will only fake/alter peer addresses if the socket is AF_UNIX.
+ */
+static bool socket_is_inet(int fd)
+{
+    int sotype;
+    bool result = true;
+    socklen_t len = sizeof(int);
+
+    int old_errno = errno;
+    if (getsockopt(fd, SOL_SOCKET, SO_DOMAIN, &sotype, &len) == -1)
+        LOG(WARNING) << "Unable to determine socket type from file descriptor "
+                     << fd << " passed by systemd: " << strerror(errno);
+    else
+        result = sotype == AF_INET || sotype == AF_INET6;
+    errno = old_errno;
 
     return result;
 }
@@ -118,15 +142,15 @@ static bool init_from_env(void)
     LOG(INFO) << "Reinitialising systemd file descriptors from internal"
               << " __IP2UNIX_SYSTEMD_FD* variables.";
 
-    for (const std::pair<size_t, int> &item : fdmap) {
-        LOG(DEBUG) << "Got systemd file descriptor " << item.second
+    for (const std::pair<size_t, Systemd::FdInfo> &item : fdmap) {
+        LOG(DEBUG) << "Got systemd file descriptor " << item.second.second
                    << " connected to rule #" << item.first << '.';
-        all_fds.insert(item.second);
+        all_fds.insert(item.second.first);
     }
 
-    for (const int &fd : fds) {
-        LOG(DEBUG) << "Got systemd file descriptor " << fd << '.';
-        all_fds.insert(fd);
+    for (const Systemd::FdInfo &fd : fds) {
+        LOG(DEBUG) << "Got systemd file descriptor " << fd.first << '.';
+        all_fds.insert(fd.first);
     }
 
     return true;
@@ -195,10 +219,13 @@ void Systemd::init(const std::vector<Rule> &rules)
                 int fd = SD_LISTEN_FDS_START + i;
 
                 if (fdnames[i] == *rule.fd_name) {
-                    LOG(DEBUG) << "Matched systemd file descriptor name '"
+                    bool is_inet = socket_is_inet(fd);
+                    LOG(DEBUG) << "Matched systemd "
+                               << (is_inet ? "inet" : "unix")
+                               << " file descriptor name '"
                                << fdnames[i] << "' (fd " << fd << ")"
                                << " with rule #" << rulepos << '.';
-                    fdmap[rulepos] = fd;
+                    fdmap[rulepos] = std::make_pair(fd, is_inet);
                     avail_fds.erase(fd);
                     continue;
                 }
@@ -207,8 +234,14 @@ void Systemd::init(const std::vector<Rule> &rules)
             rulepos++;
         }
 
-        std::copy(avail_fds.begin(), avail_fds.end(),
-                  std::inserter(fds, fds.end()));
+        for (const int &fd : avail_fds) {
+            bool is_inet = socket_is_inet(fd);
+            LOG(DEBUG) << "Adding unnamed systemd "
+                       << (is_inet ? "inet" : "unix")
+                       << " file descriptor "
+                       << fd << " to pool.";
+            fds.push_front(std::make_pair(fd, is_inet));
+        }
 
         update_env();
 
@@ -267,24 +300,25 @@ static void remove_fd(int fd)
  * Get a systemd socket file descriptor for the given rule either via name if
  * fd_name is set or just the next file descriptor available.
  */
-std::optional<int> Systemd::acquire_fd_for_rulepos(size_t rulepos)
+std::optional<Systemd::FdInfo>
+    Systemd::acquire_fdinfo_for_rulepos(size_t rulepos)
 {
     using itype = decltype(fdmap)::const_iterator;
     itype found = fdmap.find(rulepos);
 
     if (found != fdmap.end()) {
-        int fd = found->second;
+        Systemd::FdInfo fdinfo = found->second;
         fdmap.erase(found);
-        remove_fd(fd);
-        return fd;
+        remove_fd(fdinfo.first);
+        return fdinfo;
     }
 
     if (fds.empty())
         return std::nullopt;
 
-    int fd = fds.front();
+    FdInfo fd = fds.front();
     fds.pop_front();
-    remove_fd(fd);
+    remove_fd(fd.first);
     return fd;
 }
 

@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
+## [Unreleased]
+
+### Added
+- Support `AF_INET` and `AF_INET6` sockets for systemd socket activation.
+
 ## [2.0.1] - 2019-02-26
 
 ### Fixed
@@ -69,6 +74,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - The initial release, which evolved from an early prototype specific to a
   certain use case into a more generic command line tool.
 
+[Unreleased]: https://github.com/nixcloud/ip2unix/compare/v2.0.1...HEAD
 [2.0.1]: https://github.com/nixcloud/ip2unix/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/nixcloud/ip2unix/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/nixcloud/ip2unix/compare/v1.1.1...v1.2.0

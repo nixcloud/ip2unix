@@ -53,6 +53,7 @@ std::unordered_set<std::string> Socket::sockpath_registry;
 
 Socket::Socket(int sfd, int sdomain, int stype, int sproto)
     : type(get_sotype(stype))
+    , rewrite_peer_address(true)
     , fd(sfd)
     , domain(sdomain)
     , typearg(stype)
@@ -197,7 +198,7 @@ bool Socket::make_unix(int oldfd)
 
     if (oldfd != -1) {
         newfd = oldfd;
-        LOG(INFO) << "Re-using Unix socket with fd " << newfd << '.';
+        LOG(INFO) << "Re-using socket with fd " << newfd << '.';
     } else {
         if ((newfd = real::socket(AF_UNIX, this->typearg, 0)) == -1) {
             LOG(ERROR) << "Unable to create new Unix socket with type "
@@ -218,7 +219,7 @@ bool Socket::make_unix(int oldfd)
 
     if (real::dup2(newfd, this->fd) == -1) {
         LOG(ERROR) << "Unable to replace socket fd " << this->fd
-                   << " by Unix socket with fd " << newfd << ": "
+                   << " by socket with fd " << newfd << ": "
                    << strerror(errno);
         real::close(newfd);
         errno = old_errno;
@@ -227,8 +228,8 @@ bool Socket::make_unix(int oldfd)
 
     real::close(newfd);
 
-    LOG(INFO) << "Replaced socket fd " << this->fd
-              << " by Unix socket with fd " << newfd << '.';
+    LOG(INFO) << "Replaced socket fd " << this->fd << " by socket with fd "
+              << newfd << '.';
 
     errno = old_errno;
     this->is_unix = true;
@@ -266,8 +267,15 @@ bool Socket::create_binding(const SockAddr &addr)
 }
 
 #ifdef SYSTEMD_SUPPORT
-int Socket::activate(const SockAddr &addr, int filedes)
+int Socket::activate(const SockAddr &addr, int filedes, bool is_inet)
 {
+    if (is_inet) {
+        LOG(DEBUG) << "Passed systemd socket file descriptor " << filedes
+                   << " corresponds to an an inet socket, turning off peer"
+                   << " address rewriting.";
+        this->rewrite_peer_address = false;
+    }
+
     if (!this->make_unix(filedes))
         return -1;
 

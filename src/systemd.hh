@@ -5,8 +5,10 @@
 #include "rules.hh"
 
 namespace Systemd {
+    using FdInfo = std::pair<int, bool>;
+
     void init(const std::vector<Rule>&);
-    std::optional<int> acquire_fd_for_rulepos(size_t);
+    std::optional<std::pair<int, bool>> acquire_fdinfo_for_rulepos(size_t);
     bool has_fd(int);
 }
 

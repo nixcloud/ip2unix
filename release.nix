@@ -154,6 +154,13 @@ let
     '';
   });
 
+  tests.vm = {
+    systemd = lib.genAttrs systems (system: (import ./tests/vm/systemd.nix {
+      inherit system;
+      pkgs = import nixpkgs { inherit system; config = {}; };
+    }).test);
+  };
+
   coverage = fullForEachSystem (pkgs: {
     nativeBuildInputs = [ pkgs.lcov ];
 
