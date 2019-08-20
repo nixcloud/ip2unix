@@ -120,7 +120,10 @@ let
   };
 
   tests.configurations = {
-    minimal.no-tests = forEachSystem (lib.const { requireManpage = false; });
+    minimal.no-tests = forEachSystem (pkgs: {
+      requireManpage = false;
+      nativeBuildInputs = [ pkgs.python3 ];
+    });
     minimal.tested = testForEachSystem (lib.const { requireManpage = false; });
 
     systemd = mkManpageJobs (pkgs: {
@@ -140,7 +143,7 @@ let
       requireManpage = true;
       nativeBuildInputs = [
         pkgs.libxslt.bin pkgs.docbook_xml_dtd_45 pkgs.docbook_xsl
-        pkgs.libxml2.bin pkgs.docbook5 pkgs.asciidoc
+        pkgs.libxml2.bin pkgs.docbook5 pkgs.asciidoc pkgs.python3
         (pkgs.writeScriptBin "asciidoctor" "#!${pkgs.stdenv.shell}\nexit 1")
       ];
     });
