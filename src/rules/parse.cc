@@ -211,7 +211,11 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
                 return std::nullopt;
             }
 #ifdef SYSTEMD_SUPPORT
+        } else if (key == "systemd") {
+            RULE_CONVERT(rule.socket_activation, "systemd", bool,
+                         "bool");
         } else if (key == "socketActivation") {
+            DEPRECATED_RENAMED("socketActivation", "systemd");
             RULE_CONVERT(rule.socket_activation, "socketActivation", bool,
                          "bool");
         } else if (key == "fdName") {

@@ -143,16 +143,16 @@ class RuleFileTest(unittest.TestCase):
 
     @systemd_only
     def test_contradicting_systemd(self):
-        self.assert_bad_rules([{'path': '/foo', 'socketActivation': True}])
+        self.assert_bad_rules([{'path': '/foo', 'systemd': True}])
 
     @systemd_only
     def test_socket_fdname(self):
-        self.assert_good_rules([{'socketActivation': True, 'fdName': 'foo'}])
+        self.assert_good_rules([{'systemd': True, 'fdName': 'foo'}])
 
     @non_systemd_only
     def test_no_systemd_options(self):
-        self.assert_bad_rules([{'socketActivation': True}])
-        self.assert_bad_rules([{'socketActivation': True, 'fdName': 'foo'}])
+        self.assert_bad_rules([{'systemd': True}])
+        self.assert_bad_rules([{'systemd': True, 'fdName': 'foo'}])
 
     def test_print_rules_check_stdout(self):
         rules = [
@@ -198,3 +198,8 @@ class RuleFileTest(unittest.TestCase):
     def test_deprecated(self):
         rules = [{'socketPath': '/xxx'}]
         self.assert_deprecated_rule(rules, 'socketPath', 'path')
+
+    @systemd_only
+    def test_deprecated_systemd(self):
+        rules = [{'socketActivation': True}]
+        self.assert_deprecated_rule(rules, 'socketActivation', 'systemd')
