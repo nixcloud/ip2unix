@@ -18,7 +18,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
 def test_run_direct(tmpdir):
     sockfile = tmpdir.join('foo.sock')
-    rules = [{'direction': 'outgoing', 'socketPath': str(sockfile)}]
+    rules = [{'direction': 'outgoing', 'path': str(sockfile)}]
     rulefile = tmpdir.join('rules.json')
     rulefile.write(json.dumps(rules))
     cmd = [sys.executable, '-c', TESTPROG]

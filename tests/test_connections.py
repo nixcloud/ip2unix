@@ -55,14 +55,14 @@ class TcpConnectionTest(unittest.TestCase):
             proc.stdin.write(b'\n')
 
     def assert_connection(self, crule, srule, cargs, sargs, pre_cmd_srv=None):
-        client_rule = {'direction': 'outgoing', 'socketPath': self.sockpath}
+        client_rule = {'direction': 'outgoing', 'path': self.sockpath}
         client_rule.update(crule)
         if 'socketActivation' in srule:
             sync = False
             server_rule = dict(srule)
         else:
             sync = True
-            server_rule = {'socketPath': self.sockpath}
+            server_rule = {'path': self.sockpath}
             server_rule.update(srule)
         with self.run_server([server_rule], *sargs, pre_cmd=pre_cmd_srv,
                              sync=sync):
@@ -93,9 +93,9 @@ class TcpConnectionTest(unittest.TestCase):
 
     def test_path_placeholders(self):
         args = ['127.0.0.1', 111]
-        srule = {'socketPath': os.path.join(self.tmpdir, '%a-%t-%p.sock')}
+        srule = {'path': os.path.join(self.tmpdir, '%a-%t-%p.sock')}
         clipath = '127.0.0.1-' + self.SOTYPE + '-111.sock'
-        crule = {'socketPath': os.path.join(self.tmpdir, clipath)}
+        crule = {'path': os.path.join(self.tmpdir, clipath)}
         self.assert_connection(crule, srule, args, args)
 
     def test_nomatch(self):
