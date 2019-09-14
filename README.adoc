@@ -408,7 +408,7 @@ The following flags are available:
 ifndef::without-systemd[]
 *systemd*[='FD_NAME']::
   Enable systemd socket activation
-  (see <<rule-opt-socket-activation,*socketActivation*>> below), optionally
+  (see <<rule-opt-socket-activation,*systemd*>> below), optionally
   specifying a file descriptior name (<<rule-opt-fdname,*fdName*>>).
 endif::[]
 
@@ -491,7 +491,7 @@ Placeholders are allowed here and those are substituted accordingly:
 *%%*;; verbatim `%`
 
 ifndef::without-systemd[]
-[[rule-opt-socket-activation]]*socketActivation*::
+[[rule-opt-socket-activation]]*systemd*::
 ifndef::manmanual[]
 If *ip2unix* is compiled with systemd support, whether to use socket activation
 endif::[]
@@ -600,7 +600,7 @@ ifndef::without-systemd[]
 - direction: incoming                 ## <6>
   type: tcp
   port: 22
-  socketActivation: true
+  systemd: true
   fdName: ssh
 endif::without-systemd[]
 --------------------------------------------
