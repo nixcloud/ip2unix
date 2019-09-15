@@ -36,7 +36,7 @@ def test_rulefile_and_ruledata():
 
 def test_rule_longopts(tmpdir):
     rulesfile = str(tmpdir.join('rules.yml'))
-    rulesdata = json.dumps([{'path': '/test'}])
+    rulesdata = json.dumps([{'socketPath': '/test'}])
     open(rulesfile, 'w').write(rulesdata)
     for cmd in [
         [IP2UNIX, '-cp', '--rules-file', rulesfile],

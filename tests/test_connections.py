@@ -55,14 +55,14 @@ class TcpConnectionTest(unittest.TestCase):
             proc.stdin.write(b'\n')
 
     def assert_connection(self, crule, srule, cargs, sargs, pre_cmd_srv=None):
-        client_rule = {'direction': 'outgoing', 'path': self.sockpath}
+        client_rule = {'direction': 'outgoing', 'socketPath': self.sockpath}
         client_rule.update(crule)
-        if 'systemd' in srule:
+        if 'socketActivation' in srule:
             sync = False
             server_rule = dict(srule)
         else:
             sync = True
-            server_rule = {'path': self.sockpath}
+            server_rule = {'socketPath': self.sockpath}
             server_rule.update(srule)
         with self.run_server([server_rule], *sargs, pre_cmd=pre_cmd_srv,
                              sync=sync):
@@ -93,9 +93,9 @@ class TcpConnectionTest(unittest.TestCase):
 
     def test_path_placeholders(self):
         args = ['127.0.0.1', 111]
-        srule = {'path': os.path.join(self.tmpdir, '%a-%t-%p.sock')}
+        srule = {'socketPath': os.path.join(self.tmpdir, '%a-%t-%p.sock')}
         clipath = '127.0.0.1-' + self.SOTYPE + '-111.sock'
-        crule = {'path': os.path.join(self.tmpdir, clipath)}
+        crule = {'socketPath': os.path.join(self.tmpdir, clipath)}
         self.assert_connection(crule, srule, args, args)
 
     def test_nomatch(self):
@@ -105,7 +105,7 @@ class TcpConnectionTest(unittest.TestCase):
 
     @helper.systemd_sa_helper_only
     def test_socket_activation(self):
-        srule = {'systemd': True}
+        srule = {'socketActivation': True}
         args = ['-c', 10, '4.3.2.1', 321]
         pre_cmd = [helper.SYSTEMD_SA_PATH, '-l', self.sockpath]
         if self.SOTYPE == 'udp':
@@ -114,7 +114,7 @@ class TcpConnectionTest(unittest.TestCase):
 
     @helper.systemd_sa_helper_only
     def test_socket_activation_threaded(self):
-        srule = {'systemd': True}
+        srule = {'socketActivation': True}
         args = ['-m', 'threading', '-p', 10, '-c', 20, '4.3.2.1', 321]
         pre_cmd = [helper.SYSTEMD_SA_PATH, '-l', self.sockpath]
         if self.SOTYPE == 'udp':
@@ -123,7 +123,7 @@ class TcpConnectionTest(unittest.TestCase):
 
     @helper.systemd_sa_helper_only
     def test_socket_activation_with_fdname(self):
-        srule = {'systemd': True, 'fdName': 'foo', 'port': 333}
+        srule = {'socketActivation': True, 'fdName': 'foo', 'port': 333}
         args = ['-c', 10, '4.3.2.1', 333]
         extrasock = os.path.join(self.tmpdir, 'extra.sock')
         pre_cmd = [helper.SYSTEMD_SA_PATH, '-l', extrasock]

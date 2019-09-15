@@ -19,7 +19,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
 
 def test_setsockopt_fail(tmpdir):
-    rules = [{'path': str(tmpdir.join('foo.sock'))}]
+    rules = [{'socketPath': str(tmpdir.join('foo.sock'))}]
     cmd = [sys.executable, '-c', TESTPROG]
     with helper.ip2unix(rules, cmd) as proc:
         assert proc.wait() == 0

@@ -82,7 +82,7 @@ Executes a program and converts IP to Unix domain sockets at runtime based on a
 list of rules, either given via short command line options (see {rulespec}) or
 via a file with a list of rules (see {rulefileformat}). The first matching rule
 causes *ip2unix* to replace the current IP socket with a Unix domain socket
-based on the options given. For example if a <<rule-socket-path,*path*>>
+based on the options given. For example if a <<rule-socket-path,*socketPath*>>
 is specified, the Unix domain socket will bind or listen to the given path.
 
 ifndef::manmanual[]
@@ -408,7 +408,7 @@ The following flags are available:
 ifndef::without-systemd[]
 *systemd*[='FD_NAME']::
   Enable systemd socket activation
-  (see <<rule-opt-socket-activation,*systemd*>> below), optionally
+  (see <<rule-opt-socket-activation,*socketActivation*>> below), optionally
   specifying a file descriptior name (<<rule-opt-fdname,*fdName*>>).
 endif::[]
 
@@ -438,7 +438,7 @@ These options are available:
 
 *path*='SOCKET_PATH'::
   The path to the socket file to either bind or connect to, which is similar to
-  the <<rule-socket-path,*path*>> rule file option but also allows
+  the <<rule-socket-path,*socketPath*>> rule file option but also allows
   relative paths.
 
 == Rule file format
@@ -477,7 +477,7 @@ Optionally specifies the end of a port range to match, so for example if
 <<rule-opt-port,*port*>> is `2000` and *portEnd* is `3000` all ports in the
 range from 2000 to 3000 (inclusive) are matched.
 
-[[rule-socket-path]]*path*::
+[[rule-socket-path]]*socketPath*::
 
 The path to the socket file to use for either binding or connecting to
 depending on whether the above options apply for a particular IP socket.
@@ -491,14 +491,14 @@ Placeholders are allowed here and those are substituted accordingly:
 *%%*;; verbatim `%`
 
 ifndef::without-systemd[]
-[[rule-opt-socket-activation]]*systemd*::
+[[rule-opt-socket-activation]]*socketActivation*::
 ifndef::manmanual[]
 If *ip2unix* is compiled with systemd support, whether to use socket activation
 endif::[]
 ifdef::manmanual[]
 Whether to use systemd socket activation
 endif::[]
-instead of a <<rule-socket-path,*path*>>. See {systemd_socket}.
+instead of a <<rule-socket-path,*socketPath*>>. See {systemd_socket}.
 
 [[rule-opt-fdname]]*fdName*::
 An optional file descriptor name for socket activation which can be used to
@@ -534,7 +534,7 @@ On the server side with the rule file `rules-server.yaml`:
 [source,yaml]
 ---------------------------------------------------------------------
 - direction: incoming
-  path: /tmp/test.socket
+  socketPath: /tmp/test.socket
 ---------------------------------------------------------------------
 
 The following command spawns a small test web server listening on
@@ -557,7 +557,7 @@ On the client side with `rules-client.yaml`:
 [source,yaml]
 ---------------------------------------------------------------------
 - direction: outgoing
-  path: /tmp/test.socket
+  socketPath: /tmp/test.socket
 ---------------------------------------------------------------------
 
 This connects to the test server listening on `/tmp/test.socket`
@@ -584,10 +584,10 @@ $ ip2unix -r out,path=/tmp/test.socket curl http://1.2.3.4/
   ignore: true
 - direction: outgoing                 ## <2>
   type: tcp
-  path: /run/some.socket
+  socketPath: /run/some.socket
 - direction: incoming                 ## <3>
   address: 1.2.3.4
-  path: /run/another.socket
+  socketPath: /run/another.socket
 - direction: incoming                 ## <4>
   port: 80
   address: abcd::1
@@ -600,7 +600,7 @@ ifndef::without-systemd[]
 - direction: incoming                 ## <6>
   type: tcp
   port: 22
-  systemd: true
+  socketActivation: true
   fdName: ssh
 endif::without-systemd[]
 --------------------------------------------
