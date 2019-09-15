@@ -152,6 +152,11 @@ static std::optional<int> parse_errno(const std::string &str)
         return std::nullopt; \
     }
 
+#define DEPRECATED_RENAMED(option, alternative) \
+    RULE_ERROR("The \"" option "\" option is deprecated and has been" \
+               " renamed to \"" alternative "\". It will be removed in" \
+               " the next major version of ip2unix.")
+
 static std::optional<Rule> parse_rule(const std::string &file, int pos,
                                       const YAML::Node &doc)
 {
@@ -206,7 +211,11 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
                 return std::nullopt;
             }
 #ifdef SYSTEMD_SUPPORT
+        } else if (key == "systemd") {
+            RULE_CONVERT(rule.socket_activation, "systemd", bool,
+                         "bool");
         } else if (key == "socketActivation") {
+            DEPRECATED_RENAMED("socketActivation", "systemd");
             RULE_CONVERT(rule.socket_activation, "socketActivation", bool,
                          "bool");
         } else if (key == "fdName") {
@@ -228,7 +237,11 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
             RULE_CONVERT(rule.blackhole, "blackhole", bool, "bool");
         } else if (key == "ignore") {
             RULE_CONVERT(rule.ignore, "ignore", bool, "bool");
+        } else if (key == "path") {
+            RULE_CONVERT(rule.socket_path, "path", std::string,
+                         "string");
         } else if (key == "socketPath") {
+            DEPRECATED_RENAMED("socketPath", "path");
             RULE_CONVERT(rule.socket_path, "socketPath", std::string,
                          "string");
         } else {

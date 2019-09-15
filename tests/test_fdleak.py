@@ -23,7 +23,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 @pytest.mark.skipif(not os.path.exists('/proc/self/fd'),
                     reason='requires procfs')
 def test_fdleak():
-    rules = [{'socketPath': '/dev/null/not/existing', 'direction': 'outgoing'}]
+    rules = [{'path': '/dev/null/not/existing', 'direction': 'outgoing'}]
     cmd = [sys.executable, '-c', TESTPROG]
     with helper.ip2unix(rules, cmd, stdout=subprocess.PIPE) as proc:
         stdout = proc.communicate()[0]
