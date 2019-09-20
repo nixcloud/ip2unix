@@ -1,3 +1,5 @@
+import pytest
+
 IP2UNIX = None
 SYSTEMD_SUPPORT = False
 SYSTEMD_SA_PATH = None
@@ -10,6 +12,13 @@ def pytest_addoption(parser):
                      help='Whether systemd support is compiled in')
     parser.addoption('--systemd-sa-path', action='store',
                      help='The path to the \'systemd-socket-activate\' helper')
+    parser.addoption('--helper-accept-no-peer-addr', action='store',
+                     help='The path to the \'accept-no-peer-addr\' helper')
+
+
+@pytest.fixture
+def helper_accept_no_peer_addr(request):
+    return request.config.option.helper_accept_no_peer_addr
 
 
 def pytest_configure(config):

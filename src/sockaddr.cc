@@ -196,6 +196,9 @@ bool SockAddr::is_loopback(void) const
 
 void SockAddr::apply_addr(struct sockaddr *addr, socklen_t *addrlen) const
 {
+    if (addr == nullptr || addrlen == nullptr)
+        return;
+
     *addrlen = this->size();
     memcpy(addr, this, *addrlen);
 }
