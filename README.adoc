@@ -70,12 +70,17 @@ endif::manmanual[]
 
 ifdef::env-github[]
 :hydra_url: https://headcounter.org/hydra
-:badge_job: pass:attributes[{hydra_url}/job/ip2unix/master/badge]
-:badge_url: pass:attributes[{badge_job}/latest-finished/download/1/status.svg]
-:latest_eval: pass:attributes[{hydra_url}/jobset/ip2unix/master]
+:image_url: latest-finished/download/1/status.svg
+:badge_job_master: pass:attributes[{hydra_url}/job/ip2unix/master/badge]
+:badge_url_master: pass:attributes[{badge_job_master}/{image_url}]
+:latest_eval_master: pass:attributes[{hydra_url}/jobset/ip2unix/master]
+:badge_job_2_0: pass:attributes[{hydra_url}/job/ip2unix/release-2.0.x/badge]
+:badge_url_2_0: pass:attributes[{badge_job_2_0}/{image_url}]
+:latest_eval_2_0: pass:attributes[{hydra_url}/jobset/ip2unix/release-2.0.x]
 image:https://builtwithnix.org/badge.svg["built with nix",
                                          link="https://builtwithnix.org/"]
-image:{badge_url}["build status", link="{latest_eval}"]
+image:{badge_url_master}["master build status", link="{latest_eval_master}"]
+image:{badge_url_2_0}["2.0.x build status", link="{latest_eval_2_0}"]
 endif::env-github[]
 
 Executes a program and converts IP to Unix domain sockets at runtime based on a
