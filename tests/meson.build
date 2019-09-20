@@ -1,9 +1,14 @@
 pytest_canidates = ['pytest-3', 'py.test-3', 'pytest', 'py.test']
 pytest = find_program(pytest_canidates, required: false)
 if pytest.found()
+  subdir('helpers')
+
   pytest_args = [
     '-p', 'no:cacheprovider',
-    '--ip2unix-path=@0@'.format(ip2unix.full_path())
+    '--ip2unix-path=@0@'.format(ip2unix.full_path()),
+    '--helper-accept-no-peer-addr=@0@'.format(
+      helper_accept_no_peer_addr.full_path()
+    )
   ]
 
   has_timeout_plugin = run_command(pytest, '--timeout=20', '--version')
