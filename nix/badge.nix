@@ -4,6 +4,7 @@
 , hydraJobset ? "ip2unix/master"
 , constituents
 , purgeUrl ? null
+, badgeTitle ? "builds"
 }:
 
 let
@@ -144,13 +145,13 @@ let
         fill-opacity = ".3";
         transform = "scale(.1)";
         textLength = 330;
-      } [ "builds" ])
+      } [ badgeTitle ])
       (mkNode "text" {
         x = 225;
         y = 140;
         transform = "scale(.1)";
         textLength = 330;
-      } [ "builds" ])
+      } [ badgeTitle ])
       (mkNode "text" {
         inherit (attrs) x textLength;
         y = 150;
