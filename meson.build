@@ -1,4 +1,5 @@
-project('ip2unix', 'cpp', default_options: ['cpp_std=c++17'],
+project('ip2unix', 'cpp',
+        default_options: ['cpp_std=c++17', 'warning_level=3'],
         meson_version: '>=0.46.0', version: '2.1.1')
 
 script_findlibc = files('scripts/findlibc.py')
@@ -11,7 +12,6 @@ cc = meson.get_compiler('cpp')
 warning_flags = [
   '-Wcast-qual',
   '-Weffc++',
-  '-Wextra',
   '-Wold-style-cast',
   '-Wshadow',
   '-Wsign-conversion',
