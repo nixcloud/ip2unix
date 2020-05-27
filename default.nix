@@ -8,7 +8,24 @@ pkgs.stdenv.mkDerivation rec {
     contents = builtins.readFile ./meson.build;
   in builtins.head (builtins.match regex contents);
 
-  src = lib.cleanSource ./.;
+  src = lib.cleanSourceWith {
+    src = lib.cleanSource ./.;
+    filter = path: type: let
+      relPath = lib.removePrefix (toString ./. + "/") path;
+      toplevel = [
+        { type = "directory"; name = "doc"; }
+        { type = "directory"; name = "scripts"; }
+        { type = "directory"; name = "src"; }
+        { type = "directory"; name = "tests"; }
+        { type = "regular"; name = "README.adoc"; }
+        { type = "regular"; name = "meson.build"; }
+        { type = "regular"; name = "meson_options.txt"; }
+      ];
+      isMatching = { type, name }: type == type && relPath == name;
+      isToplevel = lib.any isMatching toplevel;
+    in if type == "directory" && relPath == "tests/vm" then false
+       else builtins.match "[^/]+" relPath != null -> isToplevel;
+  };
 
   nativeBuildInputs = [
     pkgs.meson pkgs.ninja pkgs.pkgconfig pkgs.asciidoc pkgs.libxslt.bin
