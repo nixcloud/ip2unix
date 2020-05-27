@@ -1,7 +1,7 @@
 import re
 import sys
 
-WRAP_SYM_RE = re.compile(r'WRAP_SYM\s*\(\s*(\S+)\s*\)')
+WRAP_SYM_RE = re.compile(r'WRAP_SYM\s*\(\s*(\S+?)\s*\)')
 
 symbols = []
 for path in sys.argv[1:]:
