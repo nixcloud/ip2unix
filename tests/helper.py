@@ -4,9 +4,9 @@ import subprocess
 from contextlib import contextmanager
 
 import pytest
-from conftest import IP2UNIX, SYSTEMD_SUPPORT, SYSTEMD_SA_PATH
+from conftest import IP2UNIX, LIBIP2UNIX, SYSTEMD_SUPPORT, SYSTEMD_SA_PATH
 
-__all__ = ['IP2UNIX', 'SYSTEMD_SUPPORT', 'SYSTEMD_SA_PATH',
+__all__ = ['IP2UNIX', 'LIBIP2UNIX', 'SYSTEMD_SUPPORT', 'SYSTEMD_SA_PATH',
            'ip2unix', 'systemd_only', 'non_systemd_only',
            'systemd_sa_helper_only']
 

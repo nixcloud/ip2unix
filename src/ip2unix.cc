@@ -2,32 +2,54 @@
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <getopt.h>
 #include <string>
 #include <unistd.h>
+#include <dlfcn.h>
 
 #include "rules.hh"
 #include "serial.hh"
 
 extern char **environ;
 
+extern "C" const char *__ip2unix__(void);
+
+static std::optional<std::string> get_preload_libpath(void)
+{
+    Dl_info info;
+
+    if (dladdr(reinterpret_cast<void*>(__ip2unix__), &info) < 0) {
+        perror("dladdr");
+        return std::nullopt;
+    }
+
+    return std::string(info.dli_fname);
+}
+
 static bool run_preload(std::vector<Rule> &rules, char *argv[])
 {
-    char self[PATH_MAX], *preload;
-    ssize_t len;
+    const char *libversion;
+    char *buf, *preload;
+    std::optional<std::string> libpath;
 
-    if ((len = readlink("/proc/self/exe", self, sizeof(self) - 1)) == -1) {
-        perror("readlink(\"/proc/self/exe\")");
+    libversion = __ip2unix__();
+
+    if (!(libpath = get_preload_libpath())) {
         return false;
     }
 
-    self[len] = '\0';
+    if (strcmp(libversion, VERSION) != 0) {
+        fprintf(stderr, "Version mismatch between preload library (%s) and"
+                        " wrapper program (%s).\n", libversion, VERSION);
+        return false;
+    }
 
     if ((preload = getenv("LD_PRELOAD")) != nullptr && *preload != '\0') {
-        std::string new_preload = std::string(self) + ":" + preload;
+        std::string new_preload = libpath.value() + ":" + preload;
         setenv("LD_PRELOAD", new_preload.c_str(), 1);
     } else {
-        setenv("LD_PRELOAD", self, 1);
+        setenv("LD_PRELOAD", libpath.value().c_str(), 1);
     }
 
     setenv("__IP2UNIX_RULES", serialise(rules).c_str(), 1);

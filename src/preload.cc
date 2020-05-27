@@ -68,6 +68,11 @@ static void init_rules(void)
     g_rules = std::make_shared<std::vector<Rule>>(rules.value());
 }
 
+extern "C" const char *WRAP_SYM(__ip2unix__)(void)
+{
+    return VERSION;
+}
+
 extern "C" int WRAP_SYM(socket)(int domain, int type, int protocol)
 {
     TRACE_CALL("socket", domain, type, protocol);

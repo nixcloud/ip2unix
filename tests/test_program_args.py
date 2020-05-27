@@ -2,7 +2,7 @@ import json
 import sys
 import subprocess
 
-from helper import IP2UNIX
+from helper import IP2UNIX, LIBIP2UNIX
 
 
 def check_error(cmd):
@@ -76,5 +76,5 @@ def test_existing_ld_preload():
     testprog = "import os; print(os.environ['LD_PRELOAD'])"
     cmd = [IP2UNIX, '-r', 'path=/foo', sys.executable, '-c', testprog]
     output = subprocess.check_output(cmd, env={'LD_PRELOAD': '/nonexistent'})
-    expect = IP2UNIX + ":/nonexistent"
+    expect = LIBIP2UNIX + ":/nonexistent"
     assert output.decode().strip() == expect

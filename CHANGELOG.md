@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
+## [Unreleased]
+
+### Fixed
+- Support for glibc >= 2.30 by splitting preload library and main executable.
+
 ## [2.1.1] - 2019-09-20
 
 ### Fixed
@@ -79,6 +84,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - The initial release, which evolved from an early prototype specific to a
   certain use case into a more generic command line tool.
 
+[Unreleased]: https://github.com/nixcloud/ip2unix/compare/v2.1.1...HEAD
 [2.1.1]: https://github.com/nixcloud/ip2unix/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/nixcloud/ip2unix/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/nixcloud/ip2unix/compare/v2.0.0...v2.0.1

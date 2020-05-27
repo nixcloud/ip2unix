@@ -6,6 +6,7 @@ if pytest.found()
   pytest_args = [
     '-p', 'no:cacheprovider',
     '--ip2unix-path=@0@'.format(ip2unix.full_path()),
+    '--libip2unix-path=@0@'.format(libip2unix.full_path()),
     '--helper-accept-no-peer-addr=@0@'.format(
       helper_accept_no_peer_addr.full_path()
     )

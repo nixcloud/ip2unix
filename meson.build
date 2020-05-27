@@ -26,12 +26,9 @@ add_project_arguments(cc.get_supported_arguments(warning_flags),
 
 python = import('python').find_installation('python3')
 
-cflags = ['-fPIC', '-DVERSION="' + meson.project_version() + '"']
-
-ldflags = [
-  '-pie',
-  '-Wl,-E',
-]
+cflags = ['-DVERSION="' + meson.project_version() + '"']
+main_cflags = []
+lib_cflags = []
 
 deps = [
   dependency('yaml-cpp', version: '>=0.5.0'),
@@ -42,7 +39,7 @@ libcpath = run_command(python, script_findlibc, cc.cmd_array())
 if libcpath.returncode() == 0
   fullpath = libcpath.stdout()
   message('Found C library at ' + fullpath)
-  cflags += ['-DLIBC_PATH="' + fullpath + '"']
+  lib_cflags += ['-DLIBC_PATH="' + fullpath + '"']
 endif
 
 systemd_enabled = get_option('systemd-support')
@@ -51,18 +48,25 @@ if systemd_enabled
   cflags += ['-DSYSTEMD_SUPPORT']
 endif
 
-sources = []
+lib_sources = []
+main_sources = []
 includes = []
 subdir('src')
 
 generate_sym_map = [python, script_gensyms, '@INPUT@']
-sym_map = custom_target('symmap', input: sources, output: 'symbols.map',
+sym_map = custom_target('symmap', input: lib_sources, output: 'symbols.map',
                         command: generate_sym_map, capture: true)
 cflags += ['-Wl,--version-script,@0@'.format(sym_map.full_path())]
 
-ip2unix = executable('ip2unix', sources, install: true, dependencies: deps,
-                     link_args: ldflags, link_depends: sym_map,
-                     include_directories: includes, cpp_args: cflags)
+libip2unix = shared_library('ip2unix', lib_sources, install: true,
+                            dependencies: deps, link_depends: sym_map,
+                            cpp_args: lib_cflags + cflags,
+                            include_directories: includes)
+
+ip2unix = executable('ip2unix', main_sources, install: true,
+                     link_with: libip2unix,
+                     dependencies: deps, include_directories: includes,
+                     cpp_args: main_cflags + cflags)
 
 man_input = files('README.adoc')
 
