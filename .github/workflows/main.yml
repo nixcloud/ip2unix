@@ -18,20 +18,3 @@ jobs:
         with:
           name: Linux_Meson_Testlog
           path: build/meson-logs/testlog.txt
-
-  macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
-        with:
-          python-version: '3.x'
-      - run: brew install yaml-cpp asciidoctor
-      - run: pip install meson ninja
-      - run: meson setup build
-      - run: meson test -C build -v
-      - uses: actions/upload-artifact@v1
-        if: failure()
-        with:
-          name: MacOS_Meson_Testlog
-          path: build/meson-logs/testlog.txt
