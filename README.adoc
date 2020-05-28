@@ -42,8 +42,8 @@ ifndef::manmanual[]
 :syscall_accept: pass:attributes,quotes[{2}[*accept*(2)]]
 :systemd_socket: pass:attributes,quotes[{3}[*systemd.socket*(5)]]
 :fdname: pass:attributes,quotes[{4}[FileDescriptorName]]
-:rulespec: <<Rule specification>>
-:rulefileformat: <<Rule file format>>
+:rulespec: <<rule-specification,Rule specification>>
+:rulefileformat: <<rule-file-format,Rule file format>>
 :copy: (C) 2018 aszlig
 endif::[]
 ifdef::manmanual[]
@@ -130,7 +130,7 @@ that socket:
 proxy_pass http://unix:/run/my-http-server.socket;
 ---------------------------------------------------------------------
 
-More examples can be found further below in section <<Examples>>.
+More examples can be found further below in section <<examples,Examples>>.
 
 A short summary of all the options is available via `ip2unix --help` or
 `man ip2unix` if you want to see all the details and options available.
