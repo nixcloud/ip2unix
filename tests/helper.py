@@ -1,4 +1,5 @@
 import json
+import sys
 import subprocess
 
 from contextlib import contextmanager
@@ -8,7 +9,7 @@ from conftest import IP2UNIX, LIBIP2UNIX, SYSTEMD_SUPPORT, SYSTEMD_SA_PATH
 
 __all__ = ['IP2UNIX', 'LIBIP2UNIX', 'SYSTEMD_SUPPORT', 'SYSTEMD_SA_PATH',
            'ip2unix', 'systemd_only', 'non_systemd_only',
-           'systemd_sa_helper_only']
+           'systemd_sa_helper_only', 'abstract_sockets_only']
 
 
 @contextmanager
@@ -29,4 +30,8 @@ non_systemd_only = pytest.mark.skipif(
 )
 systemd_sa_helper_only = pytest.mark.skipif(
     SYSTEMD_SA_PATH is None, reason="no 'systemd-socket-activate' helper"
+)
+abstract_sockets_only = pytest.mark.skipif(
+    sys.platform != 'linux',
+    reason='abstract sockets are only supported on Linux'
 )

@@ -53,6 +53,12 @@ static std::optional<std::string> validate_rule(Rule &rule)
     }
 
     if (rule.socket_path) {
+#if defined(__linux__)
+        if (rule.abstract)
+            return "The socket either needs to be an abstract name or bound"
+                   " to a path, not both.";
+#endif
+
         if (rule.socket_path.value().empty())
             return "Socket path has to be non-empty.";
         if (rule.socket_path.value()[0] != '/')
@@ -74,6 +80,29 @@ static std::optional<std::string> validate_rule(Rule &rule)
         if (rule.blackhole)
             return "Using a blackhole action in conjuction with a socket"
                    " path is not allowed.";
+#if defined(__linux__)
+    } else if (rule.abstract) {
+        if (rule.abstract.value().empty())
+            return "Abstract socket name has to be non-empty.";
+
+#ifdef SYSTEMD_SUPPORT
+        if (rule.socket_activation)
+            return "Can't enable socket activation in conjunction with an"
+                   " abstract socket name.";
+#endif
+
+        if (rule.reject)
+            return "Using a reject action in conjuction with an abstract"
+                   " socket name is not allowed.";
+
+        if (rule.ignore)
+            return "Using an ignore action in conjuction with an abstract"
+                   " socket name is not allowed.";
+
+        if (rule.blackhole)
+            return "Using a blackhole action in conjuction with an abstract"
+                   " socket name is not allowed.";
+#endif
     } else if (rule.reject && rule.blackhole) {
         return "Reject and blackhole actions are mutually exclusive.";
     } else if (rule.ignore && (rule.blackhole || rule.reject)) {
@@ -93,10 +122,12 @@ static std::optional<std::string> validate_rule(Rule &rule)
 #ifdef SYSTEMD_SUPPORT
     } else if (!rule.socket_activation) {
         return "Socket activation is disabled and no socket"
-               " path, reject, ignore or blackhole action was specified.";
+               " path, abstract name, reject, ignore or blackhole action was"
+               " specified.";
 #else
     } else {
-        return "No socket path, reject, ignore or blackhole action specified.";
+        return "No socket path, abstract name, reject, ignore or blackhole"
+               " action specified.";
 #endif
     }
 
@@ -231,6 +262,10 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
         } else if (key == "socketPath") {
             RULE_CONVERT(rule.socket_path, "socketPath", std::string,
                          "string");
+#if defined(__linux__)
+        } else if (key == "abstract") {
+            RULE_CONVERT(rule.abstract, "abstract", std::string, "string");
+#endif
         } else {
             RULE_ERROR("Invalid key \"" << key << "\".");
             return std::nullopt;
@@ -324,6 +359,10 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                 /* Handle key=value options. */
                 if (key.value() == "path") {
                     rule.socket_path = make_absolute(buf);
+#if defined(__linux__)
+                } else if (key.value() == "abstract") {
+                    rule.abstract = buf;
+#endif
 #ifdef SYSTEMD_SUPPORT
                 } else if (key.value() == "systemd") {
                     rule.socket_activation = true;
@@ -494,6 +533,11 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
                 out << "  Blackhole the socket." << std::endl;
             } else if (rule.ignore) {
                 out << "  Don't handle this socket." << std::endl;
+#if defined(__linux__)
+            } else if (rule.abstract) {
+                out << "  Abstract name: " << rule.abstract.value()
+                    << std::endl;
+#endif
             } else {
                 out << "  Socket path: " << rule.socket_path.value()
                     << std::endl;

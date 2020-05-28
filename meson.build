@@ -80,6 +80,10 @@ if not systemd_enabled
   adoc_attrs += ['-a', 'without-systemd']
 endif
 
+if host_machine.system() != 'linux'
+  adoc_attrs += ['-a', 'without-abstract']
+endif
+
 # For generating the manpage
 subdir('doc')
 
