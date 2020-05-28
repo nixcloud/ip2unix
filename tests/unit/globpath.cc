@@ -222,5 +222,10 @@ int main(void)
     SUCCESS("foo[a/b]bar",         "foo[a/b]bar");
     SUCCESS("foo\\[a/b]bar",       "foo[a/b]bar");
 
+    SUCCESS("\\*\\?[aaaa",         "*?[aaaa");
+    NOMATCH("\\*\\?[aaaa",         "*?[aaa");
+    NOMATCH("\\*\\?[aaaa",         "*?[");
+    SUCCESS("\\*\\?[a-",           "*?[a-");
+
     return 0;
 }

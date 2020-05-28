@@ -55,7 +55,7 @@ MatchResult GlobPath::match_cclass(size_t *pattern_pos, const char &pathchar)
     std::optional<char> rstart;
 
     do {
-        if (this->pattern[nextpat] == '/') {
+        if (nextpat >= this->patlen || this->pattern[nextpat] == '/') {
             return MatchResult::Invalid;
         } else if (this->pattern[nextpat] == '\\') {
             if (++nextpat >= this->patlen)
