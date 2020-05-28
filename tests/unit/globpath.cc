@@ -148,7 +148,7 @@ int main(void)
     NOMATCH("foo*[abc]z",          "foobar");
     SUCCESS("foo*[abc][xyz]",      "foobaz");
     SUCCESS("foo?*[abc][xyz]",     "foobaz");
-    SUCCESS("foo?*[abc][x/yz]",    "foobaz");
+    SUCCESS("foo?*[abc][x/yz]",    "fooba[x/yz]");
     NOMATCH("foo?*[abc]/[xyz]",    "foobaz");
     NOMATCH("a/",                  "a");
     NOMATCH("a",                   "a/");
@@ -218,6 +218,9 @@ int main(void)
     SUCCESS("a/**/**/b",           "a/b");
     SUCCESS("a/**/**/b",           "a/x/b");
     SUCCESS("a/**/**/b",           "a/x/y/b");
+
+    SUCCESS("foo[a/b]bar",         "foo[a/b]bar");
+    SUCCESS("foo\\[a/b]bar",       "foo[a/b]bar");
 
     return 0;
 }

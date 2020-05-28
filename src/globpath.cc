@@ -55,7 +55,9 @@ MatchResult GlobPath::match_cclass(size_t *pattern_pos, const char &pathchar)
     std::optional<char> rstart;
 
     do {
-        if (pattern[nextpat] == '\\') {
+        if (this->pattern[nextpat] == '/') {
+            return MatchResult::Invalid;
+        } else if (this->pattern[nextpat] == '\\') {
             if (++nextpat >= this->patlen)
                 return MatchResult::Invalid;
         }
@@ -232,10 +234,7 @@ bool GlobPath::match(void)
     // does we only want to match the basename.
     bool slash_found = false;
     for (size_t i = 0; i < this->patlen; ++i) {
-        // Skip character classes using a dummy path character ('x').
-        if (this->pattern[i] == '[')
-            this->match_cclass(&i, 'x');
-        else if (this->pattern[i] == '/') {
+        if (this->pattern[i] == '/') {
             slash_found = true;
             break;
         }
