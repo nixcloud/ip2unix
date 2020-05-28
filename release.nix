@@ -167,6 +167,14 @@ let
     }).test);
   };
 
+  tests.programs = lib.mapAttrs (lib.const (path: let
+    mkProgramTest = system: import path {
+      pkgs = import nixpkgs { inherit system; config = {}; };
+    };
+  in lib.genAttrs systems mkProgramTest)) {
+    rsession = tests/programs/rsession.nix;
+  };
+
   coverage = fullForEachSystem (pkgs: {
     nativeBuildInputs = [ pkgs.lcov ];
 

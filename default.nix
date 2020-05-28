@@ -23,7 +23,8 @@ pkgs.stdenv.mkDerivation rec {
       ];
       isMatching = { type, name }: type == type && relPath == name;
       isToplevel = lib.any isMatching toplevel;
-    in if type == "directory" && relPath == "tests/vm" then false
+      excludedTestDirs = [ "tests/vm" "tests/programs" ];
+    in if type == "directory" && lib.elem relPath excludedTestDirs then false
        else builtins.match "[^/]+" relPath != null -> isToplevel;
   };
 
