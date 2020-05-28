@@ -2,6 +2,7 @@
 #include "serial.hh"
 
 #include "rules.hh"
+#include "socketpath.hh"
 #include "systemd.hh"
 #include "types.hh"
 
@@ -155,6 +156,46 @@ MaybeError deserialise(std::istream &in, SocketType *out)
             return std::string("Invalid character '") + c + "' in SocketType.";
     }
     return std::nullopt;
+}
+
+void serialise(const SocketPath &path, std::ostream &out)
+{
+    switch (path.type) {
+        case SocketPath::Type::FILESYSTEM:
+            out.put('f');
+            break;
+        case SocketPath::Type::ABSTRACT:
+            out.put('a');
+            break;
+    }
+
+    serialise(path.value, out);
+}
+
+MaybeError deserialise(std::istream &in, SocketPath *out)
+{
+    char c;
+
+    in.get(c);
+
+    if (in.eof())
+        return "End of stream while reading socket path type.";
+
+    switch (c) {
+        case 'f':
+            out->type = SocketPath::Type::FILESYSTEM;
+            break;
+#if defined(__linux__)
+        case 'a':
+            out->type = SocketPath::Type::ABSTRACT;
+            break;
+#endif
+        default:
+            return std::string("Invalid character '")
+                 + c + "' used as socket path type.";
+    }
+
+    return deserialise(in, &out->value);
 }
 
 void serialise(const Rule &rule, std::ostream &out)

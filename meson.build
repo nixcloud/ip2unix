@@ -104,6 +104,10 @@ if not systemd_enabled
   adoc_attrs += ['-a', 'without-systemd']
 endif
 
+if host_machine.system() != 'linux'
+  adoc_attrs += ['-a', 'without-abstract']
+endif
+
 ################################## MANPAGE ##################################
 
 mandest = join_paths(get_option('prefix'), get_option('mandir'), 'man1')

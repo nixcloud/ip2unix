@@ -258,7 +258,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
 
         if (rule->second.blackhole) {
             sock->blackhole();
-            return std::invoke(sockfun, sock, inaddr, "");
+            return std::invoke(sockfun, sock, inaddr, SocketPath());
         }
 
 #ifdef SYSTEMD_SUPPORT
@@ -272,7 +272,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
             LOG(WARNING) << "Systemd file descriptor queue empty, "
                          << "blackholing socket with fd " << fd << '.';
             sock->blackhole();
-            return std::invoke(sockfun, sock, inaddr, "");
+            return std::invoke(sockfun, sock, inaddr, SocketPath());
         }
 #endif
 

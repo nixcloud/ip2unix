@@ -5,6 +5,7 @@
 #include "blackhole.hh"
 #include "dynports.hh"
 #include "sockaddr.hh"
+#include "socketpath.hh"
 #include "sockopts.hh"
 #include "types.hh"
 
@@ -67,9 +68,9 @@ struct Socket : std::enable_shared_from_this<Socket>
     int activate(const SockAddr&, int, bool);
 #endif
 
-    int bind(const SockAddr&, const std::string&);
+    int bind(const SockAddr&, const SocketPath&);
     std::optional<int> connect_peermap(const SockAddr&);
-    int connect(const SockAddr&, const std::string&);
+    int connect(const SockAddr&, const SocketPath&);
 
     int accept(int, sockaddr*, socklen_t*);
     int getsockname(sockaddr*, socklen_t*);
@@ -77,7 +78,7 @@ struct Socket : std::enable_shared_from_this<Socket>
 
     bool rewrite_src(const SockAddr&, sockaddr*, socklen_t*);
     std::optional<SockAddr> rewrite_dest_peermap(const SockAddr&) const;
-    std::optional<SockAddr> rewrite_dest(const SockAddr&, const std::string&);
+    std::optional<SockAddr> rewrite_dest(const SockAddr&, const SocketPath&);
 
     int dup(void);
     int dup(int, int);
@@ -102,8 +103,8 @@ struct Socket : std::enable_shared_from_this<Socket>
          * and look them up either in the next recvfrom/recvmsg or in a
          * connect().
          */
-        std::unordered_map<SockAddr, std::string> peermap;
-        std::unordered_map<std::string, SockAddr> revpeermap;
+        std::unordered_map<SockAddr, SocketPath> peermap;
+        std::unordered_map<SocketPath, SockAddr> revpeermap;
 
         /* Constructor and reference getter. */
         Socket(int, int, int, int);
@@ -116,13 +117,13 @@ struct Socket : std::enable_shared_from_this<Socket>
         static std::optional<Ptr> find(int);
 
         /* Check if a socket path is registered. */
-        static bool has_sockpath(const std::string&);
+        static bool has_sockpath(const SocketPath&);
 
         /* All INET/INET6 sockets are registered here. */
         static std::unordered_map<int, Ptr> registry;
 
         /* Mapping from bound socket paths to sockets. */
-        static std::unordered_set<std::string> sockpath_registry;
+        static std::unordered_set<SocketPath> sockpath_registry;
 
         /* Whether the socket has been converted to an AF_UNIX socket. */
         bool is_unix = false;
@@ -141,7 +142,7 @@ struct Socket : std::enable_shared_from_this<Socket>
         bool make_unix(int = -1);
         bool create_binding(const SockAddr&);
 
-        std::string format_sockpath(const std::string&, const SockAddr&) const;
+        SocketPath format_sockpath(const SocketPath&, const SockAddr&) const;
 };
 
 #endif

@@ -40,16 +40,31 @@ void SockAddr::set_family(sa_family_t family)
     this->inner_size = family2size(family);
 }
 
-std::optional<SockAddr> SockAddr::unix(const std::string &path)
+std::optional<SockAddr> SockAddr::unix(const SocketPath &path)
 {
     struct sockaddr_un ua;
     memset(&ua, 0, sizeof ua);
     ua.sun_family = AF_UNIX;
-    if (path.size() >= sizeof(ua.sun_path))
+
+    if (path.value.size() >= sizeof(ua.sun_path))
         return std::nullopt;
 
-    strncpy(ua.sun_path, path.c_str(), sizeof(ua.sun_path) - 1);
-    return SockAddr(reinterpret_cast<const sockaddr*>(&ua));
+    switch (path.type) {
+        case SocketPath::Type::FILESYSTEM:
+            strncpy(ua.sun_path, path.value.c_str(), sizeof(ua.sun_path) - 1);
+            return SockAddr(reinterpret_cast<const sockaddr*>(&ua));
+#if defined(__linux__)
+        case SocketPath::Type::ABSTRACT:
+            ua.sun_path[0] = '\0';
+            memcpy(ua.sun_path + 1, path.value.c_str(), path.value.size());
+
+            SockAddr sa(reinterpret_cast<const sockaddr*>(&ua));
+            sa.inner_size = sizeof(sa_family_t) + path.value.size() + 1;
+            return sa;
+#endif
+    }
+
+    return std::nullopt;
 }
 
 SockAddr SockAddr::copy() const
@@ -163,10 +178,13 @@ bool SockAddr::set_random_host(void)
     return false;
 }
 
-std::optional<std::string> SockAddr::get_sockpath(void) const
+std::optional<SocketPath> SockAddr::get_sockpath(void) const
 {
     if (this->is_unix()) {
-        return std::string(this->cast_un()->sun_path);
+        return SocketPath(
+            SocketPath::Type::FILESYSTEM,
+            std::string(this->cast_un()->sun_path)
+        );
     }
 
     return std::nullopt;

@@ -57,27 +57,54 @@ static std::optional<std::string> validate_rule(Rule &rule)
     }
 
     if (rule.socket_path) {
-        if (rule.socket_path.value().empty())
-            return "Socket path has to be non-empty.";
-        if (rule.socket_path.value()[0] != '/')
-            return "Socket path has to be absolute.";
+        if (rule.socket_path->type == SocketPath::Type::FILESYSTEM) {
+            const std::string path = rule.socket_path->value;
+
+            if (path.empty())
+                return "Socket path has to be non-empty.";
+            if (path[0] != '/')
+                return "Socket path has to be absolute.";
 
 #ifdef SYSTEMD_SUPPORT
-        if (rule.socket_activation)
-            return "Can't enable socket activation in conjunction with a"
-                   " socket path.";
+            if (rule.socket_activation)
+                return "Can't enable socket activation in conjunction with a"
+                       " socket path.";
 #endif
-        if (rule.reject)
-            return "Using a reject action in conjuction with a socket"
-                   " path is not allowed.";
+            if (rule.reject)
+                return "Using a reject action in conjuction with a socket"
+                       " path is not allowed.";
 
-        if (rule.ignore)
-            return "Using an ignore action in conjuction with a socket"
-                   " path is not allowed.";
+            if (rule.ignore)
+                return "Using an ignore action in conjuction with a socket"
+                       " path is not allowed.";
 
-        if (rule.blackhole)
-            return "Using a blackhole action in conjuction with a socket"
-                   " path is not allowed.";
+            if (rule.blackhole)
+                return "Using a blackhole action in conjuction with a socket"
+                       " path is not allowed.";
+#if defined(__linux__)
+        } else if (rule.socket_path->type == SocketPath::Type::ABSTRACT) {
+            if (rule.socket_path->value.empty())
+                return "Abstract socket name has to be non-empty.";
+
+#ifdef SYSTEMD_SUPPORT
+            if (rule.socket_activation)
+                return "Can't enable socket activation in conjunction with an"
+                       " abstract socket name.";
+#endif
+
+            if (rule.reject)
+                return "Using a reject action in conjuction with an abstract"
+                       " socket name is not allowed.";
+
+            if (rule.ignore)
+                return "Using an ignore action in conjuction with an abstract"
+                       " socket name is not allowed.";
+
+            if (rule.blackhole)
+                return "Using a blackhole action in conjuction with an"
+                       " abstract socket name is not allowed.";
+#endif
+        }
     } else if (rule.reject && rule.blackhole) {
         return "Reject and blackhole actions are mutually exclusive.";
     } else if (rule.ignore && (rule.blackhole || rule.reject)) {
@@ -97,10 +124,12 @@ static std::optional<std::string> validate_rule(Rule &rule)
 #ifdef SYSTEMD_SUPPORT
     } else if (!rule.socket_activation) {
         return "Socket activation is disabled and no socket"
-               " path, reject, ignore or blackhole action was specified.";
+               " path, abstract name, reject, ignore or blackhole action was"
+               " specified.";
 #else
     } else {
-        return "No socket path, reject, ignore or blackhole action specified.";
+        return "No socket path, abstract name, reject, ignore or blackhole"
+               " action specified.";
 #endif
     }
 
@@ -236,8 +265,23 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
         } else if (key == "ignore") {
             RULE_CONVERT(rule.ignore, "ignore", bool, "bool");
         } else if (key == "socketPath") {
-            RULE_CONVERT(rule.socket_path, "socketPath", std::string,
-                         "string");
+            if (rule.socket_path) {
+                RULE_ERROR("Socket path or abstract name already specified.");
+                return std::nullopt;
+            }
+            std::string path;
+            RULE_CONVERT(path, "socketPath", std::string, "string");
+            rule.socket_path = SocketPath(SocketPath::Type::FILESYSTEM, path);
+#if defined(__linux__)
+        } else if (key == "abstract") {
+            if (rule.socket_path) {
+                RULE_ERROR("Socket path or abstract name already specified.");
+                return std::nullopt;
+            }
+            std::string name;
+            RULE_CONVERT(name, "abstract", std::string, "string");
+            rule.socket_path = SocketPath(SocketPath::Type::ABSTRACT, name);
+#endif
         } else {
             RULE_ERROR("Invalid key \"" << key << "\".");
             return std::nullopt;
@@ -339,7 +383,31 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
             if (i == arglen || arg[i] == ',') {
                 /* Handle key=value options. */
                 if (key.value() == "path") {
-                    rule.socket_path = std::filesystem::absolute(buf);
+                    if (rule.socket_path) {
+                        print_arg_error(
+                            rulepos, arg, errpos, errlen,
+                            "socket path or abstract name specified earlier"
+                        );
+                        return std::nullopt;
+                    }
+                    rule.socket_path = SocketPath(
+                        SocketPath::Type::FILESYSTEM,
+                        std::filesystem::absolute(buf)
+                    );
+#if defined(__linux__)
+                } else if (key.value() == "abstract") {
+                    if (rule.socket_path) {
+                        print_arg_error(
+                            rulepos, arg, errpos, errlen,
+                            "socket path or abstract name specified earlier"
+                        );
+                        return std::nullopt;
+                    }
+                    rule.socket_path = SocketPath(
+                        SocketPath::Type::ABSTRACT,
+                        buf
+                    );
+#endif
 #ifdef SYSTEMD_SUPPORT
                 } else if (key.value() == "systemd") {
                     rule.socket_activation = true;
@@ -512,9 +580,20 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
                 out << "  Blackhole the socket." << std::endl;
             } else if (rule.ignore) {
                 out << "  Don't handle this socket." << std::endl;
-            } else {
-                out << "  Socket path: " << rule.socket_path.value()
-                    << std::endl;
+            } else if (rule.socket_path) {
+#if defined(__linux__)
+                if (rule.socket_path->type == SocketPath::Type::ABSTRACT) {
+                    out << "  Abstract name: "
+                        << rule.socket_path->value
+                        << std::endl;
+                } else {
+#endif
+                    out << "  Socket path: "
+                        << rule.socket_path->value
+                        << std::endl;
+#if defined(__linux__)
+                }
+#endif
             }
 #ifdef SYSTEMD_SUPPORT
         }

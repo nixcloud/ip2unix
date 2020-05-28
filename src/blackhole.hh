@@ -2,6 +2,8 @@
 #ifndef IP2UNIX_BLACKHOLE_HH
 #define IP2UNIX_BLACKHOLE_HH
 
+#include "socketpath.hh"
+
 #include <optional>
 #include <string>
 
@@ -10,8 +12,9 @@ struct BlackHole
     BlackHole();
     ~BlackHole();
 
-    inline std::optional<std::string> get_path() const {
-        return this->filepath;
+    inline std::optional<SocketPath> get_path() const {
+        if (!this->filepath) return std::nullopt;
+        return SocketPath(SocketPath::Type::FILESYSTEM, *this->filepath);
     }
 
     private:

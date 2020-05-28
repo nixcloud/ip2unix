@@ -22,6 +22,13 @@ static std::vector<std::optional<SocketType>> sotypes = {
     SocketType::INVALID
 };
 
+static std::vector<SocketPath::Type> socketpathtypes = {
+#if defined(__linux__)
+    SocketPath::Type::ABSTRACT,
+#endif
+    SocketPath::Type::FILESYSTEM
+};
+
 static std::vector<std::optional<std::string>> strings = {
     std::nullopt,
     "",
@@ -80,6 +87,19 @@ std::string pprint(const SocketType &type) {
     throw std::runtime_error("Invalid SocketType value");
 }
 
+std::string pprint(const SocketPath &socket_path) {
+    switch (socket_path.type) {
+        case SocketPath::Type::FILESYSTEM:
+            return socket_path.value;
+#if defined(__linux__)
+        case SocketPath::Type::ABSTRACT:
+            return std::string("@") + socket_path.value;
+#endif
+    }
+
+    throw std::runtime_error("Invalid SocketPath value");
+}
+
 template <typename T>
 std::string pprint(const std::optional<T> &x)
 {
@@ -136,7 +156,11 @@ static unsigned long test_rule(unsigned long seed)
     rule.socket_activation = CHOOSE(bools);
     rule.fd_name = CHOOSE(strings);
 #endif
-    rule.socket_path = CHOOSE(strings);
+    std::optional<std::string> value = CHOOSE(strings);
+    if (value) {
+        SocketPath::Type socketpathtype = CHOOSE(socketpathtypes);
+        rule.socket_path = SocketPath(socketpathtype, *value);
+    }
     rule.reject = CHOOSE(bools);
     rule.reject_errno = CHOOSE(ints);
     rule.blackhole = CHOOSE(bools);

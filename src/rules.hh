@@ -4,6 +4,8 @@
 
 #include "types.hh"
 
+#include "socketpath.hh"
+
 #include <iostream>
 #include <optional>
 #include <vector>
@@ -24,7 +26,7 @@ struct Rule {
     std::optional<std::string> fd_name = std::nullopt;
 #endif
 
-    std::optional<std::string> socket_path = std::nullopt;
+    std::optional<SocketPath> socket_path = std::nullopt;
 
     bool reject = false;
     std::optional<int> reject_errno = std::nullopt;

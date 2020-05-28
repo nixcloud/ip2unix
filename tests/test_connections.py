@@ -135,6 +135,13 @@ class TcpConnectionTest(unittest.TestCase):
         finally:
             os.unlink(extrasock)
 
+    @helper.abstract_sockets_only
+    def test_abstract_socket(self):
+        srule = {'direction': 'incoming', 'abstract': 'a%p'}
+        crule = {'direction': 'outgoing', 'abstract': 'a%p'}
+        with self.run_server([srule], '1.2.3.4', 929):
+            self.assert_client([crule], '1.2.3.0', 929)
+
 
 class UdpConnectionTest(TcpConnectionTest):
     SOTYPE = 'udp'

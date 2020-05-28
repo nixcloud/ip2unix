@@ -252,6 +252,16 @@ Placeholders are allowed here and are substituted accordingly:
                     datagram socket)
 *%%*;; verbatim `%`
 
+ifndef::without-abstract[]
+*abstract*='NAME'::
+
+An abstract namespace Unix domain socket not being created in the file system
+but solely distinguished by its name.
++
+The placeholders supported in <<rule-socket-path,*path*>> are also supported
+here.
+endif::[]
+
 ifndef::without-systemd[]
 *systemd*[='FD_NAME']::
 Use the socket passed along via file descriptor by systemd instead of

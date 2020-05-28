@@ -5,7 +5,8 @@ import unittest
 
 from tempfile import NamedTemporaryFile
 
-from helper import IP2UNIX, systemd_only, non_systemd_only
+from helper import IP2UNIX, systemd_only, non_systemd_only, \
+                   abstract_sockets_only
 
 
 class RuleFileTest(unittest.TestCase):
@@ -69,6 +70,18 @@ class RuleFileTest(unittest.TestCase):
 
     def test_absolute_socket_path(self):
         self.assert_good_rules([{'socketPath': '/xxx'}])
+
+    @abstract_sockets_only
+    def test_valid_abstract_name(self):
+        self.assert_good_rules([{'abstract': 'foobar'}])
+
+    @abstract_sockets_only
+    def test_invalid_abstract_name(self):
+        self.assert_bad_rules([{'abstract': ''}])
+
+    @abstract_sockets_only
+    def test_abstract_and_path(self):
+        self.assert_bad_rules([{'abstract': 'xxx', 'socketPath': '/xxx'}])
 
     def test_invalid_enums(self):
         self.assert_bad_rules([{'socketPath': '/bbb', 'direction': 111}])

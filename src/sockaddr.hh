@@ -2,6 +2,8 @@
 #ifndef IP2UNIX_SOCKETADDR_HH
 #define IP2UNIX_SOCKETADDR_HH
 
+#include "socketpath.hh"
+
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -21,7 +23,7 @@ struct SockAddr
     SockAddr();
     SockAddr(const sockaddr*);
 
-    static std::optional<SockAddr> unix(const std::string&);
+    static std::optional<SockAddr> unix(const SocketPath&);
 
     SockAddr copy(void) const;
 
@@ -32,7 +34,7 @@ struct SockAddr
 
     bool set_random_host(void);
 
-    std::optional<std::string> get_sockpath(void) const;
+    std::optional<SocketPath> get_sockpath(void) const;
 
     std::optional<uint16_t> get_port(void) const;
     bool set_port(uint16_t);

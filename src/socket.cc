@@ -24,7 +24,7 @@ std::optional<Socket::Ptr> Socket::find(int fd)
     return found->second;
 }
 
-bool Socket::has_sockpath(const std::string &path)
+bool Socket::has_sockpath(const SocketPath &path)
 {
     using itype = decltype(Socket::sockpath_registry)::const_iterator;
     itype found = Socket::sockpath_registry.find(path);
@@ -56,7 +56,7 @@ static inline SocketType get_sotype(const int type)
 
 std::mutex Socket::registry_mutex;
 std::unordered_map<int, Socket::Ptr> Socket::registry;
-std::unordered_set<std::string> Socket::sockpath_registry;
+std::unordered_set<SocketPath> Socket::sockpath_registry;
 
 Socket::Socket(int sfd, int sdomain, int stype, int sproto)
     : type(get_sotype(stype))
@@ -174,15 +174,15 @@ int Socket::listen(int backlog) const
 /*
  * Replace placeholders such as %p or %a accordingly in the socket path.
  */
-std::string Socket::format_sockpath(const std::string &path,
-                                    const SockAddr &addr) const
+SocketPath Socket::format_sockpath(const SocketPath &path,
+                                   const SockAddr &addr) const
 {
     std::string out;
-    size_t path_len = path.size();
+    size_t path_len = path.value.size();
 
     for (size_t i = 0; i < path_len; ++i) {
-        if (path[i] == '%' && i + 1 < path_len) {
-            switch (path[i + 1]) {
+        if (path.value[i] == '%' && i + 1 < path_len) {
+            switch (path.value[i + 1]) {
                 case '%': out += '%'; i++; continue;
                 case 'a': out += addr.get_host().value_or("unknown"); i++;
                           continue;
@@ -198,10 +198,10 @@ std::string Socket::format_sockpath(const std::string &path,
                     continue;
             }
         }
-        out += path[i];
+        out += path.value[i];
     }
 
-    return out;
+    return SocketPath(path.type, out);
 }
 
 /*
@@ -322,7 +322,7 @@ int Socket::activate(const SockAddr &addr, int filedes, bool is_inet)
 #define USOCK_OR_EFAULT(path) \
     DO_USOCK_OR_FAIL(path, { errno = EFAULT; return -1; })
 
-int Socket::bind(const SockAddr &addr, const std::string &path)
+int Socket::bind(const SockAddr &addr, const SocketPath &path)
 {
     if (!this->make_unix())
         return -1;
@@ -339,7 +339,7 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
         port = anyport;
     }
 
-    std::string newpath = this->format_sockpath(path, newaddr);
+    SocketPath newpath = this->format_sockpath(path, newaddr);
 
     int ret;
 
@@ -347,7 +347,7 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
     // exact same path, let's blackhole the current socket.
     if (this->is_blackhole || Socket::has_sockpath(newpath)) {
         BlackHole bh;
-        std::optional<std::string> bh_path = bh.get_path();
+        std::optional<SocketPath> bh_path = bh.get_path();
         if (!bh_path) return -1;
 
         USOCK_OR_EFAULT(bh_path.value());
@@ -355,13 +355,14 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
         if (ret == 0)
             this->blackhole();
     } else {
-        if (this->reuse_addr)
-            unlink(newpath.c_str());
+        if (this->reuse_addr && newpath.is_real_file())
+            unlink(newpath.value.c_str());
         USOCK_OR_EFAULT(newpath);
         ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0) {
             Socket::sockpath_registry.insert(newpath);
-            this->unlink_sockpath = newpath;
+            if (newpath.is_real_file())
+                this->unlink_sockpath = newpath.value;
         }
     }
 
@@ -388,7 +389,7 @@ std::optional<int> Socket::connect_peermap(const SockAddr &addr)
     return std::nullopt;
 }
 
-int Socket::connect(const SockAddr &addr, const std::string &path)
+int Socket::connect(const SockAddr &addr, const SocketPath &path)
 {
     if (this->type == SocketType::UDP && !this->binding) {
         /* If we connect without prior binding on a datagram socket, we need to
@@ -407,7 +408,7 @@ int Socket::connect(const SockAddr &addr, const std::string &path)
         return ret;
     }
 
-    std::string new_sockpath = this->format_sockpath(path, addr);
+    SocketPath new_sockpath = this->format_sockpath(path, addr);
     USOCK_OR_EFAULT(new_sockpath);
 
     if (!this->make_unix())
@@ -523,7 +524,7 @@ bool Socket::rewrite_src(const SockAddr &real_addr, struct sockaddr *addr,
     if (!this->binding)
         return true;
 
-    std::optional<std::string> path = real_addr.get_sockpath();
+    std::optional<SocketPath> path = real_addr.get_sockpath();
     if (!path)
         return true;
 
@@ -566,7 +567,7 @@ Socket::rewrite_dest_peermap(const SockAddr &addr) const
 
 /* Rewrite address provided by sendto/sendmsg. */
 std::optional<SockAddr> Socket::rewrite_dest(const SockAddr &addr,
-                                             const std::string &path)
+                                             const SocketPath &path)
 {
     if (this->type != SocketType::UDP)
         return std::nullopt;
@@ -588,7 +589,7 @@ std::optional<SockAddr> Socket::rewrite_dest(const SockAddr &addr,
      */
     if (!this->binding) {
         std::unique_ptr<BlackHole> bh = std::make_unique<BlackHole>();
-        std::optional<std::string> bh_path = bh->get_path();
+        std::optional<SocketPath> bh_path = bh->get_path();
         if (!bh_path) return std::nullopt;
 
         USOCK_OR_FAIL(bh_path.value(), std::nullopt);
@@ -654,7 +655,9 @@ int Socket::close(void)
                       << "'.";
             unlink(this->unlink_sockpath.value().c_str());
             errno = old_errno;
-            Socket::sockpath_registry.erase(this->unlink_sockpath.value());
+            Socket::sockpath_registry.erase(SocketPath(
+                SocketPath::Type::FILESYSTEM, this->unlink_sockpath.value()
+            ));
             this->unlink_sockpath = std::nullopt;
         }
     }
