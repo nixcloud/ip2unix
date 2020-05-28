@@ -167,12 +167,12 @@ let
     }).test);
   };
 
-  tests.programs = lib.mapAttrs (lib.const (path: let
-    mkProgramTest = system: import path {
+  tests.programs = let
+    mkProgramTest = system: path: import path {
       pkgs = import nixpkgs { inherit system; config = {}; };
     };
-  in lib.genAttrs systems mkProgramTest)) {
-    rsession = tests/programs/rsession.nix;
+  in lib.mapAttrs (lib.const (lib.mapAttrs mkProgramTest)) {
+    rsession.x86_64-linux = tests/programs/rsession.nix;
   };
 
   coverage = fullForEachSystem (pkgs: {
