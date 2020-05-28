@@ -25,6 +25,9 @@ struct Rule {
 #endif
 
     std::optional<std::string> socket_path = std::nullopt;
+#if defined(__linux__)
+    std::optional<std::string> abstract = std::nullopt;
+#endif
 
     bool reject = false;
     std::optional<int> reject_errno = std::nullopt;

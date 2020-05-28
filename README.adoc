@@ -446,6 +446,12 @@ These options are available:
   the <<rule-socket-path,*socketPath*>> rule file option but also allows
   relative paths.
 
+ifndef::without-abstract[]
+*abstract*='NAME'::
+  A Unix domain socket not being created in the file system but solely
+  distinguished by its name. Similar to *path*, this also allows placeholders.
+endif::[]
+
 == Rule file format
 
 The rule file (specified via *-f* is a YAML file (or JSON, as it is a subset of
@@ -494,6 +500,16 @@ Placeholders are allowed here and those are substituted accordingly:
 *%a*;; IP address or `unknown`
 *%t*;; socket type (`tcp`, `udp` or `unknown`)
 *%%*;; verbatim `%`
+
+ifndef::without-abstract[]
+[[rule-abstract]]*abstract*::
+
+A Unix domain socket not being created in the file system but solely
+distinguished by its name.
++
+The placeholders supported in <<rule-socket-path,*socketPath*>> are also
+supported here.
+endif::[]
 
 ifndef::without-systemd[]
 [[rule-opt-socket-activation]]*socketActivation*::
