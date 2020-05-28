@@ -52,6 +52,9 @@ struct Socket : std::enable_shared_from_this<Socket>
 
     int setsockopt(int, int, const void*, socklen_t);
     int ioctl(unsigned long, const void*);
+#ifdef HAS_EPOLL
+    int epoll_ctl(int, int, struct epoll_event*);
+#endif
 
     int listen(int);
 #ifdef SYSTEMD_SUPPORT

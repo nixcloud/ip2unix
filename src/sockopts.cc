@@ -34,6 +34,18 @@ void SockOpts::cache_ioctl(unsigned long request, const void *arg)
     this->entries.push(entry);
 }
 
+#ifdef HAS_EPOLL
+void SockOpts::cache_epoll_ctl(int epfd, int op, struct epoll_event *event)
+{
+    std::optional<epoll_event> eventcopy;
+    if (event != nullptr)
+        eventcopy = *event;
+
+    SockOpts::EntryEpollCtl entry{epfd, op, eventcopy};
+    this->entries.push(entry);
+}
+#endif
+
 static bool copy_fd_owner(int old_sockfd, int new_sockfd)
 {
     f_owner_ex owner;
@@ -107,6 +119,26 @@ bool SockOpts::replay(int old_sockfd, int new_sockfd)
 
             return true;
         }
+
+#ifdef HAS_EPOLL
+        bool operator()(const SockOpts::EntryEpollCtl &entry)
+        {
+            epoll_event *event = nullptr;
+
+            if (entry.event)
+                event = const_cast<epoll_event*>(&*entry.event);
+
+            if (real::epoll_ctl(entry.epfd, entry.op, this->fd, event) == -1) {
+                LOG(WARNING) << "Failure replaying epoll_ctl using fd "
+                             << entry.epfd << " on socket fd " << this->fd
+                             << " with operation " << entry.op
+                             << ": " << strerror(errno);
+                return false;
+            }
+
+            return true;
+        }
+#endif
 
         private: int fd;
     };

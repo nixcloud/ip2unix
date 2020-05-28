@@ -48,6 +48,10 @@ if systemd_enabled
   cflags += ['-DSYSTEMD_SUPPORT']
 endif
 
+if cc.has_header_symbol('sys/epoll.h', 'epoll_ctl')
+  cflags += ['-DHAS_EPOLL']
+endif
+
 lib_sources = []
 main_sources = []
 includes = []

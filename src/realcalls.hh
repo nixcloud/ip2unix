@@ -10,6 +10,10 @@
 
 #include "logging.hh"
 
+#if HAS_EPOLL
+#include <sys/epoll.h>
+#endif
+
 /* Let's declare all of the wrappers as extern, so that we can define them by
  * simply overriding IP2UNIX_REALCALL_EXTERN before the #include directive.
  */
@@ -92,6 +96,9 @@ namespace real {
     DLSYM_FUN(getpeername, int, int, struct sockaddr*, socklen_t*);
     DLSYM_FUN(getsockname, int, int, struct sockaddr*, socklen_t*);
     DLSYM_FUN(ioctl, int, int, unsigned long, const void*);
+#ifdef HAS_EPOLL
+    DLSYM_FUN(epoll_ctl, int, int, int, int, struct epoll_event*);
+#endif
 #ifdef SYSTEMD_SUPPORT
     DLSYM_FUN(listen, int, int, int);
 #endif

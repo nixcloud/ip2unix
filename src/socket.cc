@@ -136,6 +136,20 @@ int Socket::ioctl(unsigned long request, const void *arg)
     return ret;
 }
 
+#ifdef HAS_EPOLL
+int Socket::epoll_ctl(int epfd, int op, struct epoll_event *event)
+{
+    int ret = real::epoll_ctl(epfd, op, this->fd, event);
+    if (ret != 0)
+        return ret;
+
+    if (!this->is_unix)
+        this->sockopts.cache_epoll_ctl(epfd, op, event);
+
+    return ret;
+}
+#endif
+
 #ifdef SYSTEMD_SUPPORT
 int Socket::listen(int backlog)
 {
