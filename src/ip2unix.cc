@@ -30,7 +30,7 @@ static std::optional<std::string> get_preload_libpath(void)
 static bool run_preload(std::vector<Rule> &rules, char *argv[])
 {
     const char *libversion;
-    char *buf, *preload;
+    char *preload;
     std::optional<std::string> libpath;
 
     libversion = __ip2unix__();
