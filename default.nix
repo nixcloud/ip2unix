@@ -47,5 +47,12 @@ pkgs.stdenv.mkDerivation rec {
       echo "ERROR: Manual page hasn't been generated." >&2
       exit 1
     fi
+
+    diff -u <(
+      find "$src/src" -iname '*.cc' -type f -exec \
+        sed -n -e '/^ *#/!s/^.*WRAP_SYM(\([^)]\+\)).*/\1/p' {} + | sort
+    ) <(
+      nm --defined-only -g "$out/lib/libip2unix.so" | cut -d' ' -f3- | sort
+    )
   '';
 }
