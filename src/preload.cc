@@ -116,6 +116,23 @@ extern "C" int WRAP_SYM(ioctl)(int fd, unsigned long request, void *arg)
     });
 }
 
+#ifdef HAS_EPOLL
+extern "C" int WRAP_SYM(epoll_ctl)(int epfd, int op, int fd,
+                                   struct epoll_event *event)
+{
+    TRACE_CALL("epoll", epfd, op, fd, event);
+
+    return Socket::when<int>(fd, [&](Socket::Ptr sock) {
+        if (sock->rewrite_peer_address)
+            return sock->epoll_ctl(epfd, op, event);
+        else
+            return real::epoll_ctl(epfd, op, fd, event);
+    }, [&]() {
+        return real::epoll_ctl(epfd, op, fd, event);
+    });
+}
+#endif
+
 #ifdef SYSTEMD_SUPPORT
 /*
  * For systemd socket activation, we need to make sure the program doesn't run

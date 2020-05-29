@@ -171,6 +171,14 @@ let
     }).test);
   };
 
+  tests.programs = let
+    mkProgramTest = system: path: import path {
+      pkgs = import nixpkgs { inherit system; config = {}; };
+    };
+  in lib.mapAttrs (lib.const (lib.mapAttrs mkProgramTest)) {
+    rsession.x86_64-linux = tests/programs/rsession.nix;
+  };
+
   tests.sanitizer = lib.mapAttrs (name: let
     genDrv = { fun ? forEachSystem, override ? x: {} }: fun (super: {
       mesonFlags = [ "-Db_sanitize=${name}" ];
