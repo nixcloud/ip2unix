@@ -167,6 +167,23 @@ let
     }).test);
   };
 
+  tests.sanitizer = lib.mapAttrs (name: let
+    genDrv = { fun ? forEachSystem, override ? x: {} }: fun (super: {
+      mesonFlags = [ "-Db_sanitize=${name}" ];
+      mesonBuildType = "debug";
+      disableHardening = [ "all" ];
+      doInstallCheck = false;
+      nativeBuildInputs = [ super.python3 ];
+    } // override super);
+  in genDrv) {
+    # FIXME: Currently those do not work with integration tests because
+    #        lib[at]san runtimes need to be the initial library to be loaded.
+    address = {};
+    thread = {};
+
+    undefined.fun = fullForEachSystem;
+  };
+
   coverage = fullForEachSystem (pkgs: {
     nativeBuildInputs = [ pkgs.lcov ];
 
