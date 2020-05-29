@@ -27,8 +27,10 @@ add_project_arguments(cc.get_supported_arguments(warning_flags),
 python = import('python').find_installation('python3')
 
 cflags = ['-DVERSION="' + meson.project_version() + '"']
+cflags += ['-fPIC']
 main_cflags = []
 lib_cflags = []
+lib_ldflags = []
 
 deps = [
   dependency('yaml-cpp', version: '>=0.5.0'),
@@ -56,11 +58,12 @@ subdir('src')
 generate_sym_map = [python, script_gensyms, '@INPUT@']
 sym_map = custom_target('symmap', input: lib_sources, output: 'symbols.map',
                         command: generate_sym_map, capture: true)
-cflags += ['-Wl,--version-script,@0@'.format(sym_map.full_path())]
+lib_ldflags += ['-Wl,--version-script,@0@'.format(sym_map.full_path())]
 
 libip2unix = shared_library('ip2unix', lib_sources, install: true,
                             dependencies: deps, link_depends: sym_map,
                             cpp_args: lib_cflags + cflags,
+                            link_args: lib_ldflags,
                             include_directories: includes)
 
 ip2unix = executable('ip2unix', main_sources, install: true,

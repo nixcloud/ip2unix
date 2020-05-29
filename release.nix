@@ -160,6 +160,10 @@ let
     '';
   });
 
+  tests.no-hardening = fullForEachSystem (pkgs: {
+    hardeningDisable = [ "all" ];
+  });
+
   tests.vm = {
     systemd = lib.genAttrs systems (system: (import ./tests/vm/systemd.nix {
       inherit system;
