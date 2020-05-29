@@ -183,7 +183,10 @@ let
     # FIXME: Currently those do not work with integration tests because
     #        lib[at]san runtimes need to be the initial library to be loaded.
     address = {};
-    thread = {};
+
+    thread.fun = fun: let
+      supportedSystems = lib.remove "i686-linux" systems;
+    in lib.genAttrs supportedSystems (withSystem fun);
 
     undefined.fun = fullForEachSystem;
   };
