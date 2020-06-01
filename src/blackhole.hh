@@ -3,6 +3,7 @@
 #define IP2UNIX_BLACKHOLE_HH
 
 #include <optional>
+#include <string>
 
 struct BlackHole
 {
