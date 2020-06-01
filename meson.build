@@ -1,6 +1,6 @@
 project('ip2unix', 'cpp',
         default_options: ['cpp_std=c++17', 'warning_level=3'],
-        meson_version: '>=0.46.0', version: '2.1.1')
+        meson_version: '>=0.46.0', version: '2.1.3')
 
 script_findlibc = files('scripts/findlibc.py')
 script_generrno = files('scripts/generrno.py')
