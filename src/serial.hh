@@ -62,7 +62,7 @@ MaybeError deserialise(std::istream &in, std::optional<T> *out)
     in.unget();
     T outval;
     MaybeError err;
-    if (err = deserialise(in, &outval))
+    if ((err = deserialise(in, &outval)))
         return err;
     out->emplace(outval);
     return std::nullopt;
@@ -83,14 +83,14 @@ MaybeError deserialise(std::istream &in, std::pair<A, B> *out)
     char c;
     MaybeError err;
 
-    if (err = deserialise(in, &out->first))
+    if ((err = deserialise(in, &out->first)))
         return err;
 
     if ((c = in.get()) != '#')
         return std::string("Invalid character '")
              + c + "' after first pair value.";
 
-    if (err = deserialise(in, &out->second))
+    if ((err = deserialise(in, &out->second)))
         return err;
 
     if ((c = in.get()) != '$')
@@ -113,7 +113,7 @@ MaybeError deserialise(std::istream &in, std::deque<T> *out)
     while (in.peek() != EOF) {
         T outval;
         MaybeError err;
-        if (err = deserialise(in, &outval))
+        if ((err = deserialise(in, &outval)))
             return err;
         out->push_back(outval);
     }
@@ -133,7 +133,7 @@ MaybeError deserialise(std::istream &in, std::vector<T> *out)
     while (in.peek() != EOF) {
         T outval;
         MaybeError err;
-        if (err = deserialise(in, &outval))
+        if ((err = deserialise(in, &outval)))
             return err;
         out->push_back(outval);
     }
@@ -159,14 +159,14 @@ MaybeError deserialise(std::istream &in, std::unordered_map<K, V> *out)
         MaybeError err;
 
         K outkey;
-        if (err = deserialise(in, &outkey))
+        if ((err = deserialise(in, &outkey)))
             return err;
 
         if ((c = in.get()) != '=')
             return std::string("Invalid character '") + c + "' after map key.";
 
         V outval;
-        if (err = deserialise(in, &outval))
+        if ((err = deserialise(in, &outval)))
             return err;
 
         if ((c = in.get()) != ';') {
@@ -195,7 +195,7 @@ MaybeError deserialise(const std::string &val, T *out)
     std::istringstream in;
     in.str(val);
     MaybeError err;
-    if (err = deserialise(in, out))
+    if ((err = deserialise(in, out)))
         return err;
     return std::nullopt;
 }

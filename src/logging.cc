@@ -21,7 +21,7 @@ Logger::Logger(Verbosity verbosity, const std::string_view &file, int line,
 {
     if (!current_verbosity) {
         const char *env = getenv("__IP2UNIX_VERBOSITY");
-        if (env != NULL && *env >= '0' && *env <= '9')
+        if (env != nullptr && *env >= '0' && *env <= '9')
             current_verbosity = static_cast<Verbosity>(atoi(env));
         else
             current_verbosity = Verbosity::FATAL;

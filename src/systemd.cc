@@ -127,13 +127,13 @@ static bool init_from_env(void)
     if (fds_raw == nullptr || fdmap_raw == nullptr)
         return false;
 
-    if (err = deserialise(std::string(fds_raw), &fds)) {
+    if ((err = deserialise(std::string(fds_raw), &fds))) {
         LOG(FATAL) << "Unable to deserialise __IP2UNIX_SYSTEMD_FDS: "
                    << *err;
         std::abort();
     }
 
-    if (err = deserialise(std::string(fdmap_raw), &fdmap)) {
+    if ((err = deserialise(std::string(fdmap_raw), &fdmap))) {
         LOG(FATAL) << "Unable to deserialise __IP2UNIX_SYSTEMD_FDMAP: "
                    << *err;
         std::abort();

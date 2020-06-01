@@ -138,7 +138,7 @@ static unsigned long test_rule(unsigned long seed)
     std::string result = serialise(rule);
     Rule newrule;
     MaybeError err;
-    if (err = deserialise(result, &newrule))
+    if ((err = deserialise(result, &newrule)))
         throw std::runtime_error(*err);
 
     ASSERT_RULEVAL(direction);
@@ -171,7 +171,7 @@ static void test_pairs(void)
         std::string result = serialise(item);
         MaybeError err;
         std::pair<int, bool> out;
-        if (err = deserialise(result, &out))
+        if ((err = deserialise(result, &out)))
             throw std::runtime_error(*err);
         ASSERT_EQUAL(item, out);
     }
@@ -180,7 +180,7 @@ static void test_pairs(void)
         std::string result = serialise(item);
         MaybeError err;
         std::pair<std::string, int> out;
-        if (err = deserialise(result, &out))
+        if ((err = deserialise(result, &out)))
             throw std::runtime_error(*err);
         ASSERT_EQUAL(item, out);
     }
