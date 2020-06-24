@@ -64,15 +64,12 @@ static bool run_preload(std::vector<Rule> &rules, char *argv[])
 
 #define PROG "PROGRAM [ARGS...]"
 #define COMMON "[-v...] [-p]"
+#define RULE_ARGS "{-r RULE | -f FILE} [-r RULE | -f FILE]..."
 
 static void print_usage(char *prog, FILE *fp)
 {
-    fprintf(fp, "Usage: %s " COMMON " -f RULES_FILE        " PROG "\n", prog);
-    fprintf(fp, "       %s " COMMON " -F RULES_DATA        " PROG "\n", prog);
-    fprintf(fp, "       %s " COMMON " -r RULE [-r RULE]... " PROG "\n", prog);
-    fprintf(fp, "       %s " COMMON " -c -f RULES_FILE\n", prog);
-    fprintf(fp, "       %s " COMMON " -c -F RULES_DATA\n", prog);
-    fprintf(fp, "       %s " COMMON " -c -r RULE [-r RULE]...\n", prog);
+    fprintf(fp, "Usage: %s " COMMON " " RULE_ARGS " " PROG "\n", prog);
+    fprintf(fp, "       %s " COMMON " -c " RULE_ARGS "\n", prog);
     fprintf(fp, "       %s -h\n", prog);
     fprintf(fp, "       %s --version\n", prog);
     fputs("\nTurn IP sockets into Unix domain sockets for PROGRAM\n", fp);
@@ -80,15 +77,14 @@ static void print_usage(char *prog, FILE *fp)
     fputs("given by RULES_FILE, inline via RULES_DATA or by directly\n", fp);
     fputs("specifying one or more individual RULE arguments.\n", fp);
     fputs("\nOptions:\n", fp);
-    fputs("  -h, --help        Show this usage\n",                     fp);
-    fputs("      --version     Output version information and exit\n", fp);
-    fputs("  -c, --check       Validate rules and exit\n",             fp);
-    fputs("  -p, --print       Print out the table of rules\n",        fp);
-    fputs("  -f, --rules-file  YAML/JSON file containing the rules\n", fp);
-    fputs("  -F, --rules-data  Rules as inline YAML/JSON data\n",      fp);
-    fputs("  -r, --rule        A single rule\n",                       fp);
-    fputs("  -v, --verbose     Increase level of verbosity\n",         fp);
-    fputs("\nSee ip2unix(1) for details about specifying rules.\n", fp);
+    fputs("  -h, --help        Show this usage\n",                        fp);
+    fputs("      --version     Output version information and exit\n",    fp);
+    fputs("  -c, --check       Validate rules and exit\n",                fp);
+    fputs("  -p, --print       Print out the table of rules\n",           fp);
+    fputs("  -f, --file=FILE   Read newline-separated rules from FILE\n", fp);
+    fputs("  -r, --rule        A single rule\n",                          fp);
+    fputs("  -v, --verbose     Increase level of verbosity\n",            fp);
+    fputs("\nSee ip2unix(1) for details about specifying rules.\n",       fp);
 }
 
 static void print_version(void)
@@ -100,6 +96,22 @@ static void print_version(void)
           stdout);
 }
 
+static void warn_deprecated_rules_file_long_opt(void)
+{
+    fputs("The use of the --rules-file option is deprecated and the option"
+          " will be removed in ip2unix version 3.0. Furthermore, YAML will no"
+          " longer be supported for rule specification and the new --file"
+          " option simply takes a file with a list of newline-separated rules"
+          " as specified via the -r/--rule option.", stderr);
+}
+
+static void warn_deprecated_yaml_data(void)
+{
+    fputs("The use of -F/--rules-data option is deprecated and it will be"
+          " removed in ip2unix version 3. Please use the -r/--rule option"
+          " instead.\n", stderr);
+}
+
 int main(int argc, char *argv[])
 {
     int c;
@@ -109,15 +121,23 @@ int main(int argc, char *argv[])
     bool show_rules = false;
     unsigned int verbosity = 0;
 
+    // TODO: Remove in version 3.0.
+    bool show_warn_deprecated_rules_file_long_opt = false;
+    bool show_warn_deprecated_yaml_data = false;
+
     static struct option lopts[] = {
         {"help", no_argument, nullptr, 'h'},
         {"version", no_argument, nullptr, 'V'},
         {"check", no_argument, nullptr, 'c'},
         {"print", no_argument, nullptr, 'p'},
         {"rule", required_argument, nullptr, 'r'},
-        {"rules-file", required_argument, nullptr, 'f'},
-        {"rules-data", required_argument, nullptr, 'F'},
+        {"file", required_argument, nullptr, 'f'},
         {"verbose", no_argument, nullptr, 'v'},
+
+        // TODO: Remove in version 3.0.
+        {"rules-file", required_argument, nullptr, 'y'},
+        {"rules-data", required_argument, nullptr, 'F'},
+
         {nullptr, 0, nullptr, 0}
     };
 
@@ -148,11 +168,14 @@ int main(int argc, char *argv[])
                 rule_args.push_back(optarg);
                 break;
 
+            case 'y':
+                show_warn_deprecated_rules_file_long_opt = true;
             case 'f':
                 rulefile = std::string(optarg);
                 break;
 
             case 'F':
+                show_warn_deprecated_yaml_data = true;
                 ruledata = std::string(optarg);
                 break;
 
@@ -166,6 +189,12 @@ int main(int argc, char *argv[])
                 return EXIT_FAILURE;
         }
     }
+
+    // TODO: Remove in version 3.0.
+    if (show_warn_deprecated_rules_file_long_opt)
+        warn_deprecated_rules_file_long_opt();
+    if (show_warn_deprecated_yaml_data)
+        warn_deprecated_yaml_data();
 
     if (!rule_args.empty() && (rulefile || ruledata)) {
         fprintf(stderr, "%s: Can't specify both direct rules and a rule"
@@ -202,8 +231,7 @@ int main(int argc, char *argv[])
         rules = result.value();
     } else {
         fprintf(stderr, "%s: You need to either specify a rule file with '-f'"
-                        " or '-F' (for inline content) or directly specify"
-                        " rules via '-r'.\n\n", self);
+                        " or directly specify rules via '-r'.\n\n", self);
         print_usage(self, stderr);
         return EXIT_FAILURE;
     }

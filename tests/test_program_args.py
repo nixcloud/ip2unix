@@ -38,13 +38,17 @@ def test_rule_longopts(tmpdir):
     rulesfile = str(tmpdir.join('rules.yml'))
     rulesdata = json.dumps([{'socketPath': '/test'}])
     open(rulesfile, 'w').write(rulesdata)
-    for cmd in [
+    for deprecated_cmd in [
         [IP2UNIX, '-cp', '--rules-file', rulesfile],
         [IP2UNIX, '-cp', '--rules-data', rulesdata],
-        [IP2UNIX, '-cp', '--rule', 'path=/test'],
     ]:
-        stdout = subprocess.check_output(cmd)
+        stdout = subprocess.check_output(deprecated_cmd,
+                                         stderr=subprocess.STDOUT)
+        assert b"is deprecated" in stdout
         assert b"path: /test\n" in stdout
+
+    stdout = subprocess.check_output([IP2UNIX, '-cp', '--rule', 'path=/test'])
+    assert b"path: /test\n" in stdout
 
 
 def test_no_program():

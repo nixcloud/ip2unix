@@ -9,13 +9,25 @@ from helper import IP2UNIX, systemd_only, non_systemd_only
 class RuleFileTest(unittest.TestCase):
     def assert_good_rules(self, rules):
         cmd = [IP2UNIX, '-c', '-F', json.dumps(rules)]
-        result = subprocess.run(cmd, stderr=subprocess.STDOUT)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+        self.assertTrue(result.stdout.startswith(
+            b'The use of -F/--rules-data option is deprecated and it will be'
+            b' removed in ip2unix version 3. Please use the -r/--rule option'
+            b' instead.\n'
+        ))
         msg = 'Rules {!r} do not validate: {}'.format(rules, result.stdout)
         self.assertEqual(result.returncode, 0, msg)
 
     def assert_bad_rules(self, rules):
         cmd = [IP2UNIX, '-c', '-F', json.dumps(rules)]
-        result = subprocess.run(cmd, stderr=subprocess.STDOUT)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+        self.assertTrue(result.stdout.startswith(
+            b'The use of -F/--rules-data option is deprecated and it will be'
+            b' removed in ip2unix version 3. Please use the -r/--rule option'
+            b' instead.\n'
+        ))
         msg = 'Rules {!r} should not be valid.'.format(rules)
         self.assertNotEqual(result.returncode, 0, msg)
 
@@ -168,7 +180,12 @@ class RuleFileTest(unittest.TestCase):
         result = subprocess.run(cmd, stderr=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stderr, b'')
+        self.assertEqual(
+            result.stderr,
+            b'The use of -F/--rules-data option is deprecated and it will be'
+            b' removed in ip2unix version 3. Please use the -r/--rule option'
+            b' instead.\n'
+        )
         self.assertNotEqual(result.stdout, b'')
         self.assertGreater(len(result.stdout), 0)
         self.assertIn(b'IP Type', result.stdout)
@@ -181,6 +198,11 @@ class RuleFileTest(unittest.TestCase):
                                 stdout=subprocess.PIPE)
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout, b'')
-        self.assertNotEqual(result.stderr, b'')
+        self.assertTrue(result.stderr.startswith(
+            b'The use of -F/--rules-data option is deprecated and it will be'
+            b' removed in ip2unix version 3. Please use the -r/--rule option'
+            b' instead.\n'
+        ))
+        self.assertRegex(result.stderr[134:], b'^Rule #1.*')
         self.assertGreater(len(result.stderr), 0)
         self.assertIn(b'IP Type', result.stderr)
