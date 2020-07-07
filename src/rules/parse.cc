@@ -246,6 +246,23 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
     return rule;
 }
 
+bool is_yaml_rule_file(std::string filename)
+{
+    YAML::Node doc;
+
+    try {
+        doc = YAML::LoadFile(filename);
+    } catch (const YAML::ParserException &e) {
+        return false;
+    } catch (const YAML::BadFile &e) {
+        // If the file can't be opened, let's assume it's YAML for now, since
+        // we're going to eventually throw an error anyway.
+        return true;
+    }
+
+    return doc.IsSequence();
+}
+
 std::optional<std::vector<Rule>>
     parse_rules(std::string content, bool content_is_filename)
 {

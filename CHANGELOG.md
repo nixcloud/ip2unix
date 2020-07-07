@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Added
 - Deprecation warnings if rules are specified in YAML format.
 
+### Changed
+- Rule files (`-f`) are now just a list of newline-separated rule (`-r`)
+  arguments instead of YAML files.
+
 ## [2.1.3] - 2020-06-01
 
 ### Fixed

@@ -370,7 +370,9 @@ ifdef::manmanual[]
 
 *-f, --file*='FILE'::
   Read rules from 'FILE', which contains a newline-separated list of rules as
-  specified via `-r`.
+  specified via `-r`. Empty lines as well as lines starting with `#` are
+  skipped. Whitespace characters at the beginning of each line are stripped as
+  well.
 
 *-v, --verbose*::
   Increases the level of verbosity, according to the following table:

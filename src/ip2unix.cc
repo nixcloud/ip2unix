@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
+#include <algorithm>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <getopt.h>
 #include <string>
 #include <unistd.h>
@@ -112,6 +114,48 @@ static void warn_deprecated_yaml_data(void)
           " instead.\n", stderr);
 }
 
+static void warn_deprecated_yaml_file(std::string &filename)
+{
+    fprintf(stderr, "The rule file '%s' contains YAML data, which will no"
+            " longer be supported in ip2unix version 3. Please use a list of"
+            " newline-separated rules as specified via the -r/--rule option.",
+            filename.c_str());
+}
+
+static bool push_rule_args_from_file(std::string &filename,
+                                     std::vector<std::string> &rule_args)
+{
+    std::ifstream input(filename);
+    std::string line;
+
+    if (!input.is_open()) {
+        fprintf(stderr, "Error opening rule file '%s': %s\n",
+                filename.c_str(), strerror(errno));
+        return false;
+    }
+
+    while (std::getline(input, line)) {
+        // Remove all leading whitespace characters
+        auto to_erase = std::find_if(
+            line.begin(), line.end(), [](int c) { return !std::isspace(c); }
+        );
+        line.erase(line.begin(), to_erase);
+
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        rule_args.push_back(line);
+    }
+
+    if (input.bad()) {
+        fprintf(stderr, "Error reading rule file '%s': %s\n",
+                filename.c_str(), strerror(errno));
+        return false;
+    }
+
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
     int c;
@@ -172,6 +216,16 @@ int main(int argc, char *argv[])
                 show_warn_deprecated_rules_file_long_opt = true;
             case 'f':
                 rulefile = std::string(optarg);
+                if (is_yaml_rule_file(*rulefile))
+                    warn_deprecated_yaml_file(*rulefile);
+                else if (push_rule_args_from_file(*rulefile, rule_args))
+                    // XXX: This is to make sure that when we use the new rule
+                    //      file format we can use multiple -f options.
+                    // TODO: Remove this in version 3.0 when dropping YAML
+                    //       support.
+                    rulefile = std::nullopt;
+                else
+                    return EXIT_FAILURE;
                 break;
 
             case 'F':

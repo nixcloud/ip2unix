@@ -3,6 +3,8 @@ import subprocess
 import sys
 import unittest
 
+from tempfile import NamedTemporaryFile
+
 from helper import IP2UNIX, systemd_only, non_systemd_only
 
 
@@ -206,3 +208,42 @@ class RuleFileTest(unittest.TestCase):
         self.assertRegex(result.stderr[134:], b'^Rule #1.*')
         self.assertGreater(len(result.stderr), 0)
         self.assertIn(b'IP Type', result.stderr)
+
+    def test_new_style_rule_files(self):
+        with NamedTemporaryFile('w') as rf1, NamedTemporaryFile('w') as rf2:
+            rf1.write('in,port=1234,path=/foo\n')
+            rf1.flush()
+            rf2.write('  \t in,addr=9.8.7.6,path=/bar\n'
+                      # Note the second \n here is to make sure that we skip
+                      # empty lines.
+                      '# some comment\n\n'
+                      # Only whitespace should be skipped as well.
+                      '   \t  '
+                      # Note: Missing \n is intentional here!
+                      'out,port=4321,path=/foobar')
+            rf2.flush()
+            cmd = [IP2UNIX, '-c', '-p', '-f', rf1.name, '-f', rf2.name]
+            result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT)
+
+        self.assertEqual(
+            result.stdout,
+            b'Rule #1:\n'
+            b'  Direction: incoming\n'
+            b'  IP Type: TCP and UDP\n'
+            b'  Address: <any>\n'
+            b'  Port: 1234\n'
+            b'  Socket path: /foo\n'
+            b'Rule #2:\n'
+            b'  Direction: incoming\n'
+            b'  IP Type: TCP and UDP\n'
+            b'  Address: 9.8.7.6\n'
+            b'  Port: <any>\n'
+            b'  Socket path: /bar\n'
+            b'Rule #3:\n'
+            b'  Direction: outgoing\n'
+            b'  IP Type: TCP and UDP\n'
+            b'  Address: <any>\n'
+            b'  Port: 4321\n'
+            b'  Socket path: /foobar\n'
+        )
