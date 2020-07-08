@@ -103,7 +103,14 @@ So if you either have a multi-user system or just want to separate privileges,
 Unix domain sockets are a good way to achieve that.
 
 Another very common use case in nowadays systems is when you're using systemd
-and want to use socket units to allow parallel startup of services.
+and want to use socket units for services that don't support socket activation.
+Apart from getting rid of the necessity to specify explicit dependencies, this
+is also very useful for privilege separation, since a lot of services can be
+run in a separate network namespace.
+
+The systemd use case is also be useful even when not using Unix domain sockets
+in socket units, since it allows to even add IP-based socket activation to
+services that don't support it.
 
 [discrete]
 == Short example
