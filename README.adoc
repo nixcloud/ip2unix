@@ -400,52 +400,52 @@ just use two consecutive backslashes instead.
 The following flags are available:
 
 *in* | *out*::
-  Whether this rule applies to a server-side socket (`in`), a client-side
-  socket (`out`) or both if neither `in` nor `out` is specified.
+Whether this rule applies to a server-side socket (`in`), a client-side
+socket (`out`) or both if neither `in` nor `out` is specified.
 
 *tcp* | *udp*::
-  Specifies the IP type, which currently is either `tcp` for TCP sockets, `udp`
-  for UDP sockets or if it is not defined it matches both UDP and TCP sockets.
+Specifies the IP type, which currently is either `tcp` for TCP sockets, `udp`
+for UDP sockets or if it is not defined it matches both UDP and TCP sockets.
 
 ifndef::without-systemd[]
 *systemd*[='FD_NAME']::
-  Use the socket passed along via file descriptor by systemd instead of
-  creating one.
+Use the socket passed along via file descriptor by systemd instead of
+creating one.
 +
-  An optional file descriptor name ('FD_NAME') can be specified to
-  distinguish between several socket units. This corresponds to the {fdname}
-  systemd socket option.
+An optional file descriptor name ('FD_NAME') can be specified to
+distinguish between several socket units. This corresponds to the {fdname}
+systemd socket option.
 endif::[]
 
 *reject*[='ERRNO']::
-  Reject calls to *connect* and *bind* with `EACCES` by default or the 'ERRNO'
-  specified either via name or as an integer.
+Reject calls to *connect* and *bind* with `EACCES` by default or the 'ERRNO'
+specified either via name or as an integer.
 
 *blackhole*::
-  When binding the socket, use a temporary file system path and *unlink* it
-  shortly after the *bind*. This is a way to deactivate a specific socket
-  without the application noticing.
+When binding the socket, use a temporary file system path and *unlink* it
+shortly after the *bind*. This is a way to deactivate a specific socket
+without the application noticing.
 
 *ignore*::
-  Prevents a socket from being converted to a Unix domain socket if this is
-  set. This is useful to exempt specific sockets from being matched when
-  another rule matches a broad scope.
+Prevents a socket from being converted to a Unix domain socket if this is
+set. This is useful to exempt specific sockets from being matched when
+another rule matches a broad scope.
 
 These options are available:
 
 *addr*[*ess*]='ADDRESS'::
-  The IP address to match, which can be either an IPv4 or an IPv6 address.
+The IP address to match, which can be either an IPv4 or an IPv6 address.
 
 *port*='PORT'[-'PORT_END']::
-  UDP or TCP port number which for outgoing connections specifies the target
-  port and for incomping connections the port that the socket is bound to.
+UDP or TCP port number which for outgoing connections specifies the target
+port and for incomping connections the port that the socket is bound to.
 +
 If a range is specified by separating two port numbers via `-`, the given
 range is matched instead of just a single port. The range is inclusive, so if
 `2000-3000` is specified, both port 2000 and port 3000 are matched as well.
 
 [[rule-socket-path]]*path*='SOCKET_PATH'::
-  The path to the socket file to either bind or connect to.
+The path to the socket file to either bind or connect to.
 +
 Placeholders are allowed here and are substituted accordingly:
 +
