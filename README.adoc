@@ -108,9 +108,9 @@ Apart from getting rid of the necessity to specify explicit dependencies, this
 is also very useful for privilege separation, since a lot of services can be
 run in a separate network namespace.
 
-The systemd use case is also be useful even when not using Unix domain sockets
-in socket units, since it allows to even add IP-based socket activation to
-services that don't support it.
+The systemd use case is also useful even when not using Unix domain sockets in
+socket units, since it allows to add IP-based socket activation to services
+that don't support it.
 
 [discrete]
 == Short example
