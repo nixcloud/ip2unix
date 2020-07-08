@@ -36,6 +36,10 @@ ifndef::manmanual[]
 :3: {sysdman_url}/systemd.socket.html
 :4: pass:attributes,quotes[{3}#FileDescriptorName=]
 
+:xt_owner_url: {man_url}/man8/iptables-extensions.8.html
+:xt_owner: pass:attributes,quotes[{xt_owner_url}[iptables owner module]]
+:socat: pass:attributes,quotes[http://www.dest-unreach.org/socat/[*socat*]]
+
 :LD_PRELOAD: pass:attributes,quotes[*LD_PRELOAD* ({1}[*ld.so*(8)])]
 :syscall_accept: pass:attributes,quotes[{2}[*accept*(2)]]
 :systemd_socket: pass:attributes,quotes[{3}[*systemd.socket*(5)]]
@@ -550,6 +554,50 @@ ifndef::without-systemd[*systemd.socket*(5)]
 endif::[]
 
 ifndef::manmanual[]
+
+== Frequently Asked Question
+
+=== Isn't this functionality already covered by {socat}?
+
+The {socat} tool has a very different purpose: It is essentially a way of
+connecting streams between different address types. Apart from a myriad of
+options, it supports quite a lot of address types and it's really good at
+providing great flexibility to connect bidirectional streams.
+
+However what it doesn't do is change the behaviour of the target application,
+which is what *ip2unix* does.
+
+For example, if you have an application that listens to TCP port 1234, you can
+use {socat} to create a Unix domain socket listening on `foo.sock` and proxying
+all requests to TCP port 1234:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ socat UNIX-LISTEN:foo.sock,fork TCP:localhost:1234
+---------------------------------------------------------------------
+
+Here, the application will still listen to TCP port 1234, but we now have two
+additional sockets (Unix inbound and TCP/IP outbound) we need to take care of.
+
+*ip2unix* on the other side redirects the C library calls of the application in
+question, so that TCP port 1234 will not be bound in the first place and
+instead the application directly binds to a Unix domain socket.
+
+This not only allows for better privilege separation (because local users need
+file system access permissions to the socket file) but also involves less
+overhead since only one socket (the listening socket of the application itself)
+is used.
+
+=== Yes, but can't this still be done via {socat} and the {xt_owner}?
+
+Of course you could use *iptables* to only allow access to the user running
+socat. But again, this still needs additional sockets and also still doesn't
+decrease the attack surface by a large margin (eg. there could be race
+conditions in loading *iptables* rules or simply human error specifying the
+rules).
+
+Not binding to an IP socket in the first place however gets rid of that attack
+surface, since you can't attack things that don't exist.
 
 == Similar projects
 
