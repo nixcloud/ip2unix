@@ -545,12 +545,6 @@ the server to natively use Unix domain sockets.
 
 ifdef::manmanual[]
 
-== Environment variables
-
-*IP2UNIX_RULE_FILE*::
-  When used in conjunction with {LD_PRELOAD}, this environment variable has to
-  be set as well, specifying the absolute path to the rule file.
-
 == See also
 
 *accept*(2),

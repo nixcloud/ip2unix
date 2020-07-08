@@ -46,9 +46,12 @@ static void init_rules(void)
             _exit(EXIT_FAILURE);
         }
     } else if ((rule_source = getenv("IP2UNIX_RULE_FILE")) != nullptr) {
+        std::cerr << "The use of the IP2UNIX_RULE_FILE environment"
+                     " variable is deprecated and will be removed in"
+                     " ip2unix version 3.0." << std::endl;
         rules = parse_rules(std::string(rule_source), true);
     } else {
-        LOG(FATAL) << "Unable to find __IP2UNIX_RULES or IP2UNIX_RULE_FILE!";
+        LOG(FATAL) << "Unable to find __IP2UNIX_RULES!";
         _exit(EXIT_FAILURE);
     }
 

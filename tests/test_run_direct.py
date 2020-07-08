@@ -32,10 +32,15 @@ def test_run_direct(tmpdir):
         sock.bind(str(sockfile))
         sock.listen(10)
 
-        with subprocess.Popen(cmd, env=env) as proc, sock.accept()[0] as conn:
+        with subprocess.Popen(cmd, env=env, stderr=subprocess.PIPE) as proc, \
+             sock.accept()[0] as conn:
             data = conn.recv(6)
             assert data == b'foobar'
             conn.sendall(b'barfoo')
+            expected = b'The use of the IP2UNIX_RULE_FILE environment' \
+                       b' variable is deprecated and will be removed in' \
+                       b' ip2unix version 3.0.\n'
+            assert proc.stderr.read() == expected
             assert proc.wait() == 0
 
 
