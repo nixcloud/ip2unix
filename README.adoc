@@ -79,12 +79,13 @@ image:{badge_url_master}["master build status", link="{latest_eval_master}"]
 image:{badge_url_2_0}["2.0.x build status", link="{latest_eval_2_0}"]
 endif::env-github[]
 
-Executes a program and converts IP to Unix domain sockets at runtime based on a
-list of rules, either given via short command line options (see {rulespec}) or
-via a file containing a list of rules separated via newline. The first matching
-rule causes *ip2unix* to replace the current IP socket with a Unix domain
-socket based on the options given. For example if a <<rule-socket-path,*path*>>
-is specified, the Unix domain socket will bind or listen to the file given.
+Executes a program and converts IP to Unix domain sockets at runtime via
+{LD_PRELOAD} based on a list of rules, either given via short command line
+options (see {rulespec}) or via a file containing a list of rules separated via
+newline. The first matching rule causes *ip2unix* to replace the current IP
+socket with a Unix domain socket based on the options given. For example if a
+<<rule-socket-path,*path*>> is specified, the Unix domain socket will bind or
+listen to the file given.
 
 ifndef::manmanual[]
 
