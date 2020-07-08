@@ -221,11 +221,11 @@ To install the required dependencies:
 $ sudo apt install meson g++ libyaml-cpp-dev pkg-config
 ---------------------------------------------------------------------
 
-If you want to have a manpage and support for systemd socket activation:
+If you want to have the manpage:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ sudo apt install asciidoctor libsystemd-dev
+$ sudo apt install asciidoctor
 ---------------------------------------------------------------------
 
 In case you want to run the test suite, pytest is required:
@@ -244,11 +244,11 @@ To install the required dependencies:
 $ sudo yum install meson gcc-c++ yaml-cpp-devel
 ---------------------------------------------------------------------
 
-The optional dependencies for the manpage and for systemd socket activation:
+If you want to have the manpage:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ sudo yum install asciidoctor systemd-devel
+$ sudo yum install asciidoctor
 ---------------------------------------------------------------------
 
 If you want to run the test suite:
