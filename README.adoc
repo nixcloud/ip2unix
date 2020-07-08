@@ -578,8 +578,8 @@ contained and no IP communication is possible anymore.
 
 == Thanks
 
-Special thanks to the https://nlnet.nl/[NLnet foundation] for sponsoring this
-work.
+Special thanks to the https://nlnet.nl/[NLnet foundation] for sponsoring the
+initial work on this project.
 
 endif::[]
 
