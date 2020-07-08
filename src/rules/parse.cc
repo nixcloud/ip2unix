@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #include <algorithm>
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -322,7 +323,7 @@ std::string make_absolute(const std::string &path)
     if (path.empty() || path[0] == '/')
         return path;
 
-    return std::string(get_current_dir_name()) + '/' + path;
+    return std::filesystem::current_path() / path;
 }
 
 std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
