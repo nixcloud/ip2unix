@@ -555,7 +555,7 @@ endif::[]
 
 ifndef::manmanual[]
 
-== Frequently Asked Question
+== Frequently Asked Questions
 
 === Isn't this functionality already covered by {socat}?
 
