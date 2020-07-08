@@ -33,7 +33,7 @@ out += '}\n\n'
 
 out += 'const std::string errno2name(int num)\n{\n'
 out += '    switch (num) {\n'
-for number, name in errnos:
+for number, name in dict(errnos).items():
     out += '        case ' + str(number) + ': return "' + name + '";\n'
 out += '        default: return "<unknown>";\n'
 out += '    }\n'
