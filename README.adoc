@@ -214,50 +214,30 @@ $ nix-env -f . -i
 
 ==== Debian and derivatives
 
-Fetching the requirements on Debian 9 can be tricky because only GCC version 6
-is available, so
-<<Using the Nix package manager,using the Nix package manager>> is recommended
-here as it does not interfere with the rest of the system.
-
-However if you still want to build it on Debian 9, you can install `g++-7` from
-testing. Please be aware that mixing packages from `testing` might update
-unrelated packages and might make your system less stable.
-
-In addition to the C++ compiler, the version of Meson on Debian 9 is too old as
-well. However it can be installed from the Python Package Index using `pip`:
+To install the required dependencies:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ sudo apt-get install python3-pip
-$ pip3 install meson
----------------------------------------------------------------------
-
-After you are done getting a newer Meson and C++ compiler, you can use the
-following command to install the other required dependencies:
-
-[source,sh-session]
----------------------------------------------------------------------
-$ sudo apt-get install ninja-build pkg-config libyaml-cpp-dev
+$ sudo apt install meson g++ libyaml-cpp-dev pkg-config
 ---------------------------------------------------------------------
 
 If you want to have a manpage and support for systemd socket activation:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ sudo apt-get install asciidoctor libsystemd-dev
+$ sudo apt install asciidoctor libsystemd-dev
 ---------------------------------------------------------------------
 
 In case you want to run the test suite, pytest is required:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ sudo apt-get install python3-pytest
+$ sudo apt install python3-pytest
 ---------------------------------------------------------------------
 
 ==== RPM-based distributions
 
-On Fedora 29, all of the dependencies are recent enough, so in order to install
-the required dependencies:
+To install the required dependencies:
 
 [source,sh-session]
 ---------------------------------------------------------------------
