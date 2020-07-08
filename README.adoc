@@ -41,7 +41,6 @@ ifndef::manmanual[]
 :systemd_socket: pass:attributes,quotes[{3}[*systemd.socket*(5)]]
 :fdname: pass:attributes,quotes[{4}[FileDescriptorName]]
 :rulespec: <<rule-specification,Rule specification>>
-:rulefileformat: <<rule-file-format,Rule file format>>
 :copy: (C) 2018 aszlig
 endif::[]
 ifdef::manmanual[]
@@ -50,7 +49,6 @@ ifdef::manmanual[]
 :systemd_socket: pass:quotes[*systemd.socket*(5)]
 :fdname: pass:quotes[FileDescriptorName (see *systemd.socket*(5))]
 :rulespec: pass:quotes[*RULE SPECIFICATION*]
-:rulefileformat: pass:quotes[*RULE FILE FORMAT*]
 :copy: \(C) 2018 aszlig
 endif::[]
 
@@ -83,10 +81,10 @@ endif::env-github[]
 
 Executes a program and converts IP to Unix domain sockets at runtime based on a
 list of rules, either given via short command line options (see {rulespec}) or
-via a file with a list of rules (see {rulefileformat}). The first matching rule
-causes *ip2unix* to replace the current IP socket with a Unix domain socket
-based on the options given. For example if a <<rule-socket-path,*path*>> is
-specified, the Unix domain socket will bind or listen to the file given.
+via a file containing a list of rules separated via newline. The first matching
+rule causes *ip2unix* to replace the current IP socket with a Unix domain
+socket based on the options given. For example if a <<rule-socket-path,*path*>>
+is specified, the Unix domain socket will bind or listen to the file given.
 
 ifndef::manmanual[]
 
@@ -349,7 +347,7 @@ ifdef::manmanual[]
 == Options
 
 *-c, --check*::
-  This is to validate whether the rule file is correct and the program
+  This is to validate whether the given rules are correct and the program
   just prints all validation errors to stderr and exits with exit code `0`
   if validation was successful and `1` if not.
 
@@ -365,8 +363,8 @@ ifdef::manmanual[]
   printing the rules.
 
 *-r, --rule*='RULE'::
-  A single rule for one particular socket to match, can be used several times
-  to specify a set of rules similar to the sequence of the rule file.
+  A single rule for one particular socket to match. Can be specified multiple
+  times to add more rules.
 
 *-f, --file*='FILE'::
   Read rules from 'FILE', which contains a newline-separated list of rules as
@@ -551,8 +549,7 @@ ifdef::manmanual[]
 
 *IP2UNIX_RULE_FILE*::
   When used in conjunction with {LD_PRELOAD}, this environment variable has to
-  be set as well, specifying the absolute path to the rule file (see
-  {rulefileformat} above).
+  be set as well, specifying the absolute path to the rule file.
 
 == See also
 
