@@ -447,6 +447,52 @@ Placeholders are allowed here and are substituted accordingly:
 *%t*;; socket type (`tcp`, `udp` or `unknown`)
 *%%*;; verbatim `%`
 
+== Rule matching behaviour
+
+Each rule is matched in the specified order and the first socket (regardless of
+specificity) that matches is either turned into a Unix domain socket,
+blackholed, rejected or ignored depending on the action specified.
+
+If a listening socket is matched by the same rule multiple times, subsequent
+sockets are automatically blackholed. The reason for this is that it requires
+fewer rules for common things, such as for example handling services that bind
+to *both* IPv4 and IPv6 addresses.
+
+Let's say we have *someprogram*, which binds to +127.0.0.1:1234+ and
++[::1]:1234+ in that order. All we need to do here is match on port 1234 and
+only the first (+127.0.0.1:1234+) socket will actually bind to +/foo/bar+, the
+second (+[::1]:1234+) will be blackholed and is not reachable:
+
+[source,sh-session]
+-----------------------------------------------------------------------------
+$ ip2unix -r in,port=1234,path=/foo/bar someprogram
+-----------------------------------------------------------------------------
+
+Note that this is *only* the case if both end up using the *same* socket path.
+If instead something like this is used, none of the two sockets is blackholed:
+
+[source,sh-session]
+-----------------------------------------------------------------------------
+$ ip2unix -r in,port=1234,path=/foo/bar-%a someprogram
+-----------------------------------------------------------------------------
+
+This will result in two sockets:
+
+. +/foo/bar-127.0.0.1+ for the socket originally binding to +127.0.0.1:1234+.
+. +/foo/bar-::1+ for the socket originally binding to +[::1]:1234+.
+
+The reason we blackhole subsequent sockets that lead to the same part is to
+make the common case less verbose to express.
+
+If we would not blackhole the socket and the matcher would simply fall through
+to the next rule, the following would be required to achieve the same behaviour
+that we have in the first example:
+
+[source,sh-session]
+-----------------------------------------------------------------------------
+$ ip2unix -r in,port=1234,path=/foo/bar -r in,port=1234,blackhole someprogram
+-----------------------------------------------------------------------------
+
 == Examples
 
 === Simple HTTP client/server
