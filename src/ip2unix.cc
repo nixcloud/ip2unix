@@ -97,31 +97,7 @@ static void print_version(void)
           stdout);
 }
 
-static void warn_deprecated_rules_file_long_opt(void)
-{
-    fputs("The use of the --rules-file option is deprecated and the option"
-          " will be removed in ip2unix version 3.0. Furthermore, YAML will no"
-          " longer be supported for rule specification and the new --file"
-          " option simply takes a file with a list of newline-separated rules"
-          " as specified via the -r/--rule option.", stderr);
-}
-
-static void warn_deprecated_yaml_data(void)
-{
-    fputs("The use of -F/--rules-data option is deprecated and it will be"
-          " removed in ip2unix version 3. Please use the -r/--rule option"
-          " instead.\n", stderr);
-}
-
-static void warn_deprecated_yaml_file(std::string &filename)
-{
-    fprintf(stderr, "The rule file '%s' contains YAML data, which will no"
-            " longer be supported in ip2unix version 3. Please use a list of"
-            " newline-separated rules as specified via the -r/--rule option.",
-            filename.c_str());
-}
-
-static bool push_rule_args_from_file(std::string &filename,
+static bool push_rule_args_from_file(std::string filename,
                                      std::vector<std::string> &rule_args)
 {
     std::ifstream input(filename);
@@ -164,10 +140,6 @@ int main(int argc, char *argv[])
     bool show_rules = false;
     unsigned int verbosity = 0;
 
-    // TODO: Remove in version 3.0.
-    bool show_warn_deprecated_rules_file_long_opt = false;
-    bool show_warn_deprecated_yaml_data = false;
-
     static struct option lopts[] = {
         {"help", no_argument, nullptr, 'h'},
         {"version", no_argument, nullptr, 'V'},
@@ -176,11 +148,6 @@ int main(int argc, char *argv[])
         {"rule", required_argument, nullptr, 'r'},
         {"file", required_argument, nullptr, 'f'},
         {"verbose", no_argument, nullptr, 'v'},
-
-        // TODO: Remove in version 3.0.
-        {"rules-file", required_argument, nullptr, 'y'},
-        {"rules-data", required_argument, nullptr, 'F'},
-
         {nullptr, 0, nullptr, 0}
     };
 
@@ -188,7 +155,7 @@ int main(int argc, char *argv[])
     std::optional<std::string> ruledata = std::nullopt;
     std::vector<std::string> rule_args;
 
-    while ((c = getopt_long(argc, argv, "+hcpr:f:F:v",
+    while ((c = getopt_long(argc, argv, "+hcpr:f:v",
                             lopts, nullptr)) != -1) {
         switch (c) {
             case 'h':
@@ -211,26 +178,9 @@ int main(int argc, char *argv[])
                 rule_args.push_back(optarg);
                 break;
 
-            case 'y':
-                show_warn_deprecated_rules_file_long_opt = true;
-                /* fallthrough */
             case 'f':
-                rulefile = std::string(optarg);
-                if (is_yaml_rule_file(*rulefile))
-                    warn_deprecated_yaml_file(*rulefile);
-                else if (push_rule_args_from_file(*rulefile, rule_args))
-                    // XXX: This is to make sure that when we use the new rule
-                    //      file format we can use multiple -f options.
-                    // TODO: Remove this in version 3.0 when dropping YAML
-                    //       support.
-                    rulefile = std::nullopt;
-                else
+                if (!push_rule_args_from_file(std::string(optarg), rule_args))
                     return EXIT_FAILURE;
-                break;
-
-            case 'F':
-                show_warn_deprecated_yaml_data = true;
-                ruledata = std::string(optarg);
                 break;
 
             case 'v':
@@ -243,12 +193,6 @@ int main(int argc, char *argv[])
                 return EXIT_FAILURE;
         }
     }
-
-    // TODO: Remove in version 3.0.
-    if (show_warn_deprecated_rules_file_long_opt)
-        warn_deprecated_rules_file_long_opt();
-    if (show_warn_deprecated_yaml_data)
-        warn_deprecated_yaml_data();
 
     if (!rule_args.empty() && (rulefile || ruledata)) {
         fprintf(stderr, "%s: Can't specify both direct rules and a rule"
@@ -275,14 +219,6 @@ int main(int argc, char *argv[])
             else
                 return EXIT_FAILURE;
         }
-    } else if (rulefile) {
-        auto result = parse_rules(rulefile.value(), true);
-        if (!result) return EXIT_FAILURE;
-        rules = result.value();
-    } else if (ruledata) {
-        auto result = parse_rules(ruledata.value(), false);
-        if (!result) return EXIT_FAILURE;
-        rules = result.value();
     } else {
         fprintf(stderr, "%s: You need to either specify a rule file with '-f'"
                         " or directly specify rules via '-r'.\n\n", self);

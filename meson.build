@@ -33,7 +33,6 @@ lib_cflags = []
 lib_ldflags = []
 
 deps = [
-  dependency('yaml-cpp', version: '>=0.5.0'),
   cc.find_library('dl')
 ]
 

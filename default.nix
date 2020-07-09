@@ -29,12 +29,11 @@ pkgs.stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [
-    pkgs.meson pkgs.ninja pkgs.pkgconfig pkgs.asciidoc pkgs.libxslt.bin
+    pkgs.meson pkgs.ninja pkgs.asciidoc pkgs.libxslt.bin
     pkgs.docbook_xml_dtd_45 pkgs.docbook_xsl pkgs.libxml2.bin pkgs.docbook5
     pkgs.python3Packages.pytest pkgs.python3Packages.pytest-timeout
     pkgs.systemd
   ];
-  buildInputs = [ pkgs.libyamlcpp ];
 
   doCheck = true;
 

@@ -1,6 +1,7 @@
-import json
 import sys
 import subprocess
+
+from tempfile import NamedTemporaryFile
 
 from helper import IP2UNIX, LIBIP2UNIX
 
@@ -24,29 +25,44 @@ def test_unknown_arg():
     assert b'invalid option' in check_error([IP2UNIX, '-X'])
 
 
-def test_rules_and_rulefile():
-    stderr = check_error([IP2UNIX, '-r', 'path=/foo', '-f', '/nonexistent'])
-    assert b"Can't specify both" in stderr
+def test_rule_args_and_file():
+    with NamedTemporaryFile('w') as rf:
+        rf.write('in,port=1234,path=/foo\nout,path=/bar\n')
+        rf.flush()
+        cmd = [IP2UNIX, '-c', '-p', '-r', 'in,udp,addr=127.0.0.1,ignore',
+               '-f', rf.name, '-r', 'out,addr=0.0.0.0,reject']
+        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
 
+    expected = b'Rule #1:\n' \
+               b'  Direction: incoming\n' \
+               b'  IP Type: UDP\n' \
+               b'  Address: 127.0.0.1\n' \
+               b'  Port: <any>\n' \
+               b'  Don\'t handle this socket.\n' \
+               b'Rule #2:\n' \
+               b'  Direction: incoming\n' \
+               b'  IP Type: TCP and UDP\n' \
+               b'  Address: <any>\n' \
+               b'  Port: 1234\n' \
+               b'  Socket path: /foo\n' \
+               b'Rule #3:\n' \
+               b'  Direction: outgoing\n' \
+               b'  IP Type: TCP and UDP\n' \
+               b'  Address: <any>\n' \
+               b'  Port: <any>\n' \
+               b'  Socket path: /bar\n' \
+               b'Rule #4:\n' \
+               b'  Direction: outgoing\n' \
+               b'  IP Type: TCP and UDP\n' \
+               b'  Address: 0.0.0.0\n' \
+               b'  Port: <any>\n' \
+               b'  Reject connect() and bind() calls.\n'
 
-def test_rulefile_and_ruledata():
-    stderr = check_error([IP2UNIX, '-f', '/nonexistent', '-F', '{}'])
-    assert b"rule file path and inline rules at the same time" in stderr
+    assert result.stdout == expected
 
 
 def test_rule_longopts(tmpdir):
-    rulesfile = str(tmpdir.join('rules.yml'))
-    rulesdata = json.dumps([{'socketPath': '/test'}])
-    open(rulesfile, 'w').write(rulesdata)
-    for deprecated_cmd in [
-        [IP2UNIX, '-cp', '--rules-file', rulesfile],
-        [IP2UNIX, '-cp', '--rules-data', rulesdata],
-    ]:
-        stdout = subprocess.check_output(deprecated_cmd,
-                                         stderr=subprocess.STDOUT)
-        assert b"is deprecated" in stdout
-        assert b"path: /test\n" in stdout
-
     stdout = subprocess.check_output([IP2UNIX, '-cp', '--rule', 'path=/test'])
     assert b"path: /test\n" in stdout
 
