@@ -156,9 +156,6 @@ endif::[]
 
 * https://mesonbuild.com/[Meson], at least version 0.46.0.
 * https://ninja-build.org/[Ninja], at least version 1.5.
-* https://github.com/jbeder/yaml-cpp[yaml-cpp], at least version 0.5.0
-  Requirement will be removed in *ip2unix* version 3, since the YAML rule file
-  format is deprecated.
 * {cpp} compiler supporting {cpp}17 (https://gcc.gnu.org/[GNU G++] version 7.0
   onwards).
 * https://www.python.org/[Python] 3, at least version 3.6 is needed for running
@@ -223,7 +220,7 @@ To install the required dependencies:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ sudo apt install meson g++ libyaml-cpp-dev pkg-config
+$ sudo apt install meson g++
 ---------------------------------------------------------------------
 
 If you want to have the manpage:
@@ -246,7 +243,7 @@ To install the required dependencies:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ sudo yum install meson gcc-c++ yaml-cpp-devel
+$ sudo yum install meson gcc-c++
 ---------------------------------------------------------------------
 
 If you want to have the manpage:
@@ -269,7 +266,7 @@ To install the required dependencies:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ sudo pacman -S yaml-cpp meson gcc pkg-config
+$ sudo pacman -S meson gcc
 ---------------------------------------------------------------------
 
 If you want to have the manpage:

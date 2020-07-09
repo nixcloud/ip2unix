@@ -17,9 +17,8 @@ let
 
     mesonFlags = [ "-Dtest-timeout=3600" ] ++ attrs.mesonFlags or [];
 
-    nativeBuildInputs = [ pkgs.meson pkgs.ninja pkgs.pkgconfig ]
+    nativeBuildInputs = [ pkgs.meson pkgs.ninja ]
                      ++ attrs.nativeBuildInputs or [];
-    buildInputs = [ pkgs.libyamlcpp ] ++ attrs.buildInputs or [];
 
     doCheck = attrs.doCheck or true;
 

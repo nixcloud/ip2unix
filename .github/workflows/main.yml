@@ -9,7 +9,7 @@ jobs:
       - uses: actions/setup-python@v1
         with:
           python-version: '3.x'
-      - run: sudo apt install libyaml-cpp-dev asciidoctor libsystemd-dev
+      - run: sudo apt install asciidoctor libsystemd-dev
       - run: pip install meson ninja pytest
       - run: meson setup build
       - run: meson test -C build -v

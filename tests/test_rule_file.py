@@ -1,103 +1,81 @@
-import json
 import subprocess
 import sys
 import unittest
 
 from tempfile import NamedTemporaryFile
 
-from helper import IP2UNIX, systemd_only, non_systemd_only
+from helper import IP2UNIX, dict_to_rule, systemd_only, non_systemd_only
 
 
 class RuleFileTest(unittest.TestCase):
     def assert_good_rules(self, rules):
-        cmd = [IP2UNIX, '-c', '-F', json.dumps(rules)]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        self.assertTrue(result.stdout.startswith(
-            b'The use of -F/--rules-data option is deprecated and it will be'
-            b' removed in ip2unix version 3. Please use the -r/--rule option'
-            b' instead.\n'
-        ))
+        with NamedTemporaryFile('w') as rf:
+            for rule in rules:
+                rf.write(dict_to_rule(rule) + '\n')
+            rf.flush()
+
+            cmd = [IP2UNIX, '-c', '-f', rf.name]
+            result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT)
         msg = 'Rules {!r} do not validate: {}'.format(rules, result.stdout)
         self.assertEqual(result.returncode, 0, msg)
 
     def assert_bad_rules(self, rules):
-        cmd = [IP2UNIX, '-c', '-F', json.dumps(rules)]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        self.assertTrue(result.stdout.startswith(
-            b'The use of -F/--rules-data option is deprecated and it will be'
-            b' removed in ip2unix version 3. Please use the -r/--rule option'
-            b' instead.\n'
-        ))
+        with NamedTemporaryFile('w') as rf:
+            for rule in rules:
+                rf.write(dict_to_rule(rule) + '\n')
+            rf.flush()
+
+            cmd = [IP2UNIX, '-c', '-f', rf.name]
+            result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT)
         msg = 'Rules {!r} should not be valid.'.format(rules)
         self.assertNotEqual(result.returncode, 0, msg)
 
-    def test_no_array(self):
-        self.assert_bad_rules({'rule1': {'socketPath': '/foo'}})
-        self.assert_bad_rules({'rule2': {}})
-        self.assert_bad_rules({})
-
     def test_empty(self):
-        self.assert_good_rules([])
+        self.assert_bad_rules([])
 
     def test_complete_rules(self):
         self.assert_good_rules([
-            {'direction': 'outgoing',
-             'type': 'udp',
-             'socketPath': '/tmp/foo'},
-            {'direction': 'incoming',
-             'address': '::',
-             'socketPath': '/tmp/bar'}
+            {'dir': 'out', 'type': 'udp', 'path': '/tmp/foo'},
+            {'dir': 'in', 'addr': '::', 'path': '/tmp/bar'}
         ])
 
     def test_unknown_rule_attrs(self):
         self.assert_bad_rules([{'foo': 1}])
-        self.assert_bad_rules([{'socketpath': 'xxx'}])
+        self.assert_bad_rules([{'sockpath': 'xxx'}])
 
     def test_wrong_rule_types(self):
-        self.assert_bad_rules([{'type': 'nope', 'socketPath': '/tmp/foo'}])
-        self.assert_bad_rules([{'direction': 'out', 'socketPath': '/tmp/foo'}])
-        self.assert_bad_rules([{'socketPath': 1234}])
+        self.assert_bad_rules([{'type': 'nope', 'path': '/tmp/foo'}])
+        self.assert_bad_rules([{'dir': 'outgoing', 'path': '/tmp/foo'}])
+        self.assert_bad_rules([{'path': True}])
 
     def test_no_socket_path(self):
-        self.assert_bad_rules([{'address': '1.2.3.4'}])
-
-    def test_relative_socket_path(self):
-        self.assert_bad_rules([{'socketPath': 'aaa/bbb'}])
-        self.assert_bad_rules([{'socketPath': 'bbb'}])
-
-    def test_absolute_socket_path(self):
-        self.assert_good_rules([{'socketPath': '/xxx'}])
+        self.assert_bad_rules([{'addr': '1.2.3.4'}])
 
     def test_invalid_enums(self):
-        self.assert_bad_rules([{'socketPath': '/bbb', 'direction': 111}])
-        self.assert_bad_rules([{'socketPath': '/bbb', 'direction': False}])
-        self.assert_bad_rules([{'socketPath': '/bbb', 'type': 234}])
-        self.assert_bad_rules([{'socketPath': '/bbb', 'type': True}])
+        self.assert_bad_rules([{'path': '/bbb', 'dir': '111'}])
+        self.assert_bad_rules([{'path': '/bbb', 'dir': ''}])
+        self.assert_bad_rules([{'path': '/bbb', 'type': '234'}])
+        self.assert_bad_rules([{'path': '/bbb', 'type': 'true'}])
 
     def test_invalid_port_type(self):
-        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 'foo'}])
-        self.assert_bad_rules([{'socketPath': '/aaa', 'port': True}])
-        self.assert_bad_rules([{'socketPath': '/aaa', 'port': -1}])
-        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 65536}])
+        self.assert_bad_rules([{'path': '/aaa', 'port': 'foo'}])
+        self.assert_bad_rules([{'path': '/aaa', 'port': 'True'}])
+        self.assert_bad_rules([{'path': '/aaa', 'port': '-1'}])
+        self.assert_bad_rules([{'path': '/aaa', 'port': '65536'}])
 
     def test_port_range(self):
-        self.assert_good_rules([{'socketPath': '/aaa', 'port': 123,
-                                 'portEnd': 124}])
-        self.assert_good_rules([{'socketPath': '/aaa', 'port': 1000,
-                                 'portEnd': 65535}])
+        self.assert_good_rules([{'path': '/aaa', 'port': '123-124'}])
+        self.assert_good_rules([{'path': '/aaa', 'port': '1000-65535'}])
 
     def test_invalid_port_range(self):
-        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 123,
-                                'portEnd': 10}])
-        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 123,
-                                'portEnd': 123}])
-        self.assert_bad_rules([{'socketPath': '/aaa', 'port': 123,
-                                'portEnd': 65536}])
+        self.assert_bad_rules([{'path': '/aaa', 'port': '123-10'}])
+        self.assert_bad_rules([{'path': '/aaa', 'port': '123-123'}])
+        self.assert_bad_rules([{'path': '/aaa', 'port': '123-65536'}])
 
     def test_missing_start_port_in_range(self):
-        self.assert_bad_rules([{'socketPath': '/aaa', 'portEnd': 123}])
+        self.assert_bad_rules([{'path': '/aaa', 'port': '-123'}])
 
     def test_valid_address(self):
         valid_addrs = [
@@ -106,7 +84,7 @@ class RuleFileTest(unittest.TestCase):
             '7::', '::2:1', '::17', 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
         ]
         for addr in valid_addrs:
-            self.assert_good_rules([{'socketPath': '/foo', 'address': addr}])
+            self.assert_good_rules([{'path': '/foo', 'addr': addr}])
 
     def test_invalid_addrss(self):
         invalid_addrs = [
@@ -115,36 +93,36 @@ class RuleFileTest(unittest.TestCase):
             '8:7:6:5:4:3:2:1::', '::8:7:6:5:4:3:2:1', 'f:f11::01100:2'
         ]
         for addr in invalid_addrs:
-            self.assert_bad_rules([{'socketPath': '/foo', 'address': addr}])
+            self.assert_bad_rules([{'path': '/foo', 'addr': addr}])
 
     def test_valid_reject(self):
         for val in ["EBADF", "EINTR", "enomem", "EnOMeM", 13, 12]:
-            self.assert_good_rules([{'reject': True, 'rejectError': val}])
+            self.assert_good_rules([{'reject': val}])
 
     def test_invalid_reject(self):
         for val in ["EBAAAADF", "", "XXX", "vvv", -10]:
-            self.assert_bad_rules([{'reject': True, 'rejectError': val}])
+            self.assert_bad_rules([{'reject': val}])
 
     def test_reject_with_sockpath(self):
-        self.assert_bad_rules([{'socketPath': '/foo', 'reject': True}])
+        self.assert_bad_rules([{'path': '/foo', 'reject': True}])
 
     def test_blackhole_with_reject(self):
-        self.assert_bad_rules([{'direction': 'incoming', 'reject': True,
+        self.assert_bad_rules([{'dir': 'in', 'reject': True,
                                 'blackhole': True}])
 
     def test_blackhole_outgoing(self):
         self.assert_bad_rules([{'blackhole': True}])
-        self.assert_bad_rules([{'direction': 'outgoing', 'blackhole': True}])
+        self.assert_bad_rules([{'dir': 'out', 'blackhole': True}])
 
     def test_blackhole_with_sockpath(self):
-        self.assert_bad_rules([{'direction': 'incoming', 'socketPath': '/foo',
+        self.assert_bad_rules([{'dir': 'in', 'path': '/foo',
                                 'blackhole': True}])
 
     def test_blackhole_all(self):
-        self.assert_good_rules([{'direction': 'incoming', 'blackhole': True}])
+        self.assert_good_rules([{'dir': 'in', 'blackhole': True}])
 
     def test_ignore_with_sockpath(self):
-        self.assert_bad_rules([{'socketPath': '/foo', 'ignore': True}])
+        self.assert_bad_rules([{'path': '/foo', 'ignore': True}])
 
     def test_ignore_with_reject(self):
         self.assert_bad_rules([{'reject': True, 'ignore': True}])
@@ -158,58 +136,50 @@ class RuleFileTest(unittest.TestCase):
 
     @systemd_only
     def test_contradicting_systemd(self):
-        self.assert_bad_rules([{'socketPath': '/foo',
+        self.assert_bad_rules([{'path': '/foo',
                                 'socketActivation': True}])
 
     @systemd_only
     def test_socket_fdname(self):
-        self.assert_good_rules([{'socketActivation': True, 'fdName': 'foo'}])
+        self.assert_good_rules([{'systemd': 'foo'}])
 
     @non_systemd_only
     def test_no_systemd_options(self):
-        self.assert_bad_rules([{'socketActivation': True}])
-        self.assert_bad_rules([{'socketActivation': True, 'fdName': 'foo'}])
+        self.assert_bad_rules([{'systemd': True}])
+        self.assert_bad_rules([{'systemd': 'foo'}])
 
     def test_print_rules_check_stdout(self):
         rules = [
-            {'direction': 'outgoing',
-             'type': 'tcp',
-             'socketPath': '/foo'},
-            {'address': '0.0.0.0',
-             'socketPath': '/bar'}
+            {'dir': 'out', 'type': 'tcp', 'path': '/foo'},
+            {'addr': '0.0.0.0', 'path': '/bar'}
         ]
-        cmd = [IP2UNIX, '-cp', '-F', json.dumps(rules)]
-        result = subprocess.run(cmd, stderr=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
+        with NamedTemporaryFile('w') as rf:
+            for rule in rules:
+                rf.write(dict_to_rule(rule) + '\n')
+            rf.flush()
+
+            cmd = [IP2UNIX, '-cp', '-f', rf.name]
+            result = subprocess.run(cmd, stderr=subprocess.PIPE,
+                                    stdout=subprocess.PIPE)
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(
-            result.stderr,
-            b'The use of -F/--rules-data option is deprecated and it will be'
-            b' removed in ip2unix version 3. Please use the -r/--rule option'
-            b' instead.\n'
-        )
         self.assertNotEqual(result.stdout, b'')
         self.assertGreater(len(result.stdout), 0)
         self.assertIn(b'IP Type', result.stdout)
 
     def test_print_rules_stderr(self):
-        rules = [{'socketPath': '/xxx'}]
-        cmd = [IP2UNIX, '-p', '-F', json.dumps(rules),
-               sys.executable, '-c', '']
-        result = subprocess.run(cmd, stderr=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
+        with NamedTemporaryFile('w') as rf:
+            rf.write('path=/xxx\n')
+            rf.flush()
+            cmd = [IP2UNIX, '-p', '-f', rf.name, sys.executable, '-c', '']
+            result = subprocess.run(cmd, stderr=subprocess.PIPE,
+                                    stdout=subprocess.PIPE)
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout, b'')
-        self.assertTrue(result.stderr.startswith(
-            b'The use of -F/--rules-data option is deprecated and it will be'
-            b' removed in ip2unix version 3. Please use the -r/--rule option'
-            b' instead.\n'
-        ))
-        self.assertRegex(result.stderr[134:], b'^Rule #1.*')
+        self.assertRegex(result.stderr, b'^Rule #1.*')
         self.assertGreater(len(result.stderr), 0)
         self.assertIn(b'IP Type', result.stderr)
 
-    def test_new_style_rule_files(self):
+    def test_weirdly_formatted(self):
         with NamedTemporaryFile('w') as rf1, NamedTemporaryFile('w') as rf2:
             rf1.write('in,port=1234,path=/foo\n')
             rf1.flush()
