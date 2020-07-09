@@ -75,9 +75,8 @@ static void print_usage(char *prog, FILE *fp)
     fprintf(fp, "       %s -h\n", prog);
     fprintf(fp, "       %s --version\n", prog);
     fputs("\nTurn IP sockets into Unix domain sockets for PROGRAM\n", fp);
-    fputs("according to the rules specified by either the YAML file\n", fp);
-    fputs("given by RULES_FILE, inline via RULES_DATA or by directly\n", fp);
-    fputs("specifying one or more individual RULE arguments.\n", fp);
+    fputs("according to the rules specified via either one or more\n", fp);
+    fputs("FILE options or directly via one or more RULE arguments.\n", fp);
     fputs("\nOptions:\n", fp);
     fputs("  -h, --help        Show this usage\n",                        fp);
     fputs("      --version     Output version information and exit\n",    fp);
