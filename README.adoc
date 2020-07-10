@@ -442,9 +442,10 @@ The path to the socket file to either bind or connect to.
 Placeholders are allowed here and are substituted accordingly:
 +
 [horizontal]
-*%p*;; port number
-*%a*;; IP address or `unknown`
-*%t*;; socket type (`tcp`, `udp` or `unknown`)
+*%p*;; port number or `unknown` if not an IP socket
+*%a*;; IP address or `unknown` if not an IP socket
+*%t*;; socket type (`tcp`, `udp` or `unknown` if it's neither a stream nor
+                    datagram socket)
 *%%*;; verbatim `%`
 
 == Examples
