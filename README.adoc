@@ -409,14 +409,17 @@ distinguish between several socket units. This corresponds to the {fdname}
 systemd socket option.
 endif::[]
 
-*reject*[='ERRNO']::
+[[reject]]*reject*[='ERRNO']::
 Reject calls to *connect* and *bind* with `EACCES` by default or the 'ERRNO'
 specified either via name or as an integer.
 
 [[blackhole]]*blackhole*::
-When binding the socket, use a temporary file system path and *unlink* it
-shortly after the *bind*. This is a way to deactivate a specific socket
-without the application noticing.
+Turn the socket into a Unix domain socket but do not make it available for
+clients to connect. This is useful to deactive certain sockets without causing
+errors in the application (unlike <<reject,*reject*>>).
++
+Technically, this means that we *bind* to a Unix socket using a temporary file
+system path and *unlink* it shortly thereafter.
 
 *ignore*::
 Prevents a socket from being converted to a Unix domain socket if this is
