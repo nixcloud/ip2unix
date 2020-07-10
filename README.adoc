@@ -413,7 +413,7 @@ endif::[]
 Reject calls to *connect* and *bind* with `EACCES` by default or the 'ERRNO'
 specified either via name or as an integer.
 
-*blackhole*::
+[[blackhole]]*blackhole*::
 When binding the socket, use a temporary file system path and *unlink* it
 shortly after the *bind*. This is a way to deactivate a specific socket
 without the application noticing.
@@ -454,9 +454,10 @@ specificity) that matches is either turned into a Unix domain socket,
 blackholed, rejected or ignored depending on the action specified.
 
 If a listening socket is matched by the same rule multiple times, subsequent
-sockets are automatically blackholed. The reason for this is that it requires
-fewer rules for common things, such as for example handling services that bind
-to *both* IPv4 and IPv6 addresses.
+sockets are automatically <<blackhole,blackholed>> (that is, deactivated
+without the application noticing). The reason for doing this is that it
+requires fewer rules for common things, such as for example handling services
+that bind to *both* IPv4 and IPv6 addresses.
 
 Let's say we have *someprogram*, which binds to +127.0.0.1:1234+ and
 +[::1]:1234+ in that order. All we need to do here is match on port 1234 and
