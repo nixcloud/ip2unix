@@ -17,11 +17,12 @@ ip2unix - Turn IP sockets into Unix domain sockets
 
 == Synopsis
 
+:rule_or_file: pass:attributes,quotes[*-r* 'RULE' | *-f* 'FILE']
+:rulespec: {{rule_or_file}} [{rule_or_file}]...
+
 [verse]
-*ip2unix* [*-v*...] [*-p*] *-f* 'RULES_FILE' 'PROGRAM' ['ARGS'...]
-*ip2unix* [*-v*...] [*-p*] *-r* 'RULE' [*-r* 'RULE']... 'PROGRAM' ['ARGS'...]
-*ip2unix* [*-v*...] [*-p*] *-c* *-f* 'RULES_FILE'
-*ip2unix* [*-v*...] [*-p*] *-c* *-r* 'RULE' [*-r* 'RULE']...
+*ip2unix* [*-v*...] [*-p*] {rulespec} 'PROGRAM' ['ARGS'...]
+*ip2unix* [*-v*...] [*-p*] *-c* {rulespec}
 *ip2unix* *-h*
 *ip2unix* *--version*
 
