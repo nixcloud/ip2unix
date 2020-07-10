@@ -123,6 +123,9 @@ struct Socket : std::enable_shared_from_this<Socket>
         /* Set if this socket is bound to an unlinked socket path. */
         bool is_blackhole = false;
 
+        /* If true, the socket file should be unlinked before to bind. */
+        bool reuse_addr = false;
+
         /* We need this if we need ta persist a blackhole path for a while. */
         std::optional<std::unique_ptr<BlackHole>> blackhole_ref;
 

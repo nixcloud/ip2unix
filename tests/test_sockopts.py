@@ -1,6 +1,8 @@
 import subprocess
 import sys
 
+from pathlib import Path
+
 from helper import IP2UNIX
 
 TESTPROG = '''
@@ -67,6 +69,7 @@ def test_sockserver(tmpdir):
     sockfile = str(tmpdir.join('foo.sock'))
     rules = ['-r', 'out,addr=dead::beef,path=' + sockfile,
              '-r', 'in,tcp,path=' + sockfile]
+    Path(sockfile).touch()
     cmd = [IP2UNIX] + rules + [sys.executable, '-c', TESTPROG]
     try:
         output = subprocess.check_output(cmd)

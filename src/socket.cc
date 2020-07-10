@@ -115,8 +115,12 @@ int Socket::setsockopt(int level, int optname, const void *optval,
      * succeeded (and it's using SOL_SOCKET level), otherwise we risk a fatal
      * error while replaying them on our end.
      */
-    if (!this->is_unix && level == SOL_SOCKET)
+    if (!this->is_unix && level == SOL_SOCKET) {
+        if (optname == SO_REUSEADDR && *static_cast<const int*>(optval) > 0)
+            this->reuse_addr = true;
+
         this->sockopts.cache_sockopt(level, optname, optval, optlen);
+    }
 
     return ret;
 }
@@ -345,6 +349,8 @@ int Socket::bind(const SockAddr &addr, const std::string &path)
         if (ret == 0)
             this->blackhole();
     } else {
+        if (this->reuse_addr)
+            unlink(newpath.c_str());
         USOCK_OR_EFAULT(newpath);
         ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0) {
