@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Added
 - Deprecation warnings if rules are specified in YAML format.
+- Unlink socket file before `bind` if `SO_REUSEADDR` is used.
 
 ### Changed
 - Rule files (`-f`) are now just a list of newline-separated rule (`-r`)
