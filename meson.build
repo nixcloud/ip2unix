@@ -64,17 +64,6 @@ sym_map = custom_target('symmap', input: lib_sources, output: 'symbols.map',
                         command: generate_sym_map, capture: true)
 lib_ldflags += ['-Wl,--version-script,@0@'.format(sym_map.full_path())]
 
-libip2unix = shared_library('ip2unix', lib_sources, install: true,
-                            dependencies: deps, link_depends: sym_map,
-                            cpp_args: lib_cflags + cflags,
-                            link_args: lib_ldflags,
-                            include_directories: includes)
-
-ip2unix = executable('ip2unix', main_sources, install: true,
-                     link_with: libip2unix,
-                     dependencies: deps, include_directories: includes,
-                     cpp_args: main_cflags + cflags)
-
 man_input = files('README.adoc')
 
 adoc_attrs = [
@@ -86,8 +75,6 @@ adoc_attrs = [
 if not systemd_enabled
   adoc_attrs += ['-a', 'without-systemd']
 endif
-
-subdir('tests')
 
 ################################## MANPAGE ##################################
 
@@ -156,6 +143,23 @@ if not build_manpage
   endif
 endif
 
-if not build_manpage
+if build_manpage
+  cflags += ['-DWITH_MANPAGE']
+else
   warning('Neither AsciiDoc nor Asciidoctor found, not generating manpage.')
 endif
+
+############################### BUILD TARGETS ###############################
+
+libip2unix = shared_library('ip2unix', lib_sources, install: true,
+                            dependencies: deps, link_depends: sym_map,
+                            cpp_args: lib_cflags + cflags,
+                            link_args: lib_ldflags,
+                            include_directories: includes)
+
+ip2unix = executable('ip2unix', main_sources, install: true,
+                     link_with: libip2unix,
+                     dependencies: deps, include_directories: includes,
+                     cpp_args: main_cflags + cflags)
+
+subdir('tests')

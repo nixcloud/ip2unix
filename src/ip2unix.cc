@@ -67,6 +67,8 @@ static bool run_preload(std::vector<Rule> &rules, char *argv[])
 #define PROG "PROGRAM [ARGS...]"
 #define COMMON "[-v...] [-p]"
 #define RULE_ARGS "{-r RULE | -f FILE} [-r RULE | -f FILE]..."
+#define RULE_DOC_URL "https://github.com/nixcloud/ip2unix/blob/v" VERSION \
+                     "/README.adoc#rule-specification"
 
 static void print_usage(char *prog, FILE *fp)
 {
@@ -85,7 +87,11 @@ static void print_usage(char *prog, FILE *fp)
     fputs("  -f, --file=FILE   Read newline-separated rules from FILE\n", fp);
     fputs("  -r, --rule        A single rule\n",                          fp);
     fputs("  -v, --verbose     Increase level of verbosity\n",            fp);
+#ifdef WITH_MANPAGE
     fputs("\nSee ip2unix(1) for details about specifying rules.\n",       fp);
+#else
+    fputs("\nSee " RULE_DOC_URL " for details about specifying rules.\n", fp);
+#endif
 }
 
 static void print_version(void)

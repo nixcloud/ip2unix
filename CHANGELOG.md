@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog], and this project adheres to
   arguments instead of YAML files.
 - Improve and overhaul README and man page.
 - Split build instructions into separate file.
+- Include URL to README in usage if manpage is not being built.
 
 ## [2.1.3] - 2020-06-01
 
