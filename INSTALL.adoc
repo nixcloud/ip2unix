@@ -1,0 +1,185 @@
+:toc: macro
+:numbered:
+:toc-title:
+
+toc::[]
+
+= Requirements
+
+* https://mesonbuild.com/[Meson], at least version 0.46.0.
+* https://ninja-build.org/[Ninja], at least version 1.5.
+* https://github.com/jbeder/yaml-cpp[yaml-cpp], at least version 0.5.0
+  Requirement will be removed in *ip2unix* version 3, since the YAML rule file
+  format is deprecated.
+* {cpp} compiler supporting {cpp}17 (https://gcc.gnu.org/[GNU G++] version 7.0
+  onwards).
+* https://www.python.org/[Python] 3, at least version 3.6 is needed for running
+  the integration tests.
+
+.Optional dependencies:
+* http://asciidoc.org/[AsciiDoc] or https://asciidoctor.org/[Asciidoctor] for
+  generating the manpage. The former is recommended as it generates a better
+  manpage and also provides validation.
+* https://pytest.org/[pytest] for running automated tests.
+* {sysdman_url}/systemd-socket-activate.html[systemd-socket-activate]
+  helper to run test cases specific to systemd socket activation support.
+
+= Cloning the repository
+
+The source code can be fetched via https://git-scm.com/[Git] using the
+following command:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ git clone https://github.com/nixcloud/ip2unix.git
+---------------------------------------------------------------------
+
+You will get an `ip2unix` directory inside your current working directory. All
+of the following steps are to be performed inside this `ip2unix` directory.
+
+== Using the Nix package manager
+
+This is the easiest and recommended way to compile it from source and it should
+work on any distribution.
+
+If you are not running https://nixos.org/[NixOS] you can install
+https://nixos.org/nix/[Nix] via the following command:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ curl https://nixos.org/nix/install | sh
+---------------------------------------------------------------------
+
+In order to build *ip2unix* issue the following command from the top of the
+source tree:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ nix-build
+---------------------------------------------------------------------
+
+This takes care of fetching the dependencies, building and running the test
+suite. The resulting command can now be found in `result/bin/ip2unix`.
+
+If you want to add the package to your user environment, you can install it
+using the command:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ nix-env -f . -i
+---------------------------------------------------------------------
+
+== Debian and derivatives
+
+To install the required dependencies:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo apt install meson g++ libyaml-cpp-dev pkg-config
+---------------------------------------------------------------------
+
+If you want to have the manpage:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo apt install asciidoctor
+---------------------------------------------------------------------
+
+In case you want to run the test suite, pytest is required:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo apt install python3-pytest
+---------------------------------------------------------------------
+
+== RPM-based distributions
+
+To install the required dependencies:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo yum install meson gcc-c++ yaml-cpp-devel
+---------------------------------------------------------------------
+
+If you want to have the manpage:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo yum install asciidoctor
+---------------------------------------------------------------------
+
+If you want to run the test suite:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo yum install python3-pytest
+---------------------------------------------------------------------
+
+== Arch Linux and derivatives
+
+To install the required dependencies:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo pacman -S yaml-cpp meson gcc pkg-config
+---------------------------------------------------------------------
+
+If you want to have the manpage:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo pacman -S asciidoctor
+---------------------------------------------------------------------
+
+In case you want to run the test suite:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ sudo pacman -S python-pytest
+---------------------------------------------------------------------
+
+= Building
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ meson build
+---------------------------------------------------------------------
+
+If you want to specify a different compiler executable, eg. `g++-7`:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ CXX=g++-7 meson build
+---------------------------------------------------------------------
+
+Compile:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ ninja -C build
+---------------------------------------------------------------------
+
+The executable is then placed in `build/ip2unix`, so to show the usage:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ build/ip2unix --help
+---------------------------------------------------------------------
+
+= Installation
+
+To install *ip2unix*, run the following command:
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ ninja -C build install
+---------------------------------------------------------------------
+
+By default, this will install *ip2unix* in `/usr/local/bin/ip2unix`.
+
+= Running tests
+
+[source,sh-session]
+---------------------------------------------------------------------
+$ ninja -C build test
+---------------------------------------------------------------------

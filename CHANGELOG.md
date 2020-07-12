@@ -13,7 +13,8 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Changed
 - Rule files (`-f`) are now just a list of newline-separated rule (`-r`)
   arguments instead of YAML files.
-- Improve wording in README and man page.
+- Improve and overhaul README and man page.
+- Split build instructions into separate file.
 
 ## [2.1.3] - 2020-06-01
 
