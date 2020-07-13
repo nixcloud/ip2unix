@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Support for Linux abstract sockets.
 - Support for matching an existing Unix domain socket or abstract socket.
 - Add `stream`/`datagram` aliases for `tcp`/`udp` socket types.
+- Add flag to prevent unlinking of socket files when closing sockets.
 
 ### Changed
 - Rule files (`-f`) are now just a list of newline-separated rule (`-r`)

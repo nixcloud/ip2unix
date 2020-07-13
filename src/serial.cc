@@ -170,6 +170,7 @@ void serialise(const SocketPath &path, std::ostream &out)
     }
 
     serialise(path.value, out);
+    serialise(path.unlink, out);
 }
 
 MaybeError deserialise(std::istream &in, SocketPath *out)
@@ -195,7 +196,9 @@ MaybeError deserialise(std::istream &in, SocketPath *out)
                  + c + "' used as socket path type.";
     }
 
-    return deserialise(in, &out->value);
+    MaybeError err;
+    if ((err = deserialise(in, &out->value))) return err;
+    return deserialise(in, &out->unlink);
 }
 
 void serialise(const Rule &rule, std::ostream &out)

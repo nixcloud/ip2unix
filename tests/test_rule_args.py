@@ -42,7 +42,7 @@ class RulesTest(unittest.TestCase):
         }
         for val, expect in fixtures.items():
             stdout, stderr = self.check_rules("path=" + val)
-            self.assertIn("Socket path: " + expect + "\n", stdout)
+            self.assertIn("Socket path: " + expect + " (will", stdout)
 
     def test_good(self):
         fixtures = {
@@ -54,9 +54,9 @@ class RulesTest(unittest.TestCase):
             "path=/eee\\\\,out": "Direction: outgoing\n",
             "path=/fff\\\\,tcp,udp": "IP Type: UDP\n",
             "path=/ggg\\\\,in,out": "Direction: outgoing\n",
-            "path=/hhh\\\\": "Socket path: /hhh\\\n",
+            "path=/hhh\\\\": "Socket path: /hhh\\ (will",
             "path=/iii\\,,out": "IP Type: TCP and UDP\n",
-            "path=/jjj\\,,in": "Socket path: /jjj,\n",
+            "path=/jjj\\,,in": "Socket path: /jjj, (will",
             "path=/kkk\\\\,stream": "IP Type: TCP\n",
             "path=/lll\\\\,datagram": "IP Type: UDP\n",
             "path=/mmm\\\\,dgram": "IP Type: UDP\n",
@@ -65,8 +65,9 @@ class RulesTest(unittest.TestCase):
             "reject=999999": "calls with errno <unknown>.\n",
             "in,blackhole": "Blackhole the socket.\n",
             "in,ignore": "Don't handle this socket.\n",
-            "path=foo": "Socket path: " + os.getcwd() + "/foo\n",
+            "path=foo": "Socket path: " + os.getcwd() + "/foo (will",
             "from-unix=xyz,path=/foo": "domain socket path matching: xyz\n",
+            "path=bar,noremove": "will not be removed on close",
         }
         for val, expect in fixtures.items():
             stdout, stderr = self.check_rules(val)

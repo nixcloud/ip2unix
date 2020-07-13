@@ -282,6 +282,15 @@ Placeholders are allowed here and are substituted accordingly:
                     datagram socket)
 *%%*;; verbatim `%`
 
+*noremove*::
+If this flag is given in conjunction with a <<rule-socket-path,*path*>>, the
+socket file is not removed when the socket is closed.
++
+This works around an issue with more complex programs that spawn subprocesses
+or threads without sharing memory or cloning the file descriptor table. In some
+scenarios *ip2unix* might be unable to correctly track sockets and might
+accidentally remove the socket file too early.
+
 ifndef::without-abstract[]
 *abstract*='NAME'::
 An abstract namespace Unix domain socket not being created in the file system

@@ -221,6 +221,8 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
 {
     Rule rule;
 
+    bool noremove = false;
+
     for (const auto &foo : doc) {
         std::string key = foo.first.as<std::string>();
         YAML::Node value = foo.second;
@@ -293,6 +295,8 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
             RULE_CONVERT(rule.action.blackhole, "blackhole", bool, "bool");
         } else if (key == "ignore") {
             RULE_CONVERT(rule.action.ignore, "ignore", bool, "bool");
+        } else if (key == "noRemove") {
+            RULE_CONVERT(noremove, "noRemove", bool, "bool");
         } else if (key == "socketPath") {
             if (rule.action.socket_path) {
                 RULE_ERROR("Socket path or abstract name already specified.");
@@ -321,6 +325,19 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
 #endif
         } else {
             RULE_ERROR("Invalid key \"" << key << "\".");
+            return std::nullopt;
+        }
+    }
+
+    if (noremove) {
+        if (
+            rule.action.socket_path &&
+            rule.action.socket_path->is_real_file()
+        ) {
+            rule.action.socket_path->unlink = false;
+        } else {
+            RULE_ERROR("The noremove flag can only be used for Unix socket"
+                       " paths.");
             return std::nullopt;
         }
     }
@@ -414,6 +431,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
 
     size_t errpos = 0, valpos = 0;
     size_t errlen = 0;
+    bool noremove = false;
 
     for (size_t i = 0, arglen = arg.length(); i <= arglen; ++i) {
         if (key) {
@@ -532,6 +550,8 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                 rule.action.blackhole = true;
             } else if (buf == "ignore") {
                 rule.action.ignore = true;
+            } else if (buf == "noremove") {
+                noremove = true;
             } else {
                 print_arg_error(rulepos, arg, errpos, errlen, "unknown flag");
                 return std::nullopt;
@@ -550,6 +570,21 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
         }
 
         buf += arg[i];
+    }
+
+    if (noremove) {
+        if (
+            rule.action.socket_path &&
+            rule.action.socket_path->is_real_file()
+        ) {
+            rule.action.socket_path->unlink = false;
+        } else {
+            print_arg_error(
+                rulepos, arg, 0, 0,
+                "The noremove flag can only be used for Unix socket paths."
+            );
+            return std::nullopt;
+        }
     }
 
     std::optional<std::string> errmsg = validate_rule(rule);
@@ -662,9 +697,13 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
                         << std::endl;
                 } else {
 #endif
-                    out << "  Socket path: "
-                        << rule.action.socket_path->value
-                        << std::endl;
+                    out << "  Socket path: " << rule.action.socket_path->value;
+                    if (rule.action.socket_path->unlink) {
+                        out << " (will be removed on close)";
+                    } else {
+                        out << " (will not be removed on close)";
+                    }
+                    out << std::endl;
 #if defined(__linux__)
                 }
 #endif

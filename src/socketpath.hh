@@ -7,8 +7,12 @@
 struct SocketPath {
     enum class Type { ABSTRACT, FILESYSTEM };
 
-    inline SocketPath() : type(Type::FILESYSTEM), value() {}
-    inline SocketPath(Type t, const std::string &v) : type(t), value(v) {}
+    inline SocketPath()
+        : type(Type::FILESYSTEM), value(), unlink(true) {}
+    inline SocketPath(Type t, const std::string &v)
+        : type(t), value(v), unlink(true) {}
+    inline SocketPath(Type t, const std::string &v, bool ul)
+        : type(t), value(v), unlink(ul) {}
 
     inline bool operator==(const SocketPath &other) const {
         return this->type == other.type && this->value == other.value;
@@ -24,6 +28,7 @@ struct SocketPath {
 
     Type type;
     std::string value;
+    bool unlink;
 };
 
 namespace std {

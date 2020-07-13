@@ -45,10 +45,10 @@ def test_rule_longopts(tmpdir):
         stdout = subprocess.check_output(deprecated_cmd,
                                          stderr=subprocess.STDOUT)
         assert b"is deprecated" in stdout
-        assert b"path: /test\n" in stdout
+        assert b"path: /test (will" in stdout
 
     stdout = subprocess.check_output([IP2UNIX, '-cp', '--rule', 'path=/test'])
-    assert b"path: /test\n" in stdout
+    assert b"path: /test (will" in stdout
 
 
 def test_no_program():

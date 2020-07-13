@@ -159,7 +159,8 @@ static unsigned long test_rule(unsigned long seed)
     std::optional<std::string> value = CHOOSE(strings);
     if (value) {
         SocketPath::Type socketpathtype = CHOOSE(socketpathtypes);
-        rule.action.socket_path = SocketPath(socketpathtype, *value);
+        bool unlink = CHOOSE(bools);
+        rule.action.socket_path = SocketPath(socketpathtype, *value, unlink);
     }
     rule.action.reject = CHOOSE(bools);
     rule.action.reject_errno = CHOOSE(ints);

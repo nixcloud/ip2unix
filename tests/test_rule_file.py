@@ -193,6 +193,22 @@ class RuleFileTest(unittest.TestCase):
     def test_ignore_with_blackhole(self):
         self.assert_bad_rules([{'blackhole': True, 'ignore': True}])
 
+    def test_noremove_without_sockpath(self):
+        self.assert_bad_rules([{'reject': True, 'noRemove': True}])
+        self.assert_bad_rules([{'blackhole': True, 'noRemove': True}])
+        self.assert_bad_rules([{'ignore': True, 'noRemove': True}])
+
+    @systemd_only
+    def test_noremove_with_systemd(self):
+        self.assert_bad_rules([{'socketActivation': True, 'noRemove': True}])
+
+    @abstract_sockets_only
+    def test_noremove_with_abstract(self):
+        self.assert_bad_rules([{'abstract': 'foo', 'noRemove': True}])
+
+    def test_noremove_with_sockpath(self):
+        self.assert_good_rules([{'socketPath': '/foo', 'noRemove': True}])
+
     @systemd_only
     def test_ignore_with_systemd(self):
         self.assert_bad_rules([{'socketActivation': True, 'ignore': True}])
@@ -274,17 +290,17 @@ class RuleFileTest(unittest.TestCase):
             b'  IP Type: TCP and UDP\n'
             b'  Address: <any>\n'
             b'  Port: 1234\n'
-            b'  Socket path: /foo\n'
+            b'  Socket path: /foo (will be removed on close)\n'
             b'Rule #2:\n'
             b'  Direction: incoming\n'
             b'  IP Type: TCP and UDP\n'
             b'  Address: 9.8.7.6\n'
             b'  Port: <any>\n'
-            b'  Socket path: /bar\n'
+            b'  Socket path: /bar (will be removed on close)\n'
             b'Rule #3:\n'
             b'  Direction: outgoing\n'
             b'  IP Type: TCP and UDP\n'
             b'  Address: <any>\n'
             b'  Port: 4321\n'
-            b'  Socket path: /foobar\n'
+            b'  Socket path: /foobar (will be removed on close)\n'
         )

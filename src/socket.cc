@@ -203,7 +203,7 @@ SocketPath Socket::format_sockpath(const SocketPath &path,
         out += path.value[i];
     }
 
-    return SocketPath(path.type, out);
+    return SocketPath(path.type, out, path.unlink);
 }
 
 /*
@@ -371,8 +371,12 @@ int Socket::bind(const SockAddr &addr, const SocketPath &path)
         ret = real::bind(this->fd, dest.cast(), dest.size());
         if (ret == 0) {
             Socket::sockpath_registry.insert(newpath);
-            if (newpath.is_real_file())
+            if (newpath.is_real_file() && newpath.unlink) {
+                LOG(DEBUG) << "Marking socket file '" << newpath.value
+                           << "' for deletion when closing fd "
+                           << this->fd << '.';
                 this->unlink_sockpath = newpath.value;
+            }
         }
     }
 
@@ -680,13 +684,12 @@ int Socket::close(void)
         }
     }
 
-    Socket::registry.erase(this->fd);
-    LOG(INFO) << "Socket fd " << this->fd << " unregistered.";
+    this->unregister();
     return ret;
 }
 
 void Socket::unregister(void)
 {
-    LOG(DEBUG) << "Unregistering socket fd " << this->fd << '.';
     Socket::registry.erase(this->fd);
+    LOG(INFO) << "Socket fd " << this->fd << " unregistered.";
 }
