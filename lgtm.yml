@@ -1,0 +1,9 @@
+extraction:
+  cpp:
+    configure:
+      command:
+        - meson setup build
+    index:
+      build_command:
+        - cd build
+        - ninja
