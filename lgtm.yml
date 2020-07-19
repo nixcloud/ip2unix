@@ -1,3 +1,7 @@
+path_classifiers:
+  test:
+    - exclude: /
+    - tests
 extraction:
   cpp:
     configure:
