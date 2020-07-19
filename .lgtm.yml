@@ -1,13 +1,12 @@
 path_classifiers:
   test:
-    - exclude: /
-    - tests
+    - exclude: "/"
+    - "tests"
 extraction:
   cpp:
     configure:
-      command:
-        - meson setup build
+      command: "meson setup build"
     index:
       build_command:
-        - cd build
-        - ninja
+        - "cd build"
+        - "ninja"
