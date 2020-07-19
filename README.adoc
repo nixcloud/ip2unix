@@ -72,6 +72,9 @@ endif::manmanual[]
 ifdef::env-github[]
 :hydra_url: https://headcounter.org/hydra
 :image_url: latest-finished/download/1/status.svg
+:lgtm_img_baseurl: https://img.shields.io/lgtm/grade/cpp/g/nixcloud/ip2unix.svg
+:lgtm_img_url: pass:attributes[{lgtm_img_baseurl}?logo=lgtm&logoWidth=18]
+:lgtm_url: https://lgtm.com/projects/g/nixcloud/ip2unix/context:cpp
 :badge_job_master: pass:attributes[{hydra_url}/job/ip2unix/master/badge]
 :badge_url_master: pass:attributes[{badge_job_master}/{image_url}]
 :latest_eval_master: pass:attributes[{hydra_url}/jobset/ip2unix/master]
@@ -82,6 +85,7 @@ image:https://builtwithnix.org/badge.svg["built with nix",
                                          link="https://builtwithnix.org/"]
 image:{badge_url_master}["master build status", link="{latest_eval_master}"]
 image:{badge_url_2_0}["2.0.x build status", link="{latest_eval_2_0}"]
+image:{lgtm_img_url}["Language grade: C/C++", link="{lgtm_url}"]
 endif::env-github[]
 
 Executes a program and converts IP to Unix domain sockets at runtime via
