@@ -1,5 +1,5 @@
-import <nixpkgs/nixos/tests/make-test.nix> {
-  name = "ip2unix-systemd";
+import <nixpkgs/nixos/tests/make-test-python.nix> {
+  name = "ip2unix-systemd-single";
 
   nodes.server = { pkgs, lib, ... }: let
     ip2unix = import ../.. { inherit pkgs lib; };
@@ -95,13 +95,14 @@ import <nixpkgs/nixos/tests/make-test.nix> {
   testScript = { nodes, ... }: let
     inherit (nodes.client.config.networking) primaryIPAddress;
   in ''
-    startAll;
-    $server->waitForUnit('multi-user.target');
+    # fmt: off
+    start_all()
+    server.wait_for_unit('multi-user.target')
 
-    $server->succeed('curl -vvv --unix-socket /run/test-unix.sock http://t/');
-    $client->succeed(
+    server.succeed('curl -vvv --unix-socket /run/test-unix.sock http://t/')
+    client.succeed(
       'test "$(curl -vvv http://server:4/)" = ${primaryIPAddress}',
-      'test "$(curl -vvv "http://[2000:3000::1]:6/")" = 2000:3000::2'
-    );
+      'test "$(curl -vvv "http://[2000:3000::1]:6/")" = 2000:3000::2',
+    )
   '';
 }
