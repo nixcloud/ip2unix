@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
+## [Unreleased]
+
+### Fixed
+- Ordering between systemd socket file descriptor names and rules.
+
 ## [2.1.3] - 2020-06-01
 
 ### Fixed

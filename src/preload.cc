@@ -155,7 +155,13 @@ static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
     init_rules();
 
     size_t rulepos = 0;
-    for (auto &rule : *g_rules) {
+    for (
+        std::vector<Rule>::const_iterator it = g_rules->begin();
+        it != g_rules->end();
+        ++it, ++rulepos
+    ) {
+        const Rule &rule = *it;
+
         if (rule.direction && rule.direction != dir)
             continue;
 
