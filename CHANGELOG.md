@@ -16,9 +16,13 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Improve and overhaul README and man page.
 - Split build instructions into separate file.
 - Include URL to README in usage if manpage is not being built.
+- Turn into a Nix Flake.
 
 ### Fixed
 - Ordering between systemd socket file descriptor names and rules.
+
+### Removed
+- The build badge for Hydra is no longer generated.
 
 ## [2.1.3] - 2020-06-01
 

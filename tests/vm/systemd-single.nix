@@ -1,8 +1,10 @@
-import <nixpkgs/nixos/tests/make-test-python.nix> {
+{ packages, ... }:
+
+{
   name = "ip2unix-systemd-single";
 
   nodes.server = { pkgs, lib, ... }: let
-    ip2unix = import ../.. { inherit pkgs lib; };
+    inherit (packages.${pkgs.system}) ip2unix;
 
     testServer = pkgs.writeScript "test-server.py" ''
       #!${pkgs.python3.interpreter}
@@ -73,6 +75,7 @@ import <nixpkgs/nixos/tests/make-test-python.nix> {
       } [ "AF_INET6" "dead::beef" 99 ])
     ];
 
+    users.users.testuser.isSystemUser = true;
     users.users.testuser.group = "testgroup";
     users.groups.testgroup = {};
 
