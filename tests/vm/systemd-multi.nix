@@ -93,6 +93,6 @@
       for args in [f'http://127.0.0.1:{port}/',
                    f'--unix-socket /run/test{n}.sock http://test/']:
         cmd = f'test "$(curl --no-progress-meter -v {args})" = port{port}'
-        machine.succeed(f'if ! {cmd}; then sleep 20; exit 1; fi')  # XXX
+        machine.succeed(cmd)
   '';
 }

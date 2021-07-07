@@ -25,7 +25,6 @@
 
         def do_GET(self):
           self.send_response(200)
-          sys.stderr.flush()
           self.send_header('Content-Type', 'text/plain')
           self.end_headers()
           self.wfile.write(self.address_string().encode())
@@ -35,7 +34,6 @@
       else:
         laddr = (sys.argv[2], int(sys.argv[3]))
 
-      sys.stderr.write(f"Fump, is_unix: {IS_UNIX}\n")
       TestServer(laddr, TestHandler).serve_forever()
     '';
 
