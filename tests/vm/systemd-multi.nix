@@ -90,6 +90,7 @@
     machine.wait_for_unit('multi-user.target')
 
     for n, port in enumerate([8090, 1113], start=1):
+      machine.wait_for_open_port(port)
       for args in [f'http://127.0.0.1:{port}/',
                    f'--unix-socket /run/test{n}.sock http://test/']:
         cmd = f'test "$(curl --no-progress-meter -v {args})" = port{port}'
