@@ -80,12 +80,25 @@
       withSystem = fun: system: let
         pkgs = nixpkgs.legacyPackages.${system};
         attrs = fun pkgs;
+
+        # Remove this as soon as Meson >= 0.58 lands in nixpkgs. The assertion
+        # here is to make sure that we remove all this as soon as we update
+        # flake.lock with a newer Meson in nixpkgs.
+        assertOldMeson = lib.versionOlder pkgs.meson.version "0.58.0";
+        patchedMeson = assert assertOldMeson; pkgs.meson.overrideAttrs (drv: {
+          patches = (drv.patches or []) ++ lib.singleton (pkgs.fetchpatch {
+            url = "https://github.com/mesonbuild/meson/commit/"
+                + "0c663d056a588b9bc4aa9f6a954de2f7792313ec.patch";
+            sha256 = "05npxvbv1fv4g8gzfk17hjdh6vvq7jfbs5wbfxsqk9h78l3w4zxp";
+          });
+        });
+
       in pkgs.stdenv.mkDerivation (attrs // rec {
         inherit (self.packages.${system}.ip2unix) name version src;
 
         mesonFlags = [ "-Dtest-timeout=3600" ] ++ attrs.mesonFlags or [];
 
-        nativeBuildInputs = [ pkgs.meson pkgs.ninja pkgs.pkgconfig ]
+        nativeBuildInputs = [ patchedMeson pkgs.ninja pkgs.pkgconfig ]
                          ++ attrs.nativeBuildInputs or [];
         buildInputs = [ pkgs.libyamlcpp ] ++ attrs.buildInputs or [];
 
