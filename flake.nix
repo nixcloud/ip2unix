@@ -4,7 +4,9 @@
   outputs = { self, nixpkgs }: let
     inherit (nixpkgs) lib;
     nixpkgsSystems = lib.attrNames nixpkgs.legacyPackages;
+
     systems = lib.filter (lib.hasSuffix "-linux") nixpkgsSystems;
+    hydraSystems = [ "i686-linux" "x86_64-linux" ];
 
     withPkgs = f: forAllSystems (system: f nixpkgs.legacyPackages.${system});
     forAllSystems = lib.genAttrs systems;
@@ -135,9 +137,9 @@
         };
       in withSystemAndTests funFull system;
 
-      forEachSystem = fun: lib.genAttrs systems (withSystem fun);
-      testForEachSystem = fun: lib.genAttrs systems (withSystemAndTests fun);
-      fullForEachSystem = fun : lib.genAttrs systems (withSystemFull fun);
+      forEachSystem = f: lib.genAttrs hydraSystems (withSystem f);
+      testForEachSystem = f: lib.genAttrs hydraSystems (withSystemAndTests f);
+      fullForEachSystem = f: lib.genAttrs hydraSystems (withSystemFull f);
 
       mkManpageJobs = attrsFun: {
         no-manpage = testForEachSystem (pkgs: (attrsFun pkgs) // {
@@ -241,7 +243,7 @@
       });
 
       tests.vm = let
-        makeTest = path: lib.genAttrs systems (system: let
+        makeTest = path: lib.genAttrs hydraSystems (system: let
           libPath = nixpkgs + "/nixos/lib/testing-python.nix";
           testLib = import libPath { inherit system; };
         in testLib.makeTest (import path self));
@@ -274,7 +276,7 @@
         address = {};
 
         thread.fun = fun: let
-          supportedSystems = lib.remove "i686-linux" systems;
+          supportedSystems = lib.remove "i686-linux" hydraSystems;
         in lib.genAttrs supportedSystems (withSystem fun);
 
         undefined.fun = fullForEachSystem;
