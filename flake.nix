@@ -76,7 +76,7 @@
     hydraJobs = let
       # This is with all the *required* dependencies only.
       withSystem = fun: system: let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = nixpkgs.legacyPackages.${system};
         attrs = fun pkgs;
       in pkgs.stdenv.mkDerivation (attrs // rec {
         inherit (self.packages.${system}.ip2unix) name version src;
@@ -252,7 +252,8 @@
 
       tests.programs = let
         mkProgramTest = system: path: import path {
-          pkgs = import nixpkgs { inherit system; config = {}; };
+          pkgs = nixpkgs.legacyPackages.${system};
+          inherit (self.packages.${system}) ip2unix;
         };
       in lib.mapAttrs (lib.const (lib.mapAttrs mkProgramTest)) {
         rsession.x86_64-linux = tests/programs/rsession.nix;

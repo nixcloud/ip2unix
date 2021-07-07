@@ -1,8 +1,11 @@
 # Regression test for https://github.com/nixcloud/ip2unix/issues/6
-{ pkgs ? import <nixpkgs> {}, ip2unix ? import ../.. { inherit pkgs; } }:
+{ pkgs, ip2unix, ... }:
 
 pkgs.runCommand "test-rsession" {
-  nativeBuildInputs = [ ip2unix pkgs.R pkgs.rstudio pkgs.curl ];
+  nativeBuildInputs = [
+    ip2unix pkgs.R pkgs.curl
+    (pkgs.rstudio.override { hunspellDicts = {}; })
+  ];
   R_HOME = "${pkgs.R}/lib/R";
   R_SHARE_DIR = "${pkgs.R}/lib/R/share";
   R_INCLUDE_DIR = "${pkgs.R}/lib/R/include";
