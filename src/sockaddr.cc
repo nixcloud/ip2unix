@@ -244,7 +244,7 @@ bool SockAddr::operator==(const SockAddr &other) const
 
 std::size_t SockAddr::get_hash(void) const
 {
-    // FIXME: This function is pretty slow and dumb, but at least accurate.
+    // XXX: This function is pretty slow and dumb, but at least accurate.
     std::ostringstream hashprep;
     hashprep << this->ss_family;
 
