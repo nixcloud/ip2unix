@@ -15,7 +15,7 @@
 #define SD_LISTEN_FDS_START 3
 
 static std::unordered_map<size_t, Systemd::FdInfo> fdmap;
-static std::deque<Systemd::FdInfo> fds;
+static std::deque<Systemd::FdInfo> fdinfos;
 static std::unordered_set<int> all_fds;
 
 /* Fetch a colon-separated environment variable and split it into a vector. */
@@ -90,7 +90,7 @@ static void update_env(void)
 {
     int ret;
 
-    std::string fdval = serialise(fds);
+    std::string fdval = serialise(fdinfos);
 
     LOG(DEBUG) << "Setting __IP2UNIX_SYSTEMD_FDS to '"
                << fdval << "'.";
@@ -127,7 +127,7 @@ static bool init_from_env(void)
     if (fds_raw == nullptr || fdmap_raw == nullptr)
         return false;
 
-    if ((err = deserialise(std::string(fds_raw), &fds))) {
+    if ((err = deserialise(std::string(fds_raw), &fdinfos))) {
         LOG(FATAL) << "Unable to deserialise __IP2UNIX_SYSTEMD_FDS: "
                    << *err;
         std::abort();
@@ -143,14 +143,14 @@ static bool init_from_env(void)
               << " __IP2UNIX_SYSTEMD_FD* variables.";
 
     for (const std::pair<size_t, Systemd::FdInfo> &item : fdmap) {
-        LOG(DEBUG) << "Got systemd file descriptor " << item.second.second
+        LOG(DEBUG) << "Got systemd file descriptor " << item.second.fd
                    << " connected to rule #" << item.first << '.';
-        all_fds.insert(item.second.first);
+        all_fds.insert(item.second.fd);
     }
 
-    for (const Systemd::FdInfo &fd : fds) {
-        LOG(DEBUG) << "Got systemd file descriptor " << fd.first << '.';
-        all_fds.insert(fd.first);
+    for (const Systemd::FdInfo &fdinfo : fdinfos) {
+        LOG(DEBUG) << "Got systemd file descriptor " << fdinfo.fd << '.';
+        all_fds.insert(fdinfo.fd);
     }
 
     return true;
@@ -225,7 +225,8 @@ void Systemd::init(const std::vector<Rule> &rules)
                                << " file descriptor name '"
                                << fdnames[i] << "' (fd " << fd << ")"
                                << " with rule #" << rulepos << '.';
-                    fdmap[rulepos] = std::make_pair(fd, is_inet);
+                    Systemd::FdInfo fdinfo = { fd, is_inet };
+                    fdmap[rulepos] = fdinfo;
                     avail_fds.erase(fd);
                     continue;
                 }
@@ -240,7 +241,8 @@ void Systemd::init(const std::vector<Rule> &rules)
                        << (is_inet ? "inet" : "unix")
                        << " file descriptor "
                        << fd << " to pool.";
-            fds.push_front(std::make_pair(fd, is_inet));
+            Systemd::FdInfo fdinfo = { fd, is_inet };
+            fdinfos.push_front(fdinfo);
         }
 
         update_env();
@@ -309,17 +311,17 @@ std::optional<Systemd::FdInfo>
     if (found != fdmap.end()) {
         Systemd::FdInfo fdinfo = found->second;
         fdmap.erase(found);
-        remove_fd(fdinfo.first);
+        remove_fd(fdinfo.fd);
         return fdinfo;
     }
 
-    if (fds.empty())
+    if (fdinfos.empty())
         return std::nullopt;
 
-    FdInfo fd = fds.front();
-    fds.pop_front();
-    remove_fd(fd.first);
-    return fd;
+    FdInfo fdinfo = fdinfos.front();
+    fdinfos.pop_front();
+    remove_fd(fdinfo.fd);
+    return fdinfo;
 }
 
 /* Check whether the given file descriptor is passed by systemd. */

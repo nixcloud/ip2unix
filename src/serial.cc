@@ -157,3 +157,19 @@ MaybeError deserialise(std::istream &in, Rule *out)
     DESERIALISE_OR_ERR(ignore);
     return std::nullopt;
 }
+
+#ifdef SYSTEMD_SUPPORT
+void serialise(const Systemd::FdInfo &fdinfo, std::ostream &out)
+{
+    serialise(fdinfo.fd, out);
+    serialise(fdinfo.is_inet, out);
+}
+
+MaybeError deserialise(std::istream &in, Systemd::FdInfo *out)
+{
+    MaybeError err;
+    DESERIALISE_OR_ERR(fd);
+    DESERIALISE_OR_ERR(is_inet);
+    return std::nullopt;
+}
+#endif

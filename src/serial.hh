@@ -8,6 +8,10 @@
 
 #include "rules.hh"
 
+#ifdef SYSTEMD_SUPPORT
+#include "systemd.hh"
+#endif
+
 using MaybeError = std::optional<std::string>;
 
 void serialise(const std::string&, std::ostream&);
@@ -24,6 +28,11 @@ MaybeError deserialise(std::istream&, SocketType*);
 
 void serialise(const Rule&, std::ostream&);
 MaybeError deserialise(std::istream&, Rule*);
+
+#ifdef SYSTEMD_SUPPORT
+void serialise(const Systemd::FdInfo&, std::ostream&);
+MaybeError deserialise(std::istream&, Systemd::FdInfo*);
+#endif
 
 template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>>
 inline void serialise(const T &val, std::ostream &out)

@@ -246,8 +246,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
             std::optional<Systemd::FdInfo> fdinfo =
                 Systemd::acquire_fdinfo_for_rulepos(rule->first);
             if (fdinfo) {
-                return sock->activate(inaddr, fdinfo.value().first,
-                                      fdinfo.value().second);
+                return sock->activate(inaddr, fdinfo->fd, fdinfo->is_inet);
             } else {
                 LOG(WARNING) << "Systemd file descriptor queue empty, "
                              << "blackholing socket with fd " << fd << '.';

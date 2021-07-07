@@ -5,10 +5,13 @@
 #include "rules.hh"
 
 namespace Systemd {
-    using FdInfo = std::pair<int, bool>;
+    struct FdInfo {
+        int fd;
+        bool is_inet;
+    };
 
     void init(const std::vector<Rule>&);
-    std::optional<std::pair<int, bool>> acquire_fdinfo_for_rulepos(size_t);
+    std::optional<FdInfo> acquire_fdinfo_for_rulepos(size_t);
     bool has_fd(int);
 }
 
