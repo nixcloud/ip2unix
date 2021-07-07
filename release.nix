@@ -164,11 +164,14 @@ let
     hardeningDisable = [ "all" ];
   });
 
-  tests.vm = {
-    systemd = lib.genAttrs systems (system: (import ./tests/vm/systemd.nix {
+  tests.vm = let
+    callTest = path: lib.genAttrs systems (system: (import path {
       inherit system;
       pkgs = import nixpkgs { inherit system; config = {}; };
     }).test);
+  in {
+    systemd-single = callTest tests/vm/systemd-single.nix;
+    systemd-multi = callTest tests/vm/systemd-multi.nix;
   };
 
   tests.programs = let
