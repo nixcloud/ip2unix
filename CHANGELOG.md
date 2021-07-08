@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Fixed
 - Ordering between systemd socket file descriptor names and rules.
+- Usage of C library path as discovered by Meson.
 
 ## [2.1.3] - 2020-06-01
 
