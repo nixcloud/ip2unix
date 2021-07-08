@@ -142,7 +142,7 @@ static bool init_from_env(void)
     LOG(INFO) << "Reinitialising systemd file descriptors from internal"
               << " __IP2UNIX_SYSTEMD_FD* variables.";
 
-    for (const std::pair<size_t, Systemd::FdInfo> &item : fdmap) {
+    for (const std::pair<const size_t, Systemd::FdInfo> &item : fdmap) {
         LOG(DEBUG) << "Got systemd file descriptor " << item.second.fd
                    << " connected to rule #" << item.first << '.';
         all_fds.insert(item.second.fd);

@@ -147,7 +147,7 @@ static std::optional<int> parse_errno(const std::string &str)
 #define RULE_CONVERT(target, key, type, tname) \
     try { \
         target = value.as<type>(); \
-    } catch (const YAML::BadConversion &e) { \
+    } catch (const YAML::BadConversion&) { \
         RULE_ERROR("The \"" key "\" option needs to be a " tname "."); \
         return std::nullopt; \
     }
@@ -252,9 +252,9 @@ bool is_yaml_rule_file(std::string filename)
 
     try {
         doc = YAML::LoadFile(filename);
-    } catch (const YAML::ParserException &e) {
+    } catch (const YAML::ParserException&) {
         return false;
-    } catch (const YAML::BadFile &e) {
+    } catch (const YAML::BadFile&) {
         // If the file can't be opened, let's assume it's YAML for now, since
         // we're going to eventually throw an error anyway.
         return true;
@@ -277,7 +277,7 @@ std::optional<std::vector<Rule>>
     } catch (const YAML::ParserException &e) {
         std::cerr << file << ": " << e.msg << std::endl;
         return std::nullopt;
-    } catch (const YAML::BadFile &e) {
+    } catch (const YAML::BadFile&) {
         std::cerr << "Unable to open file \"" << file << "\"." << std::endl;
         return std::nullopt;
     }

@@ -183,10 +183,9 @@ std::string Socket::format_sockpath(const std::string &path,
                           continue;
                 case 't':
                     switch (this->type) {
-                        case SocketType::TCP: out += "tcp"; break;
-                        case SocketType::UDP: out += "udp"; break;
-                        case SocketType::INVALID:
-                        default: out += "unknown"; break;
+                        case SocketType::TCP:     out += "tcp"; break;
+                        case SocketType::UDP:     out += "udp"; break;
+                        case SocketType::INVALID: out += "unknown"; break;
                     }
                     i++;
                     continue;
@@ -305,16 +304,16 @@ int Socket::activate(const SockAddr &addr, int filedes, bool is_inet)
 }
 #endif
 
-#define __USOCK_OR_FAIL(path, error_block) \
+#define DO_USOCK_OR_FAIL(path, error_block) \
     std::optional<SockAddr> maybe_dest = SockAddr::unix(path); \
     if (!maybe_dest) error_block \
     SockAddr dest = maybe_dest.value()
 
 #define USOCK_OR_FAIL(path, ret) \
-    __USOCK_OR_FAIL(path, return ret;)
+    DO_USOCK_OR_FAIL(path, return ret;)
 
 #define USOCK_OR_EFAULT(path) \
-    __USOCK_OR_FAIL(path, { errno = EFAULT; return -1; })
+    DO_USOCK_OR_FAIL(path, { errno = EFAULT; return -1; })
 
 int Socket::bind(const SockAddr &addr, const std::string &path)
 {

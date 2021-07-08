@@ -152,7 +152,7 @@ MaybeError deserialise(std::istream &in, std::vector<T> *out)
 template <typename K, typename V>
 void serialise(const std::unordered_map<K, V> &val, std::ostream &out)
 {
-    for (const std::pair<K, V> &item : val) {
+    for (const std::pair<const K, V> &item : val) {
         serialise(item.first, out);
         out.put('=');
         serialise(item.second, out);

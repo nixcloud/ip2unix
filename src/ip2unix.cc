@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
 
             case 'y':
                 show_warn_deprecated_rules_file_long_opt = true;
-                /* fallthrough */
+                [[fallthrough]];
             case 'f':
                 rulefile = std::string(optarg);
                 if (is_yaml_rule_file(*rulefile))

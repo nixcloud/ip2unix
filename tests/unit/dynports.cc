@@ -10,7 +10,7 @@
         auto value = 0;                                                       \
         try {                                                                 \
             value = code;                                                     \
-        } catch (exception &e) {                                              \
+        } catch (exception&) {                                                \
             return;                                                           \
         } catch (...) {                                                       \
             throw std::runtime_error("Unknown exception in \"" #code "\".");  \

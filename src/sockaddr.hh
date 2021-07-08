@@ -40,7 +40,7 @@ struct SockAddr : public sockaddr_storage
         if (port)
             return std::to_string(port.value());
         return std::nullopt;
-    };
+    }
 
     bool operator==(const SockAddr &other) const;
     std::size_t get_hash(void) const;
@@ -85,7 +85,7 @@ namespace std {
     template<> struct hash<SockAddr> {
         std::size_t operator()(const SockAddr &addr) const {
             return addr.get_hash();
-        };
+        }
     };
 }
 

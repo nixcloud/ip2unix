@@ -11,14 +11,20 @@ cc = meson.get_compiler('cpp')
 
 warning_flags = [
   '-Wcast-qual',
+  '-Wcovered-switch-default',
   '-Weffc++',
+  '-Wextra-semi',
+  '-Wimplicit-fallthrough',
+  '-Wno-trigraphs',
   '-Wold-style-cast',
+  '-Wrange-loop-analysis',
+  '-Wreserved-id-macro',
   '-Wshadow',
   '-Wsign-conversion',
   '-Wswitch-enum',
+  '-Wunused-exception-parameter',
   '-Wuseless-cast',
   '-Wzero-as-null-pointer-constant',
-  '-Wno-trigraphs',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warning_flags),

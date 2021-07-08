@@ -55,9 +55,9 @@ std::string pprint(const RuleDir &dir) {
             return "RuleDir::INCOMING";
         case RuleDir::OUTGOING:
             return "RuleDir::OUTGOING";
-        default:
-            throw std::runtime_error("Invalid RuleDir value");
     }
+
+    throw std::runtime_error("Invalid RuleDir value");
 }
 
 std::string pprint(const SocketType &type) {
@@ -68,9 +68,9 @@ std::string pprint(const SocketType &type) {
             return "SocketType::TCP";
         case SocketType::INVALID:
             return "SocketType::INVALID";
-        default:
-            throw std::runtime_error("Invalid SocketType value");
     }
+
+    throw std::runtime_error("Invalid SocketType value");
 }
 
 template <typename T>
