@@ -16,7 +16,7 @@ DlsymHandle::DlsymHandle() : handle(nullptr)
 #endif
         "libc.so.6"
     }) {
-        this->handle = dlopen("libc.so.6", RTLD_LAZY | RTLD_DEEPBIND);
+        this->handle = dlopen(libname.c_str(), RTLD_LAZY | RTLD_DEEPBIND);
         if (this->handle != nullptr) return;
     }
 

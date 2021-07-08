@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Fixed
 - Ordering between systemd socket file descriptor names and rules.
+- Usage of C library path as discovered by Meson.
 
 ### Removed
 - The build badge for Hydra is no longer generated.
