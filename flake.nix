@@ -63,8 +63,9 @@
           fi
 
           diff -u <(
-            find "$src/src" -iname '*.cc' -type f -exec \
-              sed -n -e '/^ *#/!s/^.*WRAP_SYM(\([^)]\+\)).*/\1/p' {} + | sort
+            find "$src/src" -iname '*.cc' -type f -exec sed -n \
+              -e '/^ *#/!s/^.*\(WRAP\|EXPORT\)_SYM(\([^)]\+\)).*/\2/p' \
+              {} + | sort
           ) <(
             nm --defined-only -g "$out/lib/libip2unix.so" \
               | cut -d' ' -f3- | sort

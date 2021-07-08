@@ -65,10 +65,18 @@ main_sources = []
 includes = []
 subdir('src')
 
-generate_sym_map = [python, script_gensyms, '@INPUT@']
+generate_sym_map = [python, script_gensyms, '--map', '@INPUT@']
 sym_map = custom_target('symmap', input: lib_sources, output: 'symbols.map',
                         command: generate_sym_map, capture: true)
-lib_ldflags += ['-Wl,--version-script,@0@'.format(sym_map.full_path())]
+
+generate_ldscript = [python, script_gensyms, '--ldscript', '@INPUT@']
+ldscript = custom_target('ldscript', input: lib_sources, output: 'ldscript',
+                         command: generate_ldscript, capture: true)
+
+lib_ldflags += [
+  '-Wl,--version-script,@0@'.format(sym_map.full_path()),
+  ldscript.full_path()
+]
 
 man_input = files('README.adoc')
 
@@ -158,7 +166,8 @@ endif
 ############################### BUILD TARGETS ###############################
 
 libip2unix = shared_library('ip2unix', lib_sources, install: true,
-                            dependencies: deps, link_depends: sym_map,
+                            dependencies: deps,
+                            link_depends: [sym_map, ldscript],
                             cpp_args: lib_cflags + cflags,
                             link_args: lib_ldflags,
                             include_directories: includes)

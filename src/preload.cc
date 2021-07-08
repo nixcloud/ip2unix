@@ -11,7 +11,10 @@
 #include <sys/un.h>
 
 #ifndef WRAP_SYM
-#define WRAP_SYM(x) x
+#define WRAP_SYM(x) ip2unix_wrap_##x
+#endif
+#ifndef EXPORT_SYM
+#define EXPORT_SYM(x) x
 #endif
 
 #include "rules.hh"
@@ -71,7 +74,7 @@ static void init_rules(void)
     g_rules = std::make_shared<std::vector<Rule>>(rules.value());
 }
 
-extern "C" const char *WRAP_SYM(__ip2unix__)(void)
+extern "C" const char *EXPORT_SYM(__ip2unix__)(void)
 {
     return VERSION;
 }
