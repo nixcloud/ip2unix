@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #include <cstring>
 #include <climits>
+#include <filesystem>
 #include <unistd.h>
 
 #include <sys/stat.h>
@@ -60,15 +61,10 @@ static std::string get_tmpdir(void)
     if (is_writable_dir("/var/tmp"))
         return "/var/tmp";
 
-    int old_errno = errno;
-    char *workdir = get_current_dir_name();
-    errno = old_errno;
-    if (workdir != nullptr) {
-        std::string wdir_str(workdir);
-        free(workdir);
-        if (is_writable_dir(workdir))
-            return workdir;
-    }
+    std::string workdir = std::filesystem::current_path();
+
+    if (is_writable_dir(workdir))
+        return workdir;
 
     LOG(FATAL) << "Unable to get temporary directory.";
     std::abort();

@@ -107,11 +107,23 @@ bool SockAddr::set_host(const SockAddr &other)
     }
 }
 
-bool SockAddr::set_host(const ucred &peercred)
+#if defined(SO_PEERCRED)
+#define PEERCRED_TYPE ucred
+#define PEERCRED_PID peercred.pid
+#define PEERCRED_GID peercred.gid
+#define PEERCRED_UID peercred.uid
+#else
+#define PEERCRED_TYPE xucred
+#define PEERCRED_PID peercred.cr_pid
+#define PEERCRED_GID peercred.cr_gid
+#define PEERCRED_UID peercred.cr_uid
+#endif
+
+bool SockAddr::set_host(const PEERCRED_TYPE &peercred)
 {
     if (this->ss_family == AF_INET) {
         this->cast4()->sin_addr.s_addr =
-            htonl(static_cast<uint32_t>(peercred.pid));
+            htonl(static_cast<uint32_t>(PEERCRED_PID));
         return true;
     } else if (this->ss_family == AF_INET6) {
         sockaddr_in6 *addr = this->cast6();
@@ -119,12 +131,15 @@ bool SockAddr::set_host(const ucred &peercred)
         addr->sin6_addr.s6_addr[1] = 0x80;
         addr->sin6_addr.s6_addr[2] = 0x00;
         addr->sin6_addr.s6_addr[3] = 0x00;
-        uint32_t part = htonl(static_cast<uint32_t>(peercred.uid));
+        uint32_t part = htonl(static_cast<uint32_t>(PEERCRED_UID));
         memcpy(addr->sin6_addr.s6_addr + 4, &part, 4);
-        part = htonl(static_cast<uint32_t>(peercred.gid));
+// XXX!
+#if defined(SO_PEERCRED)
+        part = htonl(static_cast<uint32_t>(PEERCRED_GID));
         memcpy(addr->sin6_addr.s6_addr + 8, &part, 4);
-        part = htonl(static_cast<uint32_t>(peercred.pid));
+        part = htonl(static_cast<uint32_t>(PEERCRED_PID));
         memcpy(addr->sin6_addr.s6_addr + 12, &part, 4);
+#endif
         return true;
     }
     return false;
