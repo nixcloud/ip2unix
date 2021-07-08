@@ -31,7 +31,7 @@ if pytest.found()
     endif
   endif
   test('integration', pytest, args: pytest_args, timeout: timeout,
-       workdir: meson.current_source_dir(),
+       workdir: meson.current_source_dir(), depends: ip2unix,
        env: ['PYTHONDONTWRITEBYTECODE=1'])
 else
   warning('Unable to find pytest, tests will not be run.')
