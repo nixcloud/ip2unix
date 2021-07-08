@@ -65,13 +65,15 @@ main_sources = []
 includes = []
 subdir('src')
 
-generate_sym_map = [python, script_gensyms, '--map', '@INPUT@']
-sym_map = custom_target('symmap', input: lib_sources, output: 'symbols.map',
-                        command: generate_sym_map, capture: true)
+gen_extra_args = cc.cmd_array() + lib_cflags + cflags + ['--', '@INPUT@']
 
-generate_ldscript = [python, script_gensyms, '--ldscript', '@INPUT@']
+gen_sym_map = [python, script_gensyms, '--map']
+sym_map = custom_target('symmap', input: lib_sources, output: 'symbols.map',
+                        command: gen_sym_map + gen_extra_args, capture: true)
+
+gen_ldscript = [python, script_gensyms, '--ldscript']
 ldscript = custom_target('ldscript', input: lib_sources, output: 'ldscript',
-                         command: generate_ldscript, capture: true)
+                         command: gen_ldscript + gen_extra_args, capture: true)
 
 lib_ldflags += [
   '-Wl,--version-script,@0@'.format(sym_map.full_path()),
