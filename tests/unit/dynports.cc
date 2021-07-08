@@ -1,3 +1,4 @@
+#include <string>
 #include <stdexcept>
 
 #include "dynports.hh"
