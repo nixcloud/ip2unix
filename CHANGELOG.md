@@ -18,12 +18,14 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Include URL to README in usage if manpage is not being built.
 - Turn into a Nix Flake.
 
+### Removed
+- The build badge for Hydra is no longer generated.
+
+## [2.1.4] - 2021-07-10
+
 ### Fixed
 - Ordering between systemd socket file descriptor names and rules.
 - Usage of C library path as discovered by Meson.
-
-### Removed
-- The build badge for Hydra is no longer generated.
 
 ## [2.1.3] - 2020-06-01
 
