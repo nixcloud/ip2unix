@@ -81,6 +81,7 @@
       withSystem = fun: system: let
         pkgs = nixpkgs.legacyPackages.${system};
         attrs = fun pkgs;
+        stdenv = attrs.stdenv or pkgs.stdenv;
 
         # Remove this as soon as Meson >= 0.58 lands in nixpkgs. The assertion
         # here is to make sure that we remove all this as soon as we update
@@ -94,14 +95,16 @@
           });
         });
 
-      in pkgs.stdenv.mkDerivation (attrs // rec {
+        libyamlcpp = pkgs.libyamlcpp.override { inherit stdenv; };
+
+      in stdenv.mkDerivation (removeAttrs attrs [ "stdenv" ] // rec {
         inherit (self.packages.${system}.ip2unix) name version src;
 
         mesonFlags = [ "-Dtest-timeout=3600" ] ++ attrs.mesonFlags or [];
 
         nativeBuildInputs = [ patchedMeson pkgs.ninja pkgs.pkgconfig ]
                          ++ attrs.nativeBuildInputs or [];
-        buildInputs = [ pkgs.libyamlcpp ] ++ attrs.buildInputs or [];
+        buildInputs = [ libyamlcpp ] ++ attrs.buildInputs or [];
 
         doCheck = attrs.doCheck or true;
 
@@ -244,7 +247,35 @@
         });
       };
 
-      tests.full = fullForEachSystem (lib.const {});
+      tests.full = let
+        mapAttrsToOneList = f: set: lib.concatLists (lib.mapAttrsToList f set);
+
+        mkCompilerPackages = compiler: req: mapAttrsToOneList (name: pkg: let
+          majorVersion = req.matchAttr name;
+          isEligible = lib.versionAtLeast (req.getVersion pkg) req.minVersion;
+          getPackageAttrs = pkgs: { stdenv = req.getStdenv pkgs.${name}; };
+        in lib.optional (majorVersion != null && isEligible) {
+          name = "${compiler}${lib.head majorVersion}";
+          value = lib.genAttrs req.systems (withSystemFull getPackageAttrs);
+        }) nixpkgs.legacyPackages.x86_64-linux;
+
+      in lib.listToAttrs (mapAttrsToOneList mkCompilerPackages {
+        clang = {
+          minVersion = "7";
+          matchAttr = builtins.match "llvmPackages_([0-9]+)";
+          getVersion = attr: attr.llvm.version;
+          getStdenv = attr: attr.stdenv;
+          systems = lib.singleton "x86_64-linux";
+        };
+
+        gcc = {
+          minVersion = "7";
+          matchAttr = builtins.match "gcc([0-9]+)Stdenv";
+          getVersion = attr: attr.cc.version;
+          getStdenv = lib.id;
+          systems = hydraSystems;
+        };
+      });
 
       tests.repeat100 = fullForEachSystem (pkgs: {
         checkPhase = ''
