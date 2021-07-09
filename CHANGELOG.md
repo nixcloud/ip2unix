@@ -116,7 +116,8 @@ The format is based on [Keep a Changelog], and this project adheres to
 - The initial release, which evolved from an early prototype specific to a
   certain use case into a more generic command line tool.
 
-[Unreleased]: https://github.com/nixcloud/ip2unix/compare/v2.1.3...HEAD
+[Unreleased]: https://github.com/nixcloud/ip2unix/compare/v2.1.4...HEAD
+[2.1.4]: https://github.com/nixcloud/ip2unix/compare/v2.1.3...v2.1.4
 [2.1.3]: https://github.com/nixcloud/ip2unix/compare/v2.1.2...v2.1.3
 [2.1.2]: https://github.com/nixcloud/ip2unix/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/nixcloud/ip2unix/compare/v2.1.0...v2.1.1
