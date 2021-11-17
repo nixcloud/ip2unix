@@ -491,6 +491,18 @@ easy to map *any* address/port combination to Unix sockets. While this is way
 easier to implement than our approach it has the drawback that everything is
 contained and no IP communication is possible anymore.
 
+https://github.com/mildred/force-bind-seccomp[force-bind-seccomp]::
+
+Very similar in nature but instead of focusing on Unix domain sockets it allows
+to replace *bind* arguments for IP sockets. Unlike *ip2unix* however, it uses
+seccomp BPF in conjunction with *ptrace*, so it's much more effective if you
+have to deal eg. with a statically linked program (see
+<<limitations,Limitations>> above).
++
+The rule matching syntax also is very similar and it also has a way to force
+programs to use systemd socket activation. If Unix domain sockets are not what
+you want, you might want to give it a try.
+
 == Thanks
 
 Special thanks to the https://nlnet.nl/[NLnet foundation] for sponsoring the
