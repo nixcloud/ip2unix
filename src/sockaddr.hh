@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #ifndef IP2UNIX_SOCKETADDR_HH
 #define IP2UNIX_SOCKETADDR_HH
+#include <optional>
+#include <string>
 #include <variant>
 
 #include <netinet/in.h>
