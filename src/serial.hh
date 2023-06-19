@@ -2,11 +2,24 @@
 #ifndef IP2UNIX_SERIAL_HH
 #define IP2UNIX_SERIAL_HH
 
+#include <stdio.h>
 #include <deque>
 #include <sstream>
 #include <unordered_map>
+#include <optional>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "rules.hh"
+
+enum class RuleDir;
+enum class SocketType;
+namespace Systemd {
+struct FdInfo;
+}  // namespace Systemd
+struct Rule;
 
 #ifdef SYSTEMD_SUPPORT
 #include "systemd.hh"

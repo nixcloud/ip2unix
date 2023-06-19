@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <sstream>
+#include <string_view>
 
 /* A small helper so that we always get the basename of the file at compile
  * time instead of determining it at runtime.

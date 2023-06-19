@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <memory>
 
 #include "globpath.hh"
 

@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #ifndef IP2UNIX_SOCKETADDR_HH
 #define IP2UNIX_SOCKETADDR_HH
+#include <netinet/in.h>
+#include <sys/un.h>
+#include <stdint.h>
+#include <sys/socket.h>
 #include <optional>
 #include <string>
 #include <variant>
+#include <cstddef>
+#include <utility>
 
-#include <netinet/in.h>
-#include <sys/un.h>
+struct sockaddr_in6;
+struct sockaddr_in;
 
 struct SockAddr : public sockaddr_storage
 {

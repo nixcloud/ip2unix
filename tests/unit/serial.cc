@@ -1,4 +1,9 @@
 #include <serial.hh>
+#include <stdint.h>
+#include <stdexcept>
+
+#include "rules.hh"
+#include "types.hh"
 
 /* All the combinations of values we want to check */
 

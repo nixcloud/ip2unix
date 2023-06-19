@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <cstdio>
-#include <cstring>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <asm/sockios.h>
+#include <errno.h>
+#include <cstdio>
+#include <cstring>
 
 #include "realcalls.hh"
 #include "sockopts.hh"

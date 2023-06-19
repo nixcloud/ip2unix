@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <queue>
-#include <unordered_map>
-#include <variant>
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #include <memory>
 #include <mutex>
-
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <sys/un.h>
+#include <functional>
+#include <iostream>
+#include <optional>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 #ifndef WRAP_SYM
 #define WRAP_SYM(x) ip2unix_wrap_##x
@@ -22,6 +27,7 @@
 #include "socket.hh"
 #include "logging.hh"
 #include "serial.hh"
+#include "sockaddr.hh"
 
 #ifdef SYSTEMD_SUPPORT
 #include "systemd.hh"

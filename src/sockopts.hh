@@ -2,10 +2,13 @@
 #ifndef IP2UNIX_SOCKOPT_HH
 #define IP2UNIX_SOCKOPT_HH
 
+#include <arpa/inet.h>
+#include <stdint.h>
+#include <sys/socket.h>
 #include <queue>
 #include <variant>
-
-#include <arpa/inet.h>
+#include <optional>
+#include <vector>
 
 #ifdef HAS_EPOLL
 #include <sys/epoll.h>

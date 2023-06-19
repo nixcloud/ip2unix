@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: LGPL-3.0-only
+#include <errno.h>
+#include <stdint.h>
+#include <unistd.h>
 #include <cstring>
-#include <fcntl.h>
-#include <arpa/inet.h>
-#include <sys/un.h>
+#include <string>
+#include <type_traits>
+#include <utility>
 
 #include "socket.hh"
 #include "realcalls.hh"
 #include "logging.hh"
+#include "blackhole.hh"
+#include "types.hh"
 
 std::optional<Socket::Ptr> Socket::find(int fd)
 {

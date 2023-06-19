@@ -2,7 +2,13 @@
 #ifndef IP2UNIX_SYSTEMD_HH
 #define IP2UNIX_SYSTEMD_HH
 
+#include <stddef.h>
+#include <optional>
+#include <vector>
+
 #include "rules.hh"
+
+struct Rule;
 
 namespace Systemd {
     struct FdInfo {

@@ -1,5 +1,7 @@
+#include <stdint.h>
 #include <string>
 #include <stdexcept>
+#include <unordered_set>
 
 #include "dynports.hh"
 
