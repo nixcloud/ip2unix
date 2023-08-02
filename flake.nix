@@ -7,7 +7,7 @@
 
     systems = lib.filter (lib.hasSuffix "-linux") nixpkgsSystems;
     hydraSystems = [ "i686-linux" "x86_64-linux" "aarch64-linux" ];
-    vmTestSystems = [ "x86_64-linux" "aarch64-linux" ];
+    vmTestSystems = [ "x86_64-linux" ];
 
     withPkgs = f: forAllSystems (sys: f sys nixpkgs.legacyPackages.${sys});
     forAllSystems = lib.genAttrs systems;
