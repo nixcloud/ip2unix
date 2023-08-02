@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+- Missing header files for newer GCC versions, thanks to Varun Madiath.
+
 ### Added
 - Deprecation warnings if rules are specified in YAML format.
 - Unlink socket file before `bind` if `SO_REUSEADDR` is used.
