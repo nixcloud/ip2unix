@@ -25,7 +25,7 @@ if pytest.found()
     pytest_args += ['--systemd-support']
     systemd_sa = find_program('systemd-socket-activate', required: false)
     if systemd_sa.found()
-      pytest_args += ['--systemd-sa-path=@0@'.format(systemd_sa.path())]
+      pytest_args += ['--systemd-sa-path=@0@'.format(systemd_sa.full_path())]
     else
       message('No \'systemd-socket-activate\' program found, can\'t run' +
               ' tests for socket activation.')
