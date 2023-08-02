@@ -25,7 +25,10 @@ if pytest.found()
     pytest_args += ['--systemd-support']
     systemd_sa = find_program('systemd-socket-activate', required: false)
     if systemd_sa.found()
-      pytest_args += ['--systemd-sa-path=@0@'.format(systemd_sa.full_path())]
+      # XXX: Use of .path() is deprecated but we need a minimum version of
+      # 0.55.0 to use .full_path() here and we're not yet going to require that
+      # just yet.
+      pytest_args += ['--systemd-sa-path=@0@'.format(systemd_sa.path())]
     else
       message('No \'systemd-socket-activate\' program found, can\'t run' +
               ' tests for socket activation.')
