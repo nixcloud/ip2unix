@@ -69,8 +69,8 @@ static std::string get_tmpdir(void)
     if (workdir != nullptr) {
         std::string wdir_str(workdir);
         free(workdir);
-        if (is_writable_dir(workdir))
-            return workdir;
+        if (is_writable_dir(wdir_str))
+            return wdir_str;
     }
 
     LOG(FATAL) << "Unable to get temporary directory.";
