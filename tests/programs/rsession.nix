@@ -4,8 +4,9 @@
 pkgs.runCommand "test-rsession" {
   nativeBuildInputs = [
     ip2unix pkgs.R pkgs.curl
-    (pkgs.rstudio.override { hunspellDicts = {}; })
+    "${pkgs.rstudio.override { hunspellDicts = {}; }}/lib/rstudio"
   ];
+  LD_LIBRARY_PATH = "${pkgs.R}/lib/R/lib";
   R_HOME = "${pkgs.R}/lib/R";
   R_SHARE_DIR = "${pkgs.R}/lib/R/share";
   R_INCLUDE_DIR = "${pkgs.R}/lib/R/include";
