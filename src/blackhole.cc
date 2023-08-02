@@ -11,15 +11,6 @@
 #include "blackhole.hh"
 #include "logging.hh"
 
-static std::optional<std::string> getenv_str(const std::string &envar)
-{
-    const char *result;
-    result = getenv(envar.c_str());
-    if (result == nullptr)
-        return std::nullopt;
-    return std::string(result);
-}
-
 static bool is_writable_dir(const std::string &dir)
 {
     int old_errno = errno;
@@ -49,12 +40,18 @@ static bool is_writable_dir(const std::string &dir)
 
 static std::string get_tmpdir(void)
 {
-    for (const std::string &tryenv : {"TMPDIR", "TMP", "TEMP", "TEMPDIR"}) {
-        std::optional<std::string> tmpdir = getenv_str(tryenv);
-        if (!tmpdir || !is_writable_dir(tmpdir.value()))
+    for (const char *tryenv : {"TMPDIR", "TMP", "TEMP", "TEMPDIR"}) {
+        const char *tmpdir = getenv(tryenv);
+
+        if (tmpdir == nullptr)
             continue;
 
-        return tmpdir.value();
+        std::string tmpdir_str(tmpdir);
+
+        if (!is_writable_dir(tmpdir_str))
+            continue;
+
+        return tmpdir_str;
     }
 
     if (is_writable_dir("/tmp"))

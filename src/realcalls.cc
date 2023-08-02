@@ -14,13 +14,13 @@ DlsymHandle::DlsymHandle() : handle(nullptr)
 {
     std::scoped_lock<std::mutex> lock(g_dlsym_mutex);
 
-    for (const std::string &libname : {
+    for (const char *libname : {
 #ifdef LIBC_PATH
         LIBC_PATH,
 #endif
         "libc.so.6"
     }) {
-        this->handle = dlopen(libname.c_str(), RTLD_LAZY | RTLD_DEEPBIND);
+        this->handle = dlopen(libname, RTLD_LAZY | RTLD_DEEPBIND);
         if (this->handle != nullptr) return;
     }
 

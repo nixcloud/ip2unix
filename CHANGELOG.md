@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Fixed
 - Missing header files for newer GCC versions, thanks to Varun Madiath.
 - Use-after-free of blackhole working directory path.
+- A few compiler warnings on unnecessary allocation of string literals.
 
 ### Added
 - Deprecation warnings if rules are specified in YAML format.
