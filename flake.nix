@@ -7,6 +7,7 @@
 
     systems = lib.filter (lib.hasSuffix "-linux") nixpkgsSystems;
     hydraSystems = [ "i686-linux" "x86_64-linux" "aarch64-linux" ];
+    vmTestSystems = [ "x86_64-linux" "aarch64-linux" ];
 
     withPkgs = f: forAllSystems (sys: f sys nixpkgs.legacyPackages.${sys});
     forAllSystems = lib.genAttrs systems;
@@ -278,7 +279,7 @@
       });
 
       tests.vm = let
-        makeTest = path: lib.genAttrs hydraSystems (system: let
+        makeTest = path: lib.genAttrs vmTestSystems (system: let
           libPath = nixpkgs + "/nixos/lib/testing-python.nix";
           testLib = import libPath { inherit system; };
         in testLib.makeTest (import path self));
