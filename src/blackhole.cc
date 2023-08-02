@@ -74,7 +74,17 @@ static std::string get_tmpdir(void)
     std::abort();
 }
 
-
+/* This is for getting an inaccessible unique path name that can be used for
+ * binding a socket on it.
+ *
+ * The reason why we don't use an unnamed socket is that it would be accessible
+ * by other users on the system since unnamed sockets essentially boil down to
+ * abstract namespaces where filesystem permissions don't apply.
+ *
+ * Since the directory returned by mkdtemp() is created with permissions 0700
+ * and it's (usually) also directly removed after binding, other non-superusers
+ * on the system can't access the socket.
+ */
 BlackHole::BlackHole()
     : tmpdir(std::nullopt)
     , filepath(std::nullopt)
