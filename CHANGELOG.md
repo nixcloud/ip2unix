@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Turn into a Nix Flake.
 
 ### Removed
-- The build badge for Hydra is no longer generated.
+- Badges (eg. LGTM and build status) in README and Hydra.
 
 ## [2.1.4] - 2021-07-10
 
