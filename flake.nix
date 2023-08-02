@@ -8,10 +8,12 @@
     systems = lib.filter (lib.hasSuffix "-linux") nixpkgsSystems;
     hydraSystems = [ "i686-linux" "x86_64-linux" ];
 
-    withPkgs = f: forAllSystems (system: f nixpkgs.legacyPackages.${system});
+    withPkgs = f: forAllSystems (sys: f sys nixpkgs.legacyPackages.${sys});
     forAllSystems = lib.genAttrs systems;
   in {
-    packages = withPkgs (pkgs: {
+    packages = withPkgs (system: pkgs: {
+      default = self.packages.${system}.ip2unix;
+
       ip2unix = pkgs.stdenv.mkDerivation {
         pname = "ip2unix";
 
@@ -73,8 +75,6 @@
         '';
       };
     });
-
-    defaultPackage = forAllSystems (system: self.packages.${system}.ip2unix);
 
     hydraJobs = let
       # This is with all the *required* dependencies only.
