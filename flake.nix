@@ -82,6 +82,11 @@
         pkgs = nixpkgs.legacyPackages.${system};
         attrs = fun pkgs;
         stdenv = attrs.stdenv or pkgs.stdenv;
+
+        libyamlcpp =
+          if stdenv.cc.isClang then pkgs.libyamlcpp
+          else pkgs.libyamlcpp.override { inherit stdenv; };
+
       in stdenv.mkDerivation (removeAttrs attrs [ "stdenv" ] // rec {
         inherit (self.packages.${system}.ip2unix) name version src;
 
@@ -89,7 +94,7 @@
 
         nativeBuildInputs = [ pkgs.meson pkgs.ninja pkgs.pkgconfig ]
                          ++ attrs.nativeBuildInputs or [];
-        buildInputs = [ pkgs.libyamlcpp ] ++ attrs.buildInputs or [];
+        buildInputs = [ libyamlcpp ] ++ attrs.buildInputs or [];
 
         doCheck = attrs.doCheck or true;
 
