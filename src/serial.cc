@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 #include "serial.hh"
+#include "rules.hh"
+#include "systemd.hh"
+#include "types.hh"
 
 void serialise(const std::string &str, std::ostream &out)
 {

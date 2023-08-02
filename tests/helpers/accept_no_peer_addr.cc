@@ -1,10 +1,9 @@
-#include <cstdio>
-#include <cstdlib>
-
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <cstdio>
+#include <cstdlib>
 
 int main(void)
 {

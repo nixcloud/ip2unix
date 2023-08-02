@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <iostream>
-
 #include <unistd.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <iostream>
 
 #include "logging.hh"
 

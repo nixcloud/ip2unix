@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <chrono>
-
-#include <sys/types.h>
 #include <unistd.h>
+#include <stdint.h>
+#include <chrono>
 
 #include "rng.hh"
 

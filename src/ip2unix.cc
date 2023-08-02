@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: LGPL-3.0-only
+#include <getopt.h>
+#include <unistd.h>
+#include <dlfcn.h>
+#include <errno.h>
 #include <algorithm>
-#include <climits>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
-#include <getopt.h>
 #include <string>
-#include <unistd.h>
-#include <dlfcn.h>
+#include <cctype>
+#include <fstream>
+#include <optional>
+#include <vector>
 
 #include "rules.hh"
 #include "serial.hh"

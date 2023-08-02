@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: LGPL-3.0-only
+#include <unistd.h>
+#include <sys/stat.h>
+#include <errno.h>
 #include <cstring>
 #include <climits>
-#include <unistd.h>
-
-#include <sys/stat.h>
+#include <cstdlib>
+#include <initializer_list>
+#include <string>
 
 #include "blackhole.hh"
 #include "logging.hh"

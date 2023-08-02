@@ -2,11 +2,13 @@
 #ifndef IP2UNIX_REALCALLS_HH
 #define IP2UNIX_REALCALLS_HH
 
-#include <cstring>
-#include <mutex>
-
 #include <unistd.h>
 #include <dlfcn.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <cstring>
+#include <mutex>
 
 #include "logging.hh"
 
