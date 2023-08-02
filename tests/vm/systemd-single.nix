@@ -3,8 +3,8 @@
 {
   name = "ip2unix-systemd-single";
 
-  nodes.server = { pkgs, lib, ... }: let
-    inherit (packages.${pkgs.system}) ip2unix;
+  nodes.server = { config, pkgs, lib, ... }: let
+    inherit (packages.${config.nixpkgs.system}) ip2unix;
 
     testServer = pkgs.writeScript "test-server.py" ''
       #!${pkgs.python3.interpreter}
@@ -94,9 +94,8 @@
   };
 
   testScript = { nodes, ... }: let
-    inherit (nodes.client.config.networking) primaryIPAddress;
+    inherit (nodes.client.networking) primaryIPAddress;
   in ''
-    # fmt: off
     start_all()
     server.wait_for_unit('multi-user.target')
 
