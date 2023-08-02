@@ -1,6 +1,6 @@
 project('ip2unix', 'cpp',
         default_options: ['cpp_std=c++17', 'warning_level=3'],
-        meson_version: '>=0.46.0', version: '2.1.4')
+        meson_version: '>=0.47.0', version: '2.1.4')
 
 script_findlibc = files('scripts/findlibc.py')
 script_generrno = files('scripts/generrno.py')
@@ -43,7 +43,7 @@ deps = [
   cc.find_library('dl')
 ]
 
-libcpath = run_command(python, script_findlibc, cc.cmd_array())
+libcpath = run_command(python, script_findlibc, cc.cmd_array(), check: false)
 if libcpath.returncode() == 0
   fullpath = libcpath.stdout()
   message('Found C library at ' + fullpath)
@@ -110,7 +110,7 @@ if a2x.found()
 
   xsltproc = find_program('xsltproc', required: false)
   if xsltproc.found()
-    xslt_test = run_command([xsltproc, docbook_xsl])
+    xslt_test = run_command([xsltproc, docbook_xsl], check: false)
     if xslt_test.returncode() != 0
       warning('No Docbook XSL stylesheet found, not generating manpage.')
       build_manpage = false
@@ -124,7 +124,7 @@ if a2x.found()
 
   if xmllint.found()
     lintcmd = [xmllint, '--nonet', '--dtdvalid', docbook_dtd, '--auto']
-    if run_command(lintcmd).returncode() != 3
+    if run_command(lintcmd, check: false).returncode() != 3
       a2xcmd += ['-L']
       warning('No Docbook 4.5 DTD found, disabling validation.')
     endif

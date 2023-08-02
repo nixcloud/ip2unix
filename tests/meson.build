@@ -12,7 +12,8 @@ if pytest.found()
     )
   ]
 
-  has_timeout_plugin = run_command(pytest, '--timeout=20', '--version')
+  has_timeout_plugin = run_command(pytest, '--timeout=20', '--version',
+                                   check: false)
   if has_timeout_plugin.returncode() == 0
     pytest_args += ['--timeout=@0@'.format(get_option('test-timeout'))]
     timeout = get_option('test-timeout') + 30
