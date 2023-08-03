@@ -229,8 +229,8 @@ specified either via name or as an integer.
 
 [[blackhole]]*blackhole*::
 Turn the socket into a Unix domain socket but do not make it available for
-clients to connect. This is useful to deactive certain sockets without causing
-errors in the application (unlike <<reject,*reject*>>).
+clients to connect. This is useful to deactivate certain sockets without
+causing errors in the application (unlike <<reject,*reject*>>).
 +
 Technically, this means that we *bind* to a Unix socket using a temporary file
 system path and *unlink* it shortly thereafter.
