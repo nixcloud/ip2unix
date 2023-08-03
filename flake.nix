@@ -65,6 +65,8 @@
             exit 1
           fi
 
+          # Make sure we don't accidentally export symbols that we don't want
+          # to expose.
           diff -u <(
             find "$src/src" -iname '*.cc' -type f -exec sed -n \
               -e '/^ *#/!s/^.*\(WRAP\|EXPORT\)_SYM(\([^)]\+\)).*/\2/p' \
@@ -239,8 +241,45 @@
       };
 
       tests.full = let
+        # Like mapAttrsToList but flattens the resulting list.
+        #
+        # Type:
+        #   mapAttrsToOneList :: (String -> Any -> [b]) -> AttrSet -> [b]
+        #
         mapAttrsToOneList = f: set: lib.concatLists (lib.mapAttrsToList f set);
 
+        # Given a compiler name and an attribute set 'req' (as in
+        # requirements), return the list of ip2unix packages (as attribute set
+        # of systems) with that compiler toolchain applied.
+        #
+        # The requirements attribute set should contain the following
+        # attributes:
+        #
+        #   minVersion:
+        #     The minimum version of compiler toolchain we'd like to support.
+        #     This is compared against the result of getVersion below.
+        #
+        #   matchAttr:
+        #     Given a package attribute name of top-level nixpkgs packages, it
+        #     should return a singleton list containing the major version
+        #     number of the compiler toolchain or 'null' if the attribute name
+        #     is not a compiler toolchain.
+        #
+        #   getVersion:
+        #     A function that given the compiler packages attribute set returns
+        #     the version of the compiler toolchain.
+        #
+        #   getStdenv:
+        #     Given a compiler packages attribute set, return the stdenv to use
+        #     instead of the default stdenv.
+        #
+        #   systems:
+        #     The list of systems for which to compile ip2unix for the specific
+        #     compiler toolchain.
+        #
+        # Type:
+        #   mkCompilerPackages :: String -> AttrSet -> [AttrSet]
+        #
         mkCompilerPackages = compiler: req: mapAttrsToOneList (name: pkg: let
           majorVersion = req.matchAttr name;
           isEligible = lib.versionAtLeast (req.getVersion pkg) req.minVersion;
