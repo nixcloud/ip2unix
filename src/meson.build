@@ -1,6 +1,5 @@
 dynports = custom_target('dynports',
-                         input: [script_genoffsets,
-                                 'dynports/dynports.cc'],
+                         input: [script_genoffsets, 'dynports.cc.in'],
                          output: 'dynports.cc',
                          command: [python, '@INPUT@', '@OUTPUT@'])
 
