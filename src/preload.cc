@@ -374,7 +374,7 @@ extern "C" ssize_t WRAP_SYM(recvfrom)(int fd, void *buf, size_t len, int flags,
             return real::recvfrom(fd, buf, len, flags, addr, addrlen);
 
         SockAddr recvaddr;
-        recvaddr.ss_family = AF_UNIX;
+        recvaddr.set_family(AF_UNIX);
         sockaddr *tmpaddr = recvaddr.cast();
         socklen_t tmplen = recvaddr.size();
         ssize_t ret = real::recvfrom(fd, buf, len, flags, tmpaddr, &tmplen);
@@ -401,7 +401,7 @@ extern "C" ssize_t WRAP_SYM(recvmsg)(int fd, struct msghdr *msg, int flags)
             return real::recvmsg(fd, msg, flags);
 
         SockAddr recvaddr;
-        recvaddr.ss_family = AF_UNIX;
+        recvaddr.set_family(AF_UNIX);
 
         msghdr msgcopy;
         memcpy(&msgcopy, msg, sizeof(msghdr));

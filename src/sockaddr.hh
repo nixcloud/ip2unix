@@ -16,13 +16,10 @@
 struct sockaddr_in6;
 struct sockaddr_in;
 
-struct SockAddr : public sockaddr_storage
+struct SockAddr
 {
     SockAddr();
     SockAddr(const sockaddr*);
-
-    static std::optional<SockAddr> create(const std::string&, uint16_t,
-                                          sa_family_t = AF_INET);
 
     static std::optional<SockAddr> unix(const std::string&);
 
@@ -43,7 +40,10 @@ struct SockAddr : public sockaddr_storage
     bool is_loopback(void) const;
 
     void apply_addr(struct sockaddr*, socklen_t*) const;
-    socklen_t size() const;
+
+    inline socklen_t size() const {
+        return this->inner_size;
+    }
 
     inline std::optional<std::string> get_port_str(void) const {
         auto port = this->get_port();
@@ -55,39 +55,56 @@ struct SockAddr : public sockaddr_storage
     bool operator==(const SockAddr &other) const;
     std::size_t get_hash(void) const;
 
+    void set_family(sa_family_t family);
+
+    inline bool is_inet4(void) const {
+        return this->inner.ss_family == AF_INET;
+    }
+
+    inline bool is_inet6(void) const {
+        return this->inner.ss_family == AF_INET6;
+    }
+
+    inline bool is_unix(void) const {
+        return this->inner.ss_family == AF_UNIX;
+    }
+
     inline sockaddr *cast(void) {
-        return reinterpret_cast<sockaddr*>(this);
+        return reinterpret_cast<sockaddr*>(&this->inner);
     }
 
     inline const sockaddr *cast(void) const {
-        return reinterpret_cast<const sockaddr*>(this);
+        return reinterpret_cast<const sockaddr*>(&this->inner);
     }
 
     private:
+        sockaddr_storage inner;
+        socklen_t inner_size;
+
         inline sockaddr_in *cast4(void) {
-            return reinterpret_cast<sockaddr_in*>(this);
+            return reinterpret_cast<sockaddr_in*>(&this->inner);
         }
 
         inline const sockaddr_in *cast4(void) const {
-            return reinterpret_cast<const sockaddr_in*>(this);
+            return reinterpret_cast<const sockaddr_in*>(&this->inner);
         }
 
         inline sockaddr_in6 *cast6(void) {
-            return reinterpret_cast<sockaddr_in6*>(this);
+            return reinterpret_cast<sockaddr_in6*>(&this->inner);
         }
 
         inline const sockaddr_in6 *cast6(void) const
         {
-            return reinterpret_cast<const sockaddr_in6*>(this);
+            return reinterpret_cast<const sockaddr_in6*>(&this->inner);
         }
 
         inline sockaddr_un *cast_un(void) {
-            return reinterpret_cast<sockaddr_un*>(this);
+            return reinterpret_cast<sockaddr_un*>(&this->inner);
         }
 
         inline const sockaddr_un *cast_un(void) const
         {
-            return reinterpret_cast<const sockaddr_un*>(this);
+            return reinterpret_cast<const sockaddr_un*>(&this->inner);
         }
 };
 

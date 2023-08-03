@@ -12,31 +12,32 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+static inline socklen_t family2size(sa_family_t family) {
+    switch (family) {
+        case AF_INET: return sizeof(sockaddr_in);
+        case AF_INET6: return sizeof(sockaddr_in6);
+        case AF_UNIX: return sizeof(sockaddr_un);
+        default: return sizeof(sockaddr_storage);
+    }
+}
+
 SockAddr::SockAddr()
+    : inner({})
+    , inner_size(sizeof(sockaddr_storage))
 {
-    memset(this, 0, sizeof(sockaddr_storage));
 }
 
 SockAddr::SockAddr(const sockaddr *addr)
-    : SockAddr()
+    : inner({})
+    , inner_size(family2size(addr->sa_family))
 {
-    memcpy(this, addr, sizeof(sockaddr_storage));
+    memcpy(&this->inner, addr, this->inner_size);
 }
 
-std::optional<SockAddr> SockAddr::create(const std::string &addr,
-                                         uint16_t port,
-                                         sa_family_t family)
+void SockAddr::set_family(sa_family_t family)
 {
-    SockAddr sa;
-    if (family != AF_INET && family != AF_INET6)
-        return std::nullopt;
-    sa.ss_family = family;
-    if (!sa.set_host(addr))
-        return std::nullopt;
-    if (!sa.set_port(port))
-        return std::nullopt;
-
-    return sa;
+    this->inner.ss_family = family;
+    this->inner_size = family2size(family);
 }
 
 std::optional<SockAddr> SockAddr::unix(const std::string &path)
@@ -53,20 +54,21 @@ std::optional<SockAddr> SockAddr::unix(const std::string &path)
 
 SockAddr SockAddr::copy() const
 {
-    SockAddr sa(reinterpret_cast<const sockaddr*>(this));
+    SockAddr sa(reinterpret_cast<const sockaddr*>(&this->inner));
+    sa.inner_size = this->inner_size;
     return sa;
 }
 
 std::optional<std::string> SockAddr::get_host(void) const
 {
-    if (this->ss_family == AF_INET) {
+    if (this->is_inet4()) {
         const sockaddr_in *addr = this->cast4();
         char buf[INET_ADDRSTRLEN];
 
         if (inet_ntop(addr->sin_family, &addr->sin_addr, buf,
                       INET_ADDRSTRLEN) != nullptr)
             return std::string(buf);
-    } else if (this->ss_family == AF_INET6) {
+    } else if (this->is_inet6()) {
         const sockaddr_in6 *addr = this->cast6();
         char buf[INET6_ADDRSTRLEN];
 
@@ -80,11 +82,11 @@ std::optional<std::string> SockAddr::get_host(void) const
 
 bool SockAddr::set_host(const std::string &host)
 {
-    if (this->ss_family == AF_INET) {
+    if (this->is_inet4()) {
         sockaddr_in *addr = this->cast4();
         if (inet_pton(AF_INET, host.c_str(), &addr->sin_addr.s_addr) != 1)
             return false;
-    } else if (this->ss_family == AF_INET6) {
+    } else if (this->is_inet6()) {
         sockaddr_in6 *addr = this->cast6();
         if (inet_pton(AF_INET6, host.c_str(), &addr->sin6_addr.s6_addr) != 1)
             return false;
@@ -97,13 +99,13 @@ bool SockAddr::set_host(const std::string &host)
 
 bool SockAddr::set_host(const SockAddr &other)
 {
-    if (this->ss_family == AF_INET && other.ss_family == AF_INET) {
+    if (this->is_inet4() && other.is_inet4()) {
         memcpy(&this->cast4()->sin_addr, &other.cast4()->sin_addr,
                sizeof(in_addr));
         return true;
     }
 
-    if (this->ss_family == AF_INET6 && other.ss_family == AF_INET6) {
+    if (this->is_inet6() && other.is_inet6()) {
         memcpy(&this->cast6()->sin6_addr, &other.cast6()->sin6_addr,
                sizeof(in6_addr));
         return true;
@@ -114,13 +116,13 @@ bool SockAddr::set_host(const SockAddr &other)
 
 bool SockAddr::set_host(const ucred &peercred)
 {
-    if (this->ss_family == AF_INET) {
+    if (this->is_inet4()) {
         this->cast4()->sin_addr.s_addr =
             htonl(static_cast<uint32_t>(peercred.pid));
         return true;
     }
 
-    if (this->ss_family == AF_INET6) {
+    if (this->is_inet6()) {
         sockaddr_in6 *addr = this->cast6();
         addr->sin6_addr.s6_addr[0] = 0xfe;
         addr->sin6_addr.s6_addr[1] = 0x80;
@@ -140,13 +142,13 @@ bool SockAddr::set_host(const ucred &peercred)
 
 bool SockAddr::set_random_host(void)
 {
-    if (this->ss_family == AF_INET) {
+    if (this->is_inet4()) {
         this->cast4()->sin_addr.s_addr =
             htonl(RNG::get<uint32_t>(0, 0x00ffffff));
         return true;
     }
 
-    if (this->ss_family == AF_INET6) {
+    if (this->is_inet6()) {
         sockaddr_in6 *addr = this->cast6();
         addr->sin6_addr.s6_addr[0] = 0xfe;
         addr->sin6_addr.s6_addr[1] = 0x80;
@@ -163,7 +165,7 @@ bool SockAddr::set_random_host(void)
 
 std::optional<std::string> SockAddr::get_sockpath(void) const
 {
-    if (this->ss_family == AF_UNIX) {
+    if (this->is_unix()) {
         return std::string(this->cast_un()->sun_path);
     }
 
@@ -172,18 +174,18 @@ std::optional<std::string> SockAddr::get_sockpath(void) const
 
 std::optional<uint16_t> SockAddr::get_port(void) const
 {
-    if (this->ss_family == AF_INET)
+    if (this->is_inet4())
         return ntohs(this->cast4()->sin_port);
-    if (this->ss_family == AF_INET6)
+    if (this->is_inet6())
         return ntohs(this->cast6()->sin6_port);
     return std::nullopt;
 }
 
 bool SockAddr::set_port(uint16_t port)
 {
-    if (this->ss_family == AF_INET)
+    if (this->is_inet4())
         this->cast4()->sin_port = htons(port);
-    else if (this->ss_family == AF_INET6)
+    if (this->is_inet6())
         this->cast6()->sin6_port = htons(port);
     else
         return false;
@@ -193,12 +195,12 @@ bool SockAddr::set_port(uint16_t port)
 
 bool SockAddr::is_loopback(void) const
 {
-    if (this->ss_family == AF_INET) {
+    if (this->is_inet4()) {
         return (ntohl(this->cast4()->sin_addr.s_addr) & 0xff000000)
                >> 24 == 127;
     }
 
-    if (this->ss_family == AF_INET6)
+    if (this->is_inet6())
         return IN6_IS_ADDR_LOOPBACK(&this->cast6()->sin6_addr);
 
     return false;
@@ -210,33 +212,22 @@ void SockAddr::apply_addr(struct sockaddr *addr, socklen_t *addrlen) const
         return;
 
     *addrlen = this->size();
-    memcpy(addr, this, *addrlen);
-}
-
-socklen_t SockAddr::size() const
-{
-    if (this->ss_family == AF_INET)
-        return sizeof(sockaddr_in);
-    if (this->ss_family == AF_INET6)
-        return sizeof(sockaddr_in6);
-    if (this->ss_family == AF_UNIX)
-        return sizeof(sockaddr_un);
-    return sizeof(sockaddr_storage);
+    memcpy(addr, &this->inner, *addrlen);
 }
 
 bool SockAddr::operator==(const SockAddr &other) const
 {
-    if (this->ss_family != other.ss_family)
+    if (this->inner.ss_family != other.inner.ss_family)
         return false;
 
-    if (this->ss_family == AF_INET) {
+    if (this->is_inet4()) {
         const sockaddr_in *addr = this->cast4();
         const sockaddr_in *othr = other.cast4();
         return addr->sin_port == othr->sin_port
             && addr->sin_addr.s_addr == othr->sin_addr.s_addr;
     }
 
-    if (this->ss_family == AF_INET6) {
+    if (this->is_inet6()) {
         const sockaddr_in6 *addr = this->cast6();
         const sockaddr_in6 *othr = other.cast6();
         if (!std::equal(std::begin(addr->sin6_addr.s6_addr),
@@ -246,7 +237,7 @@ bool SockAddr::operator==(const SockAddr &other) const
         return addr->sin6_port == othr->sin6_port;
     }
 
-    if (this->ss_family == AF_UNIX) {
+    if (this->is_unix()) {
         const sockaddr_un *addr = this->cast_un();
         const sockaddr_un *othr = other.cast_un();
         return std::string(addr->sun_path) == std::string(othr->sun_path);
@@ -259,19 +250,19 @@ std::size_t SockAddr::get_hash(void) const
 {
     // XXX: This function is pretty slow and dumb, but at least accurate.
     std::ostringstream hashprep;
-    hashprep << this->ss_family;
+    hashprep << this->inner.ss_family;
 
-    if (this->ss_family == AF_INET) {
+    if (this->is_inet4()) {
         const sockaddr_in *addr = this->cast4();
         hashprep << '|' << addr->sin_port;
         hashprep << '|' << addr->sin_addr.s_addr;
-    } else if (this->ss_family == AF_INET6) {
+    } else if (this->is_inet6()) {
         const sockaddr_in6 *addr = this->cast6();
         hashprep << '|' << addr->sin6_port;
         hashprep << '|';
         for (const unsigned char &comp : addr->sin6_addr.s6_addr)
             hashprep << comp;
-    } else if (this->ss_family == AF_UNIX) {
+    } else if (this->is_unix()) {
         const sockaddr_un *addr = this->cast_un();
         hashprep << '|' << std::string(addr->sun_path);
     }

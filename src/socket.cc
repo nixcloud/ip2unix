@@ -266,7 +266,7 @@ bool Socket::make_unix(int oldfd)
 bool Socket::create_binding(const SockAddr &addr)
 {
     SockAddr local;
-    local.ss_family = this->domain;
+    local.set_family(this->domain);
 
     if (addr.is_loopback()) {
         if (!local.set_host(addr))
@@ -450,7 +450,7 @@ int Socket::accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     }
 
     SockAddr peer;
-    peer.ss_family = this->domain;
+    peer.set_family(this->domain);
 
     if (this->binding.value().is_loopback()) {
         if (!peer.set_host(this->binding.value())) {
@@ -534,7 +534,7 @@ bool Socket::rewrite_src(const SockAddr &real_addr, struct sockaddr *addr,
     }
 
     SockAddr peer;
-    peer.ss_family = this->domain;
+    peer.set_family(this->domain);
 
     peer.set_port(this->ports.acquire());
 
