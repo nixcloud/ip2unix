@@ -32,6 +32,7 @@
               { type = "directory"; name = "scripts"; }
               { type = "directory"; name = "src"; }
               { type = "directory"; name = "tests"; }
+              { type = "regular"; name = ".clang-tidy"; }
               { type = "regular"; name = "README.adoc"; }
               { type = "regular"; name = "meson.build"; }
               { type = "regular"; name = "meson_options.txt"; }
@@ -335,6 +336,15 @@
       in lib.mapAttrs (lib.const (lib.mapAttrs mkProgramTest)) {
         rsession.x86_64-linux = tests/programs/rsession.nix;
       };
+
+      tests.clang-tidy = fullForEachSystem (pkgs: {
+        stdenv = pkgs.llvmPackages.stdenv;
+        nativeBuildInputs = [ pkgs.clang-tools ];
+        ninjaFlags = [ "clang-tidy" ];
+        doCheck = false;
+        doInstallCheck = false;
+        installPhase = "touch \"$out\"";
+      });
 
       tests.sanitizer = lib.mapAttrs (name: let
         genDrv = { fun ? forEachSystem, override ? x: {} }: fun (super: {
