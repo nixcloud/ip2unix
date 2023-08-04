@@ -382,7 +382,7 @@ extern "C" ssize_t WRAP_SYM(recvfrom)(int fd, void *buf, size_t len, int flags,
             return ret;
         }
         errno = EINVAL;
-        return static_cast<ssize_t>(-1);
+        return ssize_t{-1};
     }, [&]() {
         return real::recvfrom(fd, buf, len, flags, addr, addrlen);
     });
@@ -419,7 +419,7 @@ extern "C" ssize_t WRAP_SYM(recvmsg)(int fd, struct msghdr *msg, int flags)
             return ret;
         }
         errno = EINVAL;
-        return static_cast<ssize_t>(-1);
+        return ssize_t{-1};
     }, [&]() {
         return real::recvmsg(fd, msg, flags);
     });
@@ -453,7 +453,7 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
 
             if (rule->second.reject) {
                 errno = rule->second.reject_errno.value_or(EACCES);
-                return static_cast<ssize_t>(-1);
+                return ssize_t{-1};
             }
 
             newdest = sock->rewrite_dest(addrcopy, *rule->second.socket_path);
@@ -498,7 +498,7 @@ extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
 
             if (rule->second.reject) {
                 errno = rule->second.reject_errno.value_or(EACCES);
-                return static_cast<ssize_t>(-1);
+                return ssize_t{-1};
             }
 
             newdest = sock->rewrite_dest(addrcopy, *rule->second.socket_path);
