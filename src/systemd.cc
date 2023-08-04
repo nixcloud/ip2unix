@@ -208,7 +208,7 @@ void Systemd::init(const std::vector<Rule> &rules)
 
         std::unordered_set<int> avail_fds;
         for (size_t i = 0; i < fd_count; ++i) {
-            int fd = SD_LISTEN_FDS_START + i;
+            int fd = static_cast<int>(SD_LISTEN_FDS_START + i);
             avail_fds.insert(fd);
             all_fds.insert(fd);
         }
@@ -222,7 +222,7 @@ void Systemd::init(const std::vector<Rule> &rules)
 
             size_t elems = std::min(fdnames_size, fd_count);
             for (size_t i = 0; i < elems; ++i) {
-                int fd = SD_LISTEN_FDS_START + i;
+                int fd = static_cast<int>(SD_LISTEN_FDS_START + i);
 
                 if (fdnames[i] == *rule.fd_name) {
                     bool is_inet = socket_is_inet(fd);
