@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/socket.h>
-#include <cstring>
-#include <unordered_map>
-#include <unordered_set>
-#include <deque>
+#include "systemd.hh"
+
+#include "logging.hh"
+#include "rules.hh"
+#include "serial.hh"
+
 #include <algorithm>
 #include <cstdlib>
+#include <cstring>
+#include <deque>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
-#include "rules.hh"
-#include "systemd.hh"
-#include "logging.hh"
-#include "serial.hh"
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/socket.h>
 
 #define SD_LISTEN_FDS_START 3
 

@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <arpa/inet.h>
-#include <netinet/in.h>
+#include "sockaddr.hh"
+
+#include "rng.hh"
+
+#include <algorithm>
 #include <cstring>
+#include <iterator>
 #include <optional>
 #include <sstream>
-#include <algorithm>
-#include <iterator>
 
-#include "sockaddr.hh"
-#include "rng.hh"
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 SockAddr::SockAddr()
 {

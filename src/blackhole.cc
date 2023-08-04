@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <unistd.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <cstring>
+#include "blackhole.hh"
+
+#include "logging.hh"
+
 #include <climits>
 #include <cstdlib>
+#include <cstring>
 #include <initializer_list>
 #include <string>
 
-#include "blackhole.hh"
-#include "logging.hh"
+#include <errno.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static bool is_writable_dir(const std::string &dir)
 {

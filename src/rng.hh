@@ -2,8 +2,8 @@
 #ifndef IP2UNIX_RANDOMIZER_HH
 #define IP2UNIX_RANDOMIZER_HH
 
-#include <random>
 #include <algorithm>
+#include <random>
 
 extern std::default_random_engine __generator;
 

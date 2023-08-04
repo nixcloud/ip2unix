@@ -1,36 +1,37 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <memory>
-#include <mutex>
+#include "logging.hh"
+#include "realcalls.hh"
+#include "rules.hh"
+#include "serial.hh"
+#include "sockaddr.hh"
+#include "socket.hh"
+
+#ifdef SYSTEMD_SUPPORT
+#include "systemd.hh"
+#endif
+
 #include <functional>
 #include <iostream>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #ifndef WRAP_SYM
 #define WRAP_SYM(x) ip2unix_wrap_##x
 #endif
 #ifndef EXPORT_SYM
 #define EXPORT_SYM(x) x
-#endif
-
-#include "rules.hh"
-#include "realcalls.hh"
-#include "socket.hh"
-#include "logging.hh"
-#include "serial.hh"
-#include "sockaddr.hh"
-
-#ifdef SYSTEMD_SUPPORT
-#include "systemd.hh"
 #endif
 
 static std::mutex g_rules_mutex;

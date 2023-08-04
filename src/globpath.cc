@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <stddef.h>
+#include "globpath.hh"
+
 #include <optional>
 #include <string>
 #include <string_view>
 
-#include "globpath.hh"
+#include <stddef.h>
 
 enum class MatchResult {
     Matched,

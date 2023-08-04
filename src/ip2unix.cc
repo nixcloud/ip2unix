@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <getopt.h>
-#include <unistd.h>
-#include <dlfcn.h>
-#include <errno.h>
+#include "rules.hh"
+#include "serial.hh"
+
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <string>
-#include <cctype>
 #include <fstream>
 #include <optional>
+#include <string>
 #include <vector>
 
-#include "rules.hh"
-#include "serial.hh"
+#include <dlfcn.h>
+#include <errno.h>
+#include <getopt.h>
+#include <unistd.h>
 
 extern char **environ;
 

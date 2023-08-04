@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <unistd.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <stdlib.h>
+#include "logging.hh"
+
 #include <iostream>
 
-#include "logging.hh"
+#include <errno.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static std::optional<Verbosity> current_verbosity;
 

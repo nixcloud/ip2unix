@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <unistd.h>
-#include <stdint.h>
+#include "rng.hh"
+
 #include <chrono>
 
-#include "rng.hh"
+#include <stdint.h>
+#include <unistd.h>
 
 static std::default_random_engine initalize_generator(void)
 {

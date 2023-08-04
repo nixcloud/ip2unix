@@ -2,7 +2,12 @@
 #ifndef IP2UNIX_SOCKET_HH
 #define IP2UNIX_SOCKET_HH
 
-#include <sys/socket.h>
+#include "blackhole.hh"
+#include "dynports.hh"
+#include "sockaddr.hh"
+#include "sockopts.hh"
+#include "types.hh"
+
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -11,11 +16,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "types.hh"
-#include "sockaddr.hh"
-#include "sockopts.hh"
-#include "dynports.hh"
-#include "blackhole.hh"
+#include <sys/socket.h>
 
 enum class SocketType;
 struct BlackHole;

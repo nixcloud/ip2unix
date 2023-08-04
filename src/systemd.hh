@@ -2,11 +2,12 @@
 #ifndef IP2UNIX_SYSTEMD_HH
 #define IP2UNIX_SYSTEMD_HH
 
-#include <stddef.h>
+#include "rules.hh"
+
 #include <optional>
 #include <vector>
 
-#include "rules.hh"
+#include <stddef.h>
 
 struct Rule;
 

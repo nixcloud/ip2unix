@@ -1,21 +1,22 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <netinet/in.h>
-#include <stdint.h>
-#include <sys/socket.h>
-#include <yaml-cpp/yaml.h>
+#include "../rules.hh"
+#include "errno_list.hh"
+#include "types.hh"
+
 #include <algorithm>
-#include <iostream>
 #include <cstddef>
+#include <iostream>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include "../rules.hh"
-#include "errno_list.hh"
-#include "types.hh"
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <netinet/in.h>
+#include <stdint.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <yaml-cpp/yaml.h>
 
 static const std::string describe_nodetype(const YAML::Node &node)
 {

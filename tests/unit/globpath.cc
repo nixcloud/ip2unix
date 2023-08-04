@@ -1,7 +1,7 @@
-#include <stdexcept>
-#include <memory>
-
 #include "globpath.hh"
+
+#include <memory>
+#include <stdexcept>
 
 #define SUCCESS(pat, path) \
     if (!globpath(pat, path)) \

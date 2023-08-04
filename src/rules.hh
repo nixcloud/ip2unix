@@ -2,13 +2,13 @@
 #ifndef IP2UNIX_RULES_HH
 #define IP2UNIX_RULES_HH
 
+#include "types.hh"
+
 #include <iostream>
 #include <optional>
 #include <vector>
 
 #include <netinet/in.h>
-
-#include "types.hh"
 
 enum class RuleDir { INCOMING, OUTGOING };
 

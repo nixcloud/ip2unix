@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <asm/sockios.h>
-#include <errno.h>
+#include "sockopts.hh"
+
+#include "logging.hh"
+#include "realcalls.hh"
+
 #include <cstdio>
 #include <cstring>
 
-#include "realcalls.hh"
-#include "sockopts.hh"
-#include "logging.hh"
+#include <asm/sockios.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 
 SockOpts::SockOpts() : entries() {}
 
