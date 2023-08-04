@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Split build instructions into separate file.
 - Include URL to README in usage if manpage is not being built.
 - Turn into a Nix Flake.
+- Improve serializer to be more robust in end-of-stream conditions.
 
 ### Removed
 - Badges (eg. LGTM and build status) in README and Hydra.

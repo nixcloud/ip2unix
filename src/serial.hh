@@ -59,9 +59,17 @@ template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>>
 MaybeError deserialise(std::istream &in, T *out)
 {
     char c;
+
     in >> *out;
-    if ((c = in.get()) != '&')
+
+    in.get(c);
+
+    if (in.eof())
+        return "End of stream while reading integer terminator.";
+
+    if (c != '&')
         return std::string("Invalid character '") + c + "' after integer.";
+
     return std::nullopt;
 }
 
@@ -77,7 +85,14 @@ void serialise(const std::optional<T> &val, std::ostream &out)
 template <typename T>
 MaybeError deserialise(std::istream &in, std::optional<T> *out)
 {
-    if (in.get() == '!') {
+    char c;
+
+    in.get(c);
+
+    if (in.eof())
+        return "End of stream while reading optional value.";
+
+    if (c == '!') {
         *out = std::nullopt;
         return std::nullopt;
     }
@@ -109,14 +124,24 @@ MaybeError deserialise(std::istream &in, std::pair<A, B> *out)
     if ((err = deserialise(in, &out->first)))
         return err;
 
-    if ((c = in.get()) != '#')
+    in.get(c);
+
+    if (in.eof())
+        return "End of stream while reading pair separator.";
+
+    if (c != '#')
         return std::string("Invalid character '")
              + c + "' after first pair value.";
 
     if ((err = deserialise(in, &out->second)))
         return err;
 
-    if ((c = in.get()) != '$')
+    in.get(c);
+
+    if (in.eof())
+        return "End of stream while reading pair terminator.";
+
+    if (c != '$')
         return std::string("Invalid character '")
              + c + "' after second pair value.";
 
@@ -185,14 +210,24 @@ MaybeError deserialise(std::istream &in, std::unordered_map<K, V> *out)
         if ((err = deserialise(in, &outkey)))
             return err;
 
-        if ((c = in.get()) != '=')
+        in.get(c);
+
+        if (in.eof())
+            return "End of stream while reading key-value separator.";
+
+        if (c != '=')
             return std::string("Invalid character '") + c + "' after map key.";
 
         V outval;
         if ((err = deserialise(in, &outval)))
             return err;
 
-        if ((c = in.get()) != ';') {
+        in.get(c);
+
+        if (in.eof())
+            return "End of stream while reading key-value terminator.";
+
+        if (c != ';') {
             return std::string("Invalid character '") + c
                  + "' after map record.";
         }

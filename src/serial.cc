@@ -29,11 +29,29 @@ void serialise(const std::string &str, std::ostream &out)
 MaybeError deserialise(std::istream &in, std::string *out)
 {
     char c;
-    while ((c = in.get()) != '&') {
-        if (c == '\\')
-            *out += (c = in.get()) == '@' ? '\0' : c;
-        else
-            *out += c;
+
+    for (;;) {
+        in.get(c);
+
+        if (in.eof())
+            return "End of stream while awaiting end of string.";
+
+        if (c == '&')
+            break;
+
+        if (c == '\\') {
+            in.get(c);
+
+            if (in.eof()) {
+                return "End of stream while waiting for"
+                       " backslash-escaped character.";
+            }
+
+            *out += c == '@' ? '\0' : c;
+            continue;
+        }
+
+        *out += c;
     }
     return std::nullopt;
 }
@@ -46,7 +64,13 @@ void serialise(const bool &val, std::ostream &out)
 MaybeError deserialise(std::istream &in, bool *out)
 {
     char c;
-    switch (c = in.get()) {
+
+    in.get(c);
+
+    if (in.eof())
+        return "End of stream while reading boolean.";
+
+    switch (c) {
         case 't':
             *out = true;
             break;
@@ -74,7 +98,13 @@ void serialise(const RuleDir &dir, std::ostream &out)
 MaybeError deserialise(std::istream &in, RuleDir *out)
 {
     char c;
-    switch (c = in.get()) {
+
+    in.get(c);
+
+    if (in.eof())
+        return "End of stream while reading RuleDir.";
+
+    switch (c) {
         case 'o':
             *out = RuleDir::OUTGOING;
             break;
@@ -105,7 +135,13 @@ void serialise(const SocketType &stype, std::ostream &out)
 MaybeError deserialise(std::istream &in, SocketType *out)
 {
     char c;
-    switch (c = in.get()) {
+
+    in.get(c);
+
+    if (in.eof())
+        return "End of stream while reading SocketType.";
+
+    switch (c) {
         case 't':
             *out = SocketType::TCP;
             break;
