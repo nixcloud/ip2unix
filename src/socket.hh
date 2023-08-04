@@ -36,12 +36,12 @@ struct Socket : std::enable_shared_from_this<Socket>
     static T when(int fd, std::function<T(Ptr)> f, std::function<T(void)> d) {
         std::unique_lock<std::mutex> lock(Socket::registry_mutex);
         std::optional<Ptr> sock = Socket::find(fd);
-        if (sock) {
+
+        if (sock)
             return f(sock.value());
-        } else {
-            lock.unlock();
-            return d();
-        }
+
+        lock.unlock();
+        return d();
     }
 
     /* Same as the previous function, but without a default value. */

@@ -12,10 +12,11 @@
 constexpr std::string_view just_filename(const char *path) {
     std::string_view tmp(path);
     std::string::size_type last_slash = tmp.rfind('/');
+
     if (last_slash == std::string::npos)
         return tmp;
-    else
-        return tmp.substr(last_slash + 1);
+
+    return tmp.substr(last_slash + 1);
 }
 
 #define LOG(level) Logger(Verbosity::level, just_filename(__FILE__), \

@@ -61,7 +61,9 @@ MatchResult GlobPath::match_cclass(size_t *pattern_pos, const char &pathchar)
     do {
         if (nextpat >= this->patlen || this->pattern[nextpat] == '/') {
             return MatchResult::Invalid;
-        } else if (this->pattern[nextpat] == '\\') {
+        }
+
+        if (this->pattern[nextpat] == '\\') {
             if (++nextpat >= this->patlen)
                 return MatchResult::Invalid;
         }
@@ -105,9 +107,12 @@ MatchResult GlobPath::match_fixed(size_t *pattern_pos, size_t *path_pos)
             *pattern_pos = patpos;
             *path_pos = pathpos;
             return MatchResult::Matched;
-        } else if (pathpos >= this->pathlen) {
+        }
+
+        if (pathpos >= this->pathlen)
             return MatchResult::EndOfInput;
-        } else if (this->path[pathpos] == '/') {
+
+        if (this->path[pathpos] == '/') {
             // Handle escaped forward slash.
             if (this->pattern[patpos] == '\\' && patpos + 1 < this->patlen) {
                 if (this->pattern[patpos + 1] == '/')
@@ -116,7 +121,9 @@ MatchResult GlobPath::match_fixed(size_t *pattern_pos, size_t *path_pos)
             *pattern_pos = patpos;
             *path_pos = pathpos;
             return MatchResult::GotSlash;
-        } else if (p == '[') {
+        }
+
+        if (p == '[') {
             MatchResult res = this->match_cclass(&patpos, this->path[pathpos]);
             if (res == MatchResult::NotMatched)
                 return MatchResult::NotMatched;
@@ -157,9 +164,9 @@ MatchResult GlobPath::match_norec(size_t *pattern_pos, size_t *path_pos)
                     *pattern_pos = patpos;
                     *path_pos = pathpos;
                     return MatchResult::Matched;
-                } else {
-                    patpos++;
                 }
+
+                patpos++;
             }
 
             // If the number of asterisks is two followed by a slash, we need
@@ -200,9 +207,8 @@ MatchResult GlobPath::match_norec(size_t *pattern_pos, size_t *path_pos)
             } else {
                 return MatchResult::NotMatched;
             }
-        }  else if (result == MatchResult::EndOfInput) {
-            return MatchResult::NotMatched;
-        } else if (result == MatchResult::NotMatched) {
+        } else if (result == MatchResult::EndOfInput ||
+                   result == MatchResult::NotMatched) {
             return MatchResult::NotMatched;
         }
     }

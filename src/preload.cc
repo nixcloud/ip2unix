@@ -108,8 +108,7 @@ extern "C" int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
     return Socket::when<int>(sockfd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->setsockopt(level, optname, optval, optlen);
-        else
-            return real::setsockopt(sockfd, level, optname, optval, optlen);
+        return real::setsockopt(sockfd, level, optname, optval, optlen);
     }, [&]() {
         return real::setsockopt(sockfd, level, optname, optval, optlen);
     });
@@ -122,8 +121,7 @@ extern "C" int WRAP_SYM(ioctl)(int fd, unsigned long request, void *arg)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->ioctl(request, arg);
-        else
-            return real::ioctl(fd, request, arg);
+        return real::ioctl(fd, request, arg);
     }, [&]() {
         return real::ioctl(fd, request, arg);
     });
@@ -138,8 +136,7 @@ extern "C" int WRAP_SYM(epoll_ctl)(int epfd, int op, int fd,
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->epoll_ctl(epfd, op, event);
-        else
-            return real::epoll_ctl(epfd, op, fd, event);
+        return real::epoll_ctl(epfd, op, fd, event);
     }, [&]() {
         return real::epoll_ctl(epfd, op, fd, event);
     });
@@ -261,14 +258,14 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
         if (rule->second.socket_activation) {
             std::optional<Systemd::FdInfo> fdinfo =
                 Systemd::acquire_fdinfo_for_rulepos(rule->first);
-            if (fdinfo) {
+
+            if (fdinfo)
                 return sock->activate(inaddr, fdinfo->fd, fdinfo->is_inet);
-            } else {
-                LOG(WARNING) << "Systemd file descriptor queue empty, "
-                             << "blackholing socket with fd " << fd << '.';
-                sock->blackhole();
-                return std::invoke(sockfun, sock, inaddr, "");
-            }
+
+            LOG(WARNING) << "Systemd file descriptor queue empty, "
+                         << "blackholing socket with fd " << fd << '.';
+            sock->blackhole();
+            return std::invoke(sockfun, sock, inaddr, "");
         }
 #endif
 
@@ -302,11 +299,9 @@ static int handle_accept(int fd, struct sockaddr *addr, socklen_t *addrlen,
             int accfd = real::accept4(fd, nullptr, nullptr, flags);
             if (accfd > 0)
                 return sock->accept(accfd, addr, addrlen);
-            else
-                return accfd;
-        } else {
-            return real::accept4(fd, addr, addrlen, flags);
+            return accfd;
         }
+        return real::accept4(fd, addr, addrlen, flags);
     }, [&]() {
         return real::accept4(fd, addr, addrlen, flags);
     });
@@ -334,8 +329,7 @@ extern "C" int WRAP_SYM(getpeername)(int fd, struct sockaddr *addr,
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->getpeername(addr, addrlen);
-        else
-            return real::getpeername(fd, addr, addrlen);
+        return real::getpeername(fd, addr, addrlen);
     }, [&]() {
         return real::getpeername(fd, addr, addrlen);
     });
@@ -349,8 +343,7 @@ extern "C" int WRAP_SYM(getsockname)(int fd, struct sockaddr *addr,
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->getsockname(addr, addrlen);
-        else
-            return real::getsockname(fd, addr, addrlen);
+        return real::getsockname(fd, addr, addrlen);
     }, [&]() {
         return real::getsockname(fd, addr, addrlen);
     });
@@ -376,10 +369,9 @@ extern "C" ssize_t WRAP_SYM(recvfrom)(int fd, void *buf, size_t len, int flags,
         ssize_t ret = real::recvfrom(fd, buf, len, flags, tmpaddr, &tmplen);
         if (sock->rewrite_src(recvaddr, addr, addrlen)) {
             return ret;
-        } else {
-            errno = EINVAL;
-            return static_cast<ssize_t>(-1);
         }
+        errno = EINVAL;
+        return static_cast<ssize_t>(-1);
     }, [&]() {
         return real::recvfrom(fd, buf, len, flags, addr, addrlen);
     });
@@ -413,10 +405,9 @@ extern "C" ssize_t WRAP_SYM(recvmsg)(int fd, struct msghdr *msg, int flags)
         if (sock->rewrite_src(recvaddr, addr, &msgcopy.msg_namelen)) {
             memcpy(msg, &msgcopy, sizeof(msghdr));
             return ret;
-        } else {
-            errno = EINVAL;
-            return static_cast<ssize_t>(-1);
         }
+        errno = EINVAL;
+        return static_cast<ssize_t>(-1);
     }, [&]() {
         return real::recvmsg(fd, msg, flags);
     });
@@ -459,10 +450,9 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
             sockaddr *ptr = reinterpret_cast<sockaddr*>(&newdest.value());
             return real::sendto(fd, buf, len, flags, ptr,
                                 newdest.value().size());
-        } else {
-            return real::sendto(fd, buf, len, flags, nullptr,
-                                static_cast<socklen_t>(0));
         }
+        return real::sendto(fd, buf, len, flags, nullptr,
+                            static_cast<socklen_t>(0));
     }, [&]() {
         return real::sendto(fd, buf, len, flags, addr, addrlen);
     });

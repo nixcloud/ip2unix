@@ -499,10 +499,10 @@ int Socket::getpeername(struct sockaddr *addr, socklen_t *addrlen)
     if (this->connection) {
         this->connection.value().apply_addr(addr, addrlen);
         return 0;
-    } else {
-        errno = EFAULT;
-        return -1;
     }
+
+    errno = EFAULT;
+    return -1;
 }
 
 int Socket::getsockname(struct sockaddr *addr, socklen_t *addrlen)
@@ -510,10 +510,10 @@ int Socket::getsockname(struct sockaddr *addr, socklen_t *addrlen)
     if (this->binding) {
         this->binding.value().apply_addr(addr, addrlen);
         return 0;
-    } else {
-        errno = EFAULT;
-        return -1;
     }
+
+    errno = EFAULT;
+    return -1;
 }
 
 /* Apply source address to pointers from recvfrom/recvmsg. */

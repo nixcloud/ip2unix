@@ -124,10 +124,11 @@ static std::optional<uint16_t> string2port(const std::string &str)
 
     if (std::all_of(value.begin(), value.end(), isdigit)) {
         uint32_t intval = std::stoul(value);
+
         if (value.length() <= 6 && intval <= 65535)
             return static_cast<uint16_t>(intval);
-        else
-            return std::nullopt;
+
+        return std::nullopt;
     }
 
     return std::nullopt;
@@ -400,8 +401,10 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                 errlen = 0;
                 buf.assign("");
                 continue;
-            } else if (arg[i] == '\\' && i < arglen && (arg[i + 1] == ',' ||
-                                                        arg[i + 1] == '\\')) {
+            }
+
+            if (arg[i] == '\\' && i < arglen && (arg[i + 1] == ',' ||
+                                                 arg[i + 1] == '\\')) {
                 buf += arg[++i];
                 continue;
             }
