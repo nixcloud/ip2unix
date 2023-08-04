@@ -177,7 +177,7 @@ int Socket::listen(int backlog) const
 std::string Socket::format_sockpath(const std::string &path,
                                     const SockAddr &addr) const
 {
-    std::string out = "";
+    std::string out;
     size_t path_len = path.size();
 
     for (size_t i = 0; i < path_len; ++i) {

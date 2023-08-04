@@ -15,4 +15,4 @@ static std::default_random_engine initalize_generator(void)
     return gen;
 }
 
-std::default_random_engine __generator = initalize_generator();
+std::default_random_engine ip2unix_random_generator = initalize_generator();

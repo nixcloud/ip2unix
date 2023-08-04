@@ -145,7 +145,9 @@ static bool push_rule_args_from_file(std::string &filename,
     while (std::getline(input, line)) {
         // Remove all leading whitespace characters
         auto to_erase = std::find_if(
-            line.begin(), line.end(), [](int c) { return !std::isspace(c); }
+            line.begin(),
+            line.end(),
+            [](int c) { return std::isspace(c) == 0; }
         );
         line.erase(line.begin(), to_erase);
 

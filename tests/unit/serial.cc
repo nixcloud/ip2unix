@@ -96,7 +96,7 @@ std::string pprint(const std::pair<A, B> &pair)
 }
 
 #define CHOOSE(values) \
-    values[seed % values.size()]; seed /= values.size()
+    values[seed % (values).size()]; seed /= (values).size()
 
 #define ASSERT_RULEVAL(field) \
     if (newrule.field != rule.field) { \
@@ -110,7 +110,7 @@ std::string pprint(const std::pair<A, B> &pair)
     }
 
 #define ASSERT_EQUAL(expected, result) \
-    if (expected != result) { \
+    if ((expected) != (result)) { \
         std::ostringstream msg; \
         msg << "Expected value " << pprint(expected); \
         msg << " but got " << pprint(result) << " instead."; \

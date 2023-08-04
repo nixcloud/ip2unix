@@ -36,8 +36,8 @@ static std::optional<std::string> validate_rule(Rule &rule)
         char buf[INET6_ADDRSTRLEN];
         const char *addr = rule.address.value().c_str();
         if (
-            !inet_pton(AF_INET, addr, buf) &&
-            !inet_pton(AF_INET6, addr, buf)
+            inet_pton(AF_INET, addr, buf) == 0 &&
+            inet_pton(AF_INET6, addr, buf) == 0
         ) {
             return "Address \"" + rule.address.value() + "\""
                    " is not a valid IPv4 or IPv6 address.";
@@ -116,7 +116,7 @@ static std::optional<uint16_t> string2port(const std::string &str)
     std::string value(str);
     value.erase(0, str.find_first_not_of('0'));
 
-    if (str.size() > 0 && value.empty())
+    if (!str.empty() && value.empty())
         return 0;
 
     if (value.empty())
@@ -152,7 +152,7 @@ static std::optional<int> parse_errno(const std::string &str)
 
 #define RULE_CONVERT(target, key, type, tname) \
     try { \
-        target = value.as<type>(); \
+        (target) = value.as<type>(); \
     } catch (const YAML::BadConversion&) { \
         RULE_ERROR("The \"" key "\" option needs to be a " tname "."); \
         return std::nullopt; \
@@ -333,7 +333,7 @@ std::string make_absolute(const std::string &path)
 
 std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
 {
-    std::string buf = "";
+    std::string buf;
     std::optional<std::string> key = std::nullopt;
 
     Rule rule;
