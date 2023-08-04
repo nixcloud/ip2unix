@@ -162,7 +162,7 @@ int Socket::epoll_ctl(int epfd, int op, struct epoll_event *event)
 #endif
 
 #ifdef SYSTEMD_SUPPORT
-int Socket::listen(int backlog)
+int Socket::listen(int backlog) const
 {
     if (this->activated)
         return 0;

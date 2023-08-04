@@ -97,7 +97,7 @@ bool SockOpts::replay(int old_sockfd, int new_sockfd)
     struct replay_entry {
         replay_entry(int filedes) : fd(filedes) {}
 
-        bool operator()(const SockOpts::EntrySockopt &entry)
+        bool operator()(const SockOpts::EntrySockopt &entry) const
         {
             if (real::setsockopt(this->fd, entry.level, entry.optname,
                                  entry.optval.data(),
@@ -112,7 +112,7 @@ bool SockOpts::replay(int old_sockfd, int new_sockfd)
             return true;
         }
 
-        bool operator()(const SockOpts::EntryIoctl &entry)
+        bool operator()(const SockOpts::EntryIoctl &entry) const
         {
             if (real::ioctl(this->fd, entry.request, entry.arg.data()) == -1) {
                 LOG(WARNING) << "Failure replaying ioctl "
@@ -125,7 +125,7 @@ bool SockOpts::replay(int old_sockfd, int new_sockfd)
         }
 
 #ifdef HAS_EPOLL
-        bool operator()(const SockOpts::EntryEpollCtl &entry)
+        bool operator()(const SockOpts::EntryEpollCtl &entry) const
         {
             epoll_event *event = nullptr;
 

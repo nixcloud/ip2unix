@@ -33,8 +33,8 @@ struct Rule {
     bool ignore = false;
 };
 
-bool is_yaml_rule_file(std::string);
-std::optional<std::vector<Rule>> parse_rules(std::string, bool);
+bool is_yaml_rule_file(const std::string&);
+std::optional<std::vector<Rule>> parse_rules(const std::string&, bool);
 std::optional<Rule> parse_rule_arg(size_t, const std::string&);
 void print_rules(std::vector<Rule>&, std::ostream&);
 

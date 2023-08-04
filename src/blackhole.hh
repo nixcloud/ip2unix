@@ -10,7 +10,7 @@ struct BlackHole
     BlackHole();
     ~BlackHole();
 
-    inline const std::optional<std::string> get_path() const {
+    inline std::optional<std::string> get_path() const {
         return this->filepath;
     }
 

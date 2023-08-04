@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include <yaml-cpp/yaml.h>
 
-static const std::string describe_nodetype(const YAML::Node &node)
+static std::string describe_nodetype(const YAML::Node &node)
 {
     switch (node.Type()) {
         case YAML::NodeType::Undefined: return "undefined";
@@ -250,7 +250,7 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
     return rule;
 }
 
-bool is_yaml_rule_file(std::string filename)
+bool is_yaml_rule_file(const std::string &filename)
 {
     YAML::Node doc;
 
@@ -268,7 +268,7 @@ bool is_yaml_rule_file(std::string filename)
 }
 
 std::optional<std::vector<Rule>>
-    parse_rules(std::string content, bool content_is_filename)
+    parse_rules(const std::string &content, bool content_is_filename)
 {
     YAML::Node doc;
     std::string file = content_is_filename ? content : "<unknown>";

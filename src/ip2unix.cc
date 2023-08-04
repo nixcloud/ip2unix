@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
 
     if (!rule_args.empty()) {
         size_t rulepos = 0;
-        for (auto arg : rule_args) {
+        for (const auto &arg : rule_args) {
             auto result = parse_rule_arg(++rulepos, arg);
             if (result)
                 rules.push_back(result.value());

@@ -45,7 +45,7 @@ struct Socket : std::enable_shared_from_this<Socket>
     }
 
     /* Same as the previous function, but without a default value. */
-    static void when(int fd, std::function<void(Ptr)> f) {
+    static void when(int fd, const std::function<void(Ptr)> &f) {
         std::scoped_lock<std::mutex> lock(Socket::registry_mutex);
         std::optional<Ptr> sock = Socket::find(fd);
         if (sock) f(sock.value());
@@ -62,10 +62,11 @@ struct Socket : std::enable_shared_from_this<Socket>
     int epoll_ctl(int, int, struct epoll_event*);
 #endif
 
-    int listen(int);
 #ifdef SYSTEMD_SUPPORT
+    int listen(int) const;
     int activate(const SockAddr&, int, bool);
 #endif
+
     int bind(const SockAddr&, const std::string&);
     std::optional<int> connect_peermap(const SockAddr&);
     int connect(const SockAddr&, const std::string&);
