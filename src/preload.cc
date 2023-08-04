@@ -105,6 +105,7 @@ extern "C" int WRAP_SYM(setsockopt)(int sockfd, int level, int optname,
 {
     TRACE_CALL("setsockopt", sockfd, level, optname, optval, optlen);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(sockfd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->setsockopt(level, optname, optval, optlen);
@@ -118,6 +119,7 @@ extern "C" int WRAP_SYM(ioctl)(int fd, unsigned long request, void *arg)
 {
     TRACE_CALL("ioctl", fd, request, arg);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->ioctl(request, arg);
@@ -133,6 +135,7 @@ extern "C" int WRAP_SYM(epoll_ctl)(int epfd, int op, int fd,
 {
     TRACE_CALL("epoll", epfd, op, fd, event);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->epoll_ctl(epfd, op, event);
@@ -151,6 +154,8 @@ extern "C" int WRAP_SYM(epoll_ctl)(int epfd, int op, int fd,
 extern "C" int WRAP_SYM(listen)(int sockfd, int backlog)
 {
     TRACE_CALL("listen", sockfd, backlog);
+
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(sockfd, [&](Socket::Ptr sock) {
         return sock->listen(backlog);
     }, [&]() {
@@ -159,6 +164,7 @@ extern "C" int WRAP_SYM(listen)(int sockfd, int backlog)
 }
 #endif
 
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
 static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
                             const RuleDir dir)
 {
@@ -219,6 +225,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
     if (addr->sa_family != AF_INET && addr->sa_family != AF_INET6)
         return std::invoke(realfun, fd, addr, addrlen);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         SockAddr inaddr(addr);
 
@@ -294,6 +301,7 @@ extern "C" int WRAP_SYM(connect)(int fd, const struct sockaddr *addr,
 static int handle_accept(int fd, struct sockaddr *addr, socklen_t *addrlen,
                          int flags)
 {
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address) {
             int accfd = real::accept4(fd, nullptr, nullptr, flags);
@@ -326,6 +334,7 @@ extern "C" int WRAP_SYM(getpeername)(int fd, struct sockaddr *addr,
 {
     TRACE_CALL("getpeername", fd, addr, addrlen);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->getpeername(addr, addrlen);
@@ -340,6 +349,7 @@ extern "C" int WRAP_SYM(getsockname)(int fd, struct sockaddr *addr,
 {
     TRACE_CALL("getsockname", fd, addr, addrlen);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address)
             return sock->getsockname(addr, addrlen);
@@ -358,6 +368,7 @@ extern "C" ssize_t WRAP_SYM(recvfrom)(int fd, void *buf, size_t len, int flags,
     if (addr == nullptr)
         return real::recvfrom(fd, buf, len, flags, addr, addrlen);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<ssize_t>(fd, [&](Socket::Ptr sock) {
         if (!sock->rewrite_peer_address)
             return real::recvfrom(fd, buf, len, flags, addr, addrlen);
@@ -384,6 +395,7 @@ extern "C" ssize_t WRAP_SYM(recvmsg)(int fd, struct msghdr *msg, int flags)
     if (msg->msg_name == nullptr)
         return real::recvmsg(fd, msg, flags);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<ssize_t>(fd, [&](Socket::Ptr sock) {
         if (!sock->rewrite_peer_address)
             return real::recvmsg(fd, msg, flags);
@@ -422,6 +434,7 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
     if (addr == nullptr)
         return real::sendto(fd, buf, len, flags, addr, addrlen);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<ssize_t>(fd, [&](Socket::Ptr sock) {
         if (!sock->rewrite_peer_address)
             return real::sendto(fd, buf, len, flags, addr, addrlen);
@@ -466,6 +479,7 @@ extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
     if (msg->msg_name == nullptr)
         return real::sendmsg(fd, msg, flags);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<ssize_t>(fd, [&](Socket::Ptr sock) {
         if (!sock->rewrite_peer_address)
             return real::sendmsg(fd, msg, flags);
@@ -510,6 +524,7 @@ extern "C" int WRAP_SYM(dup)(int oldfd)
 {
     TRACE_CALL("dup", oldfd);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(oldfd, [&](Socket::Ptr sock) {
         return sock->dup();
     }, [&]() {
@@ -522,6 +537,7 @@ static int handle_dup3(int oldfd, int newfd, int flags)
     if (oldfd == newfd)
         return real::dup3(oldfd, newfd, flags);
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(oldfd, [&](Socket::Ptr sock) {
         return sock->dup(newfd, flags);
     }, [&]() {
@@ -557,6 +573,7 @@ extern "C" int WRAP_SYM(close)(int fd)
     }
 #endif
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         return sock->close();
     }, [&]() {

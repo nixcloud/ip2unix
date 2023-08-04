@@ -14,7 +14,7 @@
         auto value = 0;                                                       \
         try {                                                                 \
             value = code;                                                     \
-        } catch (exception&) {                                                \
+        } catch (exception&) { /* NOLINT(bugprone-macro-parentheses) */       \
             return;                                                           \
         } catch (...) {                                                       \
             throw std::runtime_error("Unknown exception in \"" #code "\".");  \
@@ -99,6 +99,7 @@ void test_exhaust_reservation(void)
     ASSERT_EXCEPTION(ports.acquire(), std::overflow_error);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main(void)
 {
     test_overlap();

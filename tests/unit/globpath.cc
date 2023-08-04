@@ -13,6 +13,7 @@
         throw std::runtime_error(#pat " should not have matched " #path \
                                  " but resulted in a match.");
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main(void)
 {
     SUCCESS("!#%+,-./01234567889", "!#%+,-./01234567889");

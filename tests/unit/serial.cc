@@ -193,6 +193,7 @@ static void test_pairs(void)
     }
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main(void)
 {
     /* Note that this begins at 1, because the last iteration picks the first

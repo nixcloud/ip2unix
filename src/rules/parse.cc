@@ -145,8 +145,10 @@ static std::optional<int> parse_errno(const std::string &str)
     return name2errno(str);
 }
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
 #define RULE_ERROR(msg) \
     std::cerr << file << ":rule #" << pos + 1 << ": " << msg << std::endl
+// NOLINTEND(bugprone-macro-parentheses)
 
 #define RULE_CONVERT(target, key, type, tname) \
     try { \
