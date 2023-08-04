@@ -17,8 +17,6 @@
 #include <getopt.h>
 #include <unistd.h>
 
-extern char **environ;
-
 extern "C" const char *__ip2unix__(void);
 
 static std::optional<std::string> get_preload_libpath(void)
