@@ -6,6 +6,7 @@
 #include <climits>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <initializer_list>
 #include <string>
 
@@ -13,7 +14,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static bool is_writable_dir(const std::string &dir)
+static bool is_writable_dir(const std::filesystem::path &dir)
 {
     int old_errno = errno;
 
@@ -40,7 +41,7 @@ static bool is_writable_dir(const std::string &dir)
     return S_ISDIR(st.st_mode);
 }
 
-static std::string get_tmpdir(void)
+static std::filesystem::path get_tmpdir(void)
 {
     for (const char *tryenv : {"TMPDIR", "TMP", "TEMP", "TEMPDIR"}) {
         const char *tmpdir = getenv(tryenv);
@@ -62,15 +63,10 @@ static std::string get_tmpdir(void)
     if (is_writable_dir("/var/tmp"))
         return "/var/tmp";
 
-    int old_errno = errno;
-    char *workdir = get_current_dir_name();
-    errno = old_errno;
-    if (workdir != nullptr) {
-        std::string wdir_str(workdir);
-        free(workdir);
-        if (is_writable_dir(wdir_str))
-            return wdir_str;
-    }
+    std::string workdir = std::filesystem::current_path();
+
+    if (is_writable_dir(workdir))
+        return workdir;
 
     LOG(FATAL) << "Unable to get temporary directory.";
     std::abort();
@@ -91,9 +87,9 @@ BlackHole::BlackHole()
     : tmpdir(std::nullopt)
     , filepath(std::nullopt)
 {
-    static std::string tempdir = get_tmpdir();
+    static std::filesystem::path tempdir = get_tmpdir();
 
-    std::string bh_template = tempdir + "/ip2unix.XXXXXX";
+    std::string bh_template = tempdir / "ip2unix.XXXXXX";
 
     char *c_bh_template = strdup(bh_template.c_str());
 

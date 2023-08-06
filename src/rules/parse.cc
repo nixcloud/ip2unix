@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <filesystem>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -323,14 +324,6 @@ static void print_arg_error(size_t rulepos, const std::string &arg, size_t pos,
                   << ' ' << msg << std::endl;
 }
 
-std::string make_absolute(const std::string &path)
-{
-    if (path.empty() || path[0] == '/')
-        return path;
-
-    return std::string(get_current_dir_name()) + '/' + path;
-}
-
 std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
 {
     std::string buf;
@@ -346,7 +339,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
             if (i == arglen || arg[i] == ',') {
                 /* Handle key=value options. */
                 if (key.value() == "path") {
-                    rule.socket_path = make_absolute(buf);
+                    rule.socket_path = std::filesystem::absolute(buf);
 #ifdef SYSTEMD_SUPPORT
                 } else if (key.value() == "systemd") {
                     rule.socket_activation = true;
