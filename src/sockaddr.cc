@@ -185,7 +185,7 @@ bool SockAddr::set_port(uint16_t port)
 {
     if (this->is_inet4())
         this->cast4()->sin_port = htons(port);
-    if (this->is_inet6())
+    else if (this->is_inet6())
         this->cast6()->sin6_port = htons(port);
     else
         return false;
