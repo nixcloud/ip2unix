@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: '3.x'
       - run: brew install yaml-cpp asciidoctor
-      - run: pip install meson ninja
+      - run: pip install meson ninja pytest
       - run: meson setup build
       - run: meson test -C build -v
       - uses: actions/upload-artifact@v1
