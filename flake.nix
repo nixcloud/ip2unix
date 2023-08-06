@@ -322,7 +322,7 @@
         };
 
         gcc = {
-          minVersion = "7";
+          minVersion = "9";
           matchAttr = builtins.match "gcc([0-9]+)Stdenv";
           getVersion = attr: attr.cc.version;
           getStdenv = lib.id;

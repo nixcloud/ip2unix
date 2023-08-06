@@ -11,8 +11,8 @@ toc::[]
 * https://github.com/jbeder/yaml-cpp[yaml-cpp], at least version 0.5.0
   Requirement will be removed in *ip2unix* version 3, since the YAML rule file
   format is deprecated.
-* {cpp} compiler supporting {cpp}17 (https://gcc.gnu.org/[GNU G++] version 7.0
-  onwards).
+* {cpp} compiler supporting {cpp}17 (eg. https://gcc.gnu.org/[GNU C++ compiler]
+  version 9.0 or https://clang.llvm.org/[Clang] version 7 or newer).
 * https://www.python.org/[Python] 3, at least version 3.6 is needed for running
   the integration tests.
 
@@ -145,11 +145,11 @@ $ sudo pacman -S python-pytest
 $ meson build
 ---------------------------------------------------------------------
 
-If you want to specify a different compiler executable, eg. `g++-7`:
+If you want to specify a different compiler executable, eg. `g++-9`:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ CXX=g++-7 meson build
+$ CXX=g++-9 meson build
 ---------------------------------------------------------------------
 
 Compile:

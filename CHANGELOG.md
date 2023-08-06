@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Include URL to README in usage if manpage is not being built.
 - Turn into a Nix Flake.
 - Improve serializer to be more robust in end-of-stream conditions.
+- Bump requirements to require at least GCC version 9.
 
 ### Removed
 - Badges (eg. LGTM and build status) in README and Hydra.
