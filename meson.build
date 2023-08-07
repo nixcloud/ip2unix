@@ -9,6 +9,18 @@ script_gensyms = files('scripts/gensyms.py')
 
 cc = meson.get_compiler('cpp')
 
+std_fs_check = cc.run('''
+  #include <filesystem>
+  int main(void) {
+    return std::filesystem::absolute("foo") != "foo" ? 0 : 1;
+  }
+''', name: 'std::filesystem works')
+
+if std_fs_check.returncode() != 0
+  error('C++17 Filesystem library not working correctly,' +
+        ' please update your compiler toolchain.')
+endif
+
 warning_flags = [
   '-Wcast-qual',
   '-Wcovered-switch-default',

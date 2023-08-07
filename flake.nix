@@ -315,7 +315,9 @@
       in lib.listToAttrs (mapAttrsToOneList mkCompilerPackages {
         clang = {
           minVersion = "7";
-          matchAttr = builtins.match "llvmPackages_([0-9]+)";
+          # Excempt version 9, since it doesn't work well with std::filesystem
+          # and GNU libstdc++.
+          matchAttr = builtins.match "llvmPackages_([7-8]|[0-9][0-9]+)";
           getVersion = attr: attr.llvm.version;
           getStdenv = attr: attr.stdenv;
           systems = lib.singleton "x86_64-linux";
