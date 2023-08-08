@@ -26,6 +26,13 @@ class TcpConnectionTest(unittest.TestCase):
 
     @contextmanager
     def run_server(self, rules, *args, **kwargs):
+        """
+        Run the server-side process of the connector.
+
+        Keyword arguments:
+        pre_cmd -- pass the connector commandline to the given command
+        sync -- ensure socket readiness before performing tests (default False)
+        """
         pre_cmd = kwargs.pop('pre_cmd', None)
         sync = kwargs.pop('sync', False)
         cmd = [sys.executable, CONNECTOR, '-l'] + list(map(str, args))
@@ -139,7 +146,7 @@ class TcpConnectionTest(unittest.TestCase):
     def test_abstract_socket(self):
         srule = {'direction': 'incoming', 'abstract': 'a%p'}
         crule = {'direction': 'outgoing', 'abstract': 'a%p'}
-        with self.run_server([srule], '1.2.3.4', 929):
+        with self.run_server([srule], '1.2.3.4', 929, sync=True):
             self.assert_client([crule], '1.2.3.0', 929)
 
 
