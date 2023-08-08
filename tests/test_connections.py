@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 
+from uuid import uuid4
 from contextlib import contextmanager
 
 CURDIR = os.path.dirname(os.path.abspath(__file__))
@@ -144,8 +145,9 @@ class TcpConnectionTest(unittest.TestCase):
 
     @helper.abstract_sockets_only
     def test_abstract_socket(self):
-        srule = {'direction': 'incoming', 'abstract': 'a%p'}
-        crule = {'direction': 'outgoing', 'abstract': 'a%p'}
+        basename = uuid4().hex
+        srule = {'direction': 'incoming', 'abstract': basename + '%p'}
+        crule = {'direction': 'outgoing', 'abstract': basename + '%p'}
         with self.run_server([srule], '1.2.3.4', 929, sync=True):
             self.assert_client([crule], '1.2.3.0', 929)
 
