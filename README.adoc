@@ -36,6 +36,7 @@ ifndef::manmanual[]
 :2: {man_url}/man2/accept.2.html
 :3: {sysdman_url}/systemd.socket.html
 :4: pass:attributes,quotes[{3}#FileDescriptorName=]
+:5: {man_url}/man7/glob.7.html
 
 :xt_owner_url: {man_url}/man8/iptables-extensions.8.html
 :xt_owner: pass:attributes,quotes[{xt_owner_url}[iptables owner module]]
@@ -44,6 +45,7 @@ ifndef::manmanual[]
 :LD_PRELOAD: pass:attributes,quotes[*LD_PRELOAD* ({1}[*ld.so*(8)])]
 :syscall_accept: pass:attributes,quotes[{2}[*accept*(2)]]
 :systemd_socket: pass:attributes,quotes[{3}[*systemd.socket*(5)]]
+:man_glob: pass:attributes,quotes[{5}[*glob*(7)]]
 :fdname: pass:attributes,quotes[{4}[FileDescriptorName]]
 :rulespec: <<rule-specification,Rule specification>>
 :copy: (C) 2018 aszlig
@@ -52,6 +54,7 @@ ifdef::manmanual[]
 :LD_PRELOAD: pass:quotes[*LD_PRELOAD* (see *ld.so*(8))]
 :syscall_accept: pass:quotes[*accept*(2)]
 :systemd_socket: pass:quotes[*systemd.socket*(5)]
+:man_glob: pass:quotes[*glob*(7)]
 :fdname: pass:quotes[FileDescriptorName (see *systemd.socket*(5))]
 :rulespec: pass:quotes[*RULE SPECIFICATION*]
 :copy: \(C) 2018 aszlig
@@ -224,6 +227,30 @@ If a range is specified by separating two port numbers via `-`, the given
 range is matched instead of just a single port. The range is inclusive, so if
 `2000-3000` is specified, both port 2000 and port 3000 are matched as well.
 
+[[rule-from-unix]]*from-unix*='PATTERN'::
+Match an existing Unix domain socket instead of an IP socket and match its path
+by the given 'PATTERN'.
++
+The syntax for 'PATTERN' is similar to {man_glob} and allows the following
+wildcards:
++
+[horizontal]
+*?*;; Matches any single character except `/`
+*&ast;*;; Matches zero or more characters except `/`
+*&ast;&ast;*;; Matches zero or more path components, eg. `a/**/z` matches `a/z`
+               as well as `a/b/z`, `a/b/cde/z`, `a/b/c/c/d/z` and so on
+*[&mldr;]*;; Matches a single character via a series of either verbatim
+             characters or ranges, eg. `[a-cijq-s]` matches either `a`, `b`,
+             `c`, `i`, `j`, `q`, `r` or `s`
+*[!&mldr;]*;; Same as above, but negates the match
+*\X*;; Remove the special meaning of the character 'X', eg. `\?` matches `?`
+
+ifndef::without-abstract[]
+*from-abstract*='PATTERN'::
+Similar to <<rule-from-unix,*from-unix*>> but instead of matching a path, match
+an abstract socket with a name matching 'PATTERN'.
+endif::[]
+
 === Actions
 
 [[reject]]*reject*[='ERRNO']::
@@ -257,7 +284,6 @@ Placeholders are allowed here and are substituted accordingly:
 
 ifndef::without-abstract[]
 *abstract*='NAME'::
-
 An abstract namespace Unix domain socket not being created in the file system
 but solely distinguished by its name.
 +
@@ -423,6 +449,7 @@ ifdef::manmanual[]
 *sendmsg*(2),
 *sendto*(2),
 *socket*(2),
+*glob*(7),
 *unix*(7){systemd_comma}
 ifndef::without-systemd[*systemd.socket*(5)]
 

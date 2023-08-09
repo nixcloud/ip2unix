@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-only
+#include "globpath.hh"
 #include "logging.hh"
 #include "realcalls.hh"
 #include "rules.hh"
@@ -91,7 +92,8 @@ extern "C" int WRAP_SYM(socket)(int domain, int type, int protocol)
     TRACE_CALL("socket", domain, type, protocol);
 
     int fd = real::socket(domain, type, protocol);
-    if (fd != -1 && (domain == AF_INET || domain == AF_INET6))
+    if (fd != -1 && (domain == AF_INET || domain == AF_INET6 ||
+                     domain == AF_UNIX))
         Socket::create(fd, domain, type, protocol);
     return fd;
 }
@@ -198,6 +200,35 @@ static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
                 continue;
         }
 
+        if (rule.matches.from_unix
+#if defined(__linux__)
+            || rule.matches.from_abstract
+#endif
+        ) {
+            auto maybe_path = addr.get_sockpath();
+
+            if (!maybe_path)
+                continue;
+
+            SocketPath path = *maybe_path;
+
+            if (rule.matches.from_unix) {
+                if (path.type != SocketPath::Type::FILESYSTEM)
+                    continue;
+
+                if (!globpath(*rule.matches.from_unix, path.value))
+                    continue;
+#if defined(__linux__)
+            } else if (rule.matches.from_abstract) {
+                if (path.type != SocketPath::Type::ABSTRACT)
+                    continue;
+
+                if (!globpath(*rule.matches.from_abstract, path.value))
+                    continue;
+            }
+#endif
+        }
+
         if (rule.action.ignore)
             return std::nullopt;
 
@@ -225,8 +256,11 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
                                RuleDir dir, int fd,
                                const struct sockaddr *addr, socklen_t addrlen)
 {
-    if (addr->sa_family != AF_INET && addr->sa_family != AF_INET6)
-        return std::invoke(realfun, fd, addr, addrlen);
+    if (
+        addr->sa_family != AF_INET &&
+        addr->sa_family != AF_INET6 &&
+        addr->sa_family != AF_UNIX
+    ) return std::invoke(realfun, fd, addr, addrlen);
 
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {

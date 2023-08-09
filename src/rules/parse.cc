@@ -56,6 +56,30 @@ static std::optional<std::string> validate_rule(Rule &rule)
                    " starting port.";
     }
 
+    if (rule.matches.from_unix) {
+        if (rule.matches.address)
+            return "Can't match a Unix domain socket and an IP address at"
+                   " the same time.";
+        if (rule.matches.port)
+            return "A port can't be used while matching against a Unix"
+                   " domain socket.";
+    }
+
+#if defined(__linux__)
+    if (rule.matches.from_abstract) {
+        if (rule.matches.address)
+            return "Can't match an abstract socket and an IP address at"
+                   " the same time.";
+        if (rule.matches.port)
+            return "A port can't be used while matching against an abstract"
+                   " socket.";
+
+        if (rule.matches.from_unix)
+            return "You can only match a Unix domain socket or an abstract"
+                   " socket, but not both.";
+    }
+#endif
+
     if (rule.action.socket_path) {
         if (rule.action.socket_path->type == SocketPath::Type::FILESYSTEM) {
             const std::string path = rule.action.socket_path->value;
@@ -278,7 +302,13 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
             RULE_CONVERT(path, "socketPath", std::string, "string");
             rule.action.socket_path =
                 SocketPath(SocketPath::Type::FILESYSTEM, path);
+        } else if (key == "fromUnix") {
+            RULE_CONVERT(rule.matches.from_unix, "fromUnix", std::string,
+                         "string");
 #if defined(__linux__)
+        } else if (key == "fromAbstract") {
+            RULE_CONVERT(rule.matches.from_abstract, "fromAbstract",
+                         std::string, "string");
         } else if (key == "abstract") {
             if (rule.action.socket_path) {
                 RULE_ERROR("Socket path or abstract name already specified.");
@@ -401,7 +431,11 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                         SocketPath::Type::FILESYSTEM,
                         std::filesystem::absolute(buf)
                     );
+                } else if (key.value() == "from-unix") {
+                    rule.matches.from_unix = buf;
 #if defined(__linux__)
+                } else if (key.value() == "from-abstract") {
+                    rule.matches.from_abstract = buf;
                 } else if (key.value() == "abstract") {
                     if (rule.action.socket_path) {
                         print_arg_error(
@@ -539,32 +573,62 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
         else
             dirstr = "both";
 
-        std::string typestr;
-        if (rule.matches.type == SocketType::STREAM)
-            typestr = "TCP";
-        else if (rule.matches.type == SocketType::DATAGRAM)
-            typestr = "UDP";
-        else
-            typestr = "TCP and UDP";
+        if (rule.matches.from_unix
+#if defined(__linux__)
+            || rule.matches.from_abstract
+#endif
+        ) {
+            std::string typestr;
+            if (rule.matches.type == SocketType::STREAM)
+                typestr = "Stream";
+            else if (rule.matches.type == SocketType::DATAGRAM)
+                typestr = "Datagram";
+            else
+                typestr = "<any>";
 
-        std::string portstr;
-        if (rule.matches.port)
-            portstr = std::to_string(rule.matches.port.value());
-        else
-            portstr = "<any>";
+            out << "Rule #" << ++pos << ':' << std::endl
+                << "  Direction: " << dirstr << std::endl
+                << "  Socket type: " << typestr << std::endl;
 
-        out << "Rule #" << ++pos << ':' << std::endl
-            << "  Direction: " << dirstr << std::endl
-            << "  IP Type: " << typestr << std::endl
-            << "  Address: " << rule.matches.address.value_or("<any>")
-            << std::endl;
-
-        if (rule.matches.port_end) {
-            out << "  Ports: " << portstr << " - "
-                << std::to_string(rule.matches.port_end.value())
-                << std::endl;
+            if (rule.matches.from_unix) {
+                out << "  From existing Unix domain socket path matching: "
+                    << rule.matches.from_unix.value()
+                    << std::endl;
+#if defined(__linux__)
+            } else if (rule.matches.from_abstract) {
+                out << "  From existing abstract name matching: "
+                    << rule.matches.from_abstract.value()
+                    << std::endl;
+#endif
+            }
         } else {
-            out << "  Port: " << portstr << std::endl;
+            std::string typestr;
+            if (rule.matches.type == SocketType::STREAM)
+                typestr = "TCP";
+            else if (rule.matches.type == SocketType::DATAGRAM)
+                typestr = "UDP";
+            else
+                typestr = "TCP and UDP";
+
+            std::string portstr;
+            if (rule.matches.port)
+                portstr = std::to_string(rule.matches.port.value());
+            else
+                portstr = "<any>";
+
+            out << "Rule #" << ++pos << ':' << std::endl
+                << "  Direction: " << dirstr << std::endl
+                << "  IP Type: " << typestr << std::endl
+                << "  Address: " << rule.matches.address.value_or("<any>")
+                << std::endl;
+
+            if (rule.matches.port_end) {
+                out << "  Ports: " << portstr << " - "
+                    << std::to_string(rule.matches.port_end.value())
+                    << std::endl;
+            } else {
+                out << "  Port: " << portstr << std::endl;
+            }
         }
 
 #ifdef SYSTEMD_SUPPORT

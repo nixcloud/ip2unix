@@ -66,6 +66,7 @@ class RulesTest(unittest.TestCase):
             "in,blackhole": "Blackhole the socket.\n",
             "in,ignore": "Don't handle this socket.\n",
             "path=foo": "Socket path: " + os.getcwd() + "/foo\n",
+            "from-unix=xyz,path=/foo": "domain socket path matching: xyz\n",
         }
         for val, expect in fixtures.items():
             stdout, stderr = self.check_rules(val)

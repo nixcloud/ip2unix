@@ -36,6 +36,8 @@ Socket::Ptr Socket::create(int fd, int domain, int type, int protocol)
     std::scoped_lock<std::mutex> lock(Socket::registry_mutex);
     Socket::Ptr sock = std::shared_ptr<Socket>(new Socket(fd, domain, type,
                                                           protocol));
+    if (domain == AF_UNIX)
+        sock->rewrite_peer_address = false;
     Socket::registry[fd] = sock->getptr();
     LOG(INFO) << "Registered socket with fd " << fd << ", domain " << domain
               << ", type " << type << " and protocol " << protocol << '.';
@@ -324,6 +326,14 @@ int Socket::activate(const SockAddr &addr, int filedes, bool is_inet)
 
 int Socket::bind(const SockAddr &addr, const SocketPath &path)
 {
+    // We already have an AF_UNIX socket and we only want to change the socket
+    // path, so let's return early without converting.
+    if (this->domain == AF_UNIX) {
+        SocketPath newpath = this->format_sockpath(path, addr);
+        USOCK_OR_EFAULT(newpath);
+        return real::connect(this->fd, dest.cast(), dest.size());
+    }
+
     if (!this->make_unix())
         return -1;
 
@@ -391,6 +401,14 @@ std::optional<int> Socket::connect_peermap(const SockAddr &addr)
 
 int Socket::connect(const SockAddr &addr, const SocketPath &path)
 {
+    // We already have an AF_UNIX socket and we only want to change the socket
+    // path, so let's return early without converting.
+    if (this->domain == AF_UNIX) {
+        SocketPath newpath = this->format_sockpath(path, addr);
+        USOCK_OR_EFAULT(newpath);
+        return real::connect(this->fd, dest.cast(), dest.size());
+    }
+
     if (this->type == SocketType::DATAGRAM && !this->binding) {
         /* If we connect without prior binding on a datagram socket, we need to
          * create an implicit binding first, so the peer is able to recognise

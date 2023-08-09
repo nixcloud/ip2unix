@@ -21,6 +21,10 @@ struct Rule {
         std::optional<std::string> address = std::nullopt;
         std::optional<uint16_t> port = std::nullopt;
         std::optional<uint16_t> port_end = std::nullopt;
+#if defined(__linux__)
+        std::optional<std::string> from_abstract = std::nullopt;
+#endif
+        std::optional<std::string> from_unix = std::nullopt;
     };
 
     // XXX: This should ideally be std::variant once we get to a C++ version

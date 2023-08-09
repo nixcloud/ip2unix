@@ -83,6 +83,33 @@ class RuleFileTest(unittest.TestCase):
     def test_abstract_and_path(self):
         self.assert_bad_rules([{'abstract': 'xxx', 'socketPath': '/xxx'}])
 
+    @abstract_sockets_only
+    def test_from_abstract_and_from_unix(self):
+        self.assert_bad_rules([{'fromAbstract': 'xxx', 'fromUnix': '/xxx'}])
+
+    @abstract_sockets_only
+    def test_from_abstract_and_ip(self):
+        self.assert_bad_rules([{'fromAbstract': 'xxx', 'addr': '1.2.3.4'}])
+        self.assert_bad_rules([{'fromAbstract': 'xxx', 'port': 234}])
+
+    @abstract_sockets_only
+    def test_from_abstract_with_action(self):
+        self.assert_good_rules([{'fromAbstract': 'foo', 'socketPath': '/foo'}])
+
+    @abstract_sockets_only
+    def test_from_abstract_no_action(self):
+        self.assert_bad_rules([{'fromAbstract': 'foobar'}])
+
+    def test_from_unix_with_action(self):
+        self.assert_good_rules([{'fromUnix': '/bar', 'socketPath': '/foo'}])
+
+    def test_from_unix_no_action(self):
+        self.assert_bad_rules([{'fromUnix': '/foobar'}])
+
+    def test_from_unix_and_ip(self):
+        self.assert_bad_rules([{'fromUnix': 'xxx', 'addr': '1.2.3.4'}])
+        self.assert_bad_rules([{'fromUnix': 'xxx', 'port': 234}])
+
     def test_invalid_enums(self):
         self.assert_bad_rules([{'socketPath': '/bbb', 'direction': 111}])
         self.assert_bad_rules([{'socketPath': '/bbb', 'direction': False}])

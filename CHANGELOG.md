@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Deprecation warnings if rules are specified in YAML format.
 - Unlink socket file before `bind` if `SO_REUSEADDR` is used.
 - Support for Linux abstract sockets.
+- Support for matching an existing Unix domain socket or abstract socket.
 
 ### Changed
 - Rule files (`-f`) are now just a list of newline-separated rule (`-r`)

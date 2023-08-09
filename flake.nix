@@ -358,6 +358,8 @@
           inherit (self.packages.${system}) ip2unix;
         };
       in lib.mapAttrs (lib.const (lib.mapAttrs mkProgramTest)) {
+        mariadb-php-abstract.x86_64-linux =
+          tests/programs/mariadb-php-abstract.nix;
         rsession.x86_64-linux = tests/programs/rsession.nix;
       };
 
