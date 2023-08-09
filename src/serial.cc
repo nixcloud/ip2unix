@@ -121,10 +121,10 @@ MaybeError deserialise(std::istream &in, RuleDir *out)
 void serialise(const SocketType &stype, std::ostream &out)
 {
     switch (stype) {
-        case SocketType::TCP:
+        case SocketType::STREAM:
             out.put('t');
             break;
-        case SocketType::UDP:
+        case SocketType::DATAGRAM:
             out.put('u');
             break;
         case SocketType::INVALID:
@@ -144,10 +144,10 @@ MaybeError deserialise(std::istream &in, SocketType *out)
 
     switch (c) {
         case 't':
-            *out = SocketType::TCP;
+            *out = SocketType::STREAM;
             break;
         case 'u':
-            *out = SocketType::UDP;
+            *out = SocketType::DATAGRAM;
             break;
         case 'i':
             *out = SocketType::INVALID;

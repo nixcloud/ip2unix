@@ -46,9 +46,9 @@ static inline SocketType get_sotype(const int type)
 {
     switch (type & (SOCK_STREAM | SOCK_DGRAM)) {
         case SOCK_STREAM:
-            return SocketType::TCP;
+            return SocketType::STREAM;
         case SOCK_DGRAM:
-            return SocketType::UDP;
+            return SocketType::DATAGRAM;
         default:
             return SocketType::INVALID;
     }
@@ -190,9 +190,9 @@ SocketPath Socket::format_sockpath(const SocketPath &path,
                           continue;
                 case 't':
                     switch (this->type) {
-                        case SocketType::TCP:     out += "tcp"; break;
-                        case SocketType::UDP:     out += "udp"; break;
-                        case SocketType::INVALID: out += "unknown"; break;
+                        case SocketType::STREAM:   out += "tcp"; break;
+                        case SocketType::DATAGRAM: out += "udp"; break;
+                        case SocketType::INVALID:  out += "unknown"; break;
                     }
                     i++;
                     continue;
@@ -375,7 +375,7 @@ int Socket::bind(const SockAddr &addr, const SocketPath &path)
 
 std::optional<int> Socket::connect_peermap(const SockAddr &addr)
 {
-    if (this->type == SocketType::UDP) {
+    if (this->type == SocketType::DATAGRAM) {
         auto found = this->peermap.find(addr);
         if (found != this->peermap.end()) {
             USOCK_OR_EFAULT(found->second);
@@ -391,7 +391,7 @@ std::optional<int> Socket::connect_peermap(const SockAddr &addr)
 
 int Socket::connect(const SockAddr &addr, const SocketPath &path)
 {
-    if (this->type == SocketType::UDP && !this->binding) {
+    if (this->type == SocketType::DATAGRAM && !this->binding) {
         /* If we connect without prior binding on a datagram socket, we need to
          * create an implicit binding first, so the peer is able to recognise
          * us.
@@ -569,7 +569,7 @@ Socket::rewrite_dest_peermap(const SockAddr &addr) const
 std::optional<SockAddr> Socket::rewrite_dest(const SockAddr &addr,
                                              const SocketPath &path)
 {
-    if (this->type != SocketType::UDP)
+    if (this->type != SocketType::DATAGRAM)
         return std::nullopt;
 
     std::optional<SockAddr> destpath =

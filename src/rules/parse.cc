@@ -210,10 +210,10 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
         } else if (key == "type") {
             std::string val;
             RULE_CONVERT(val, "type", std::string, "string");
-            if (val == "tcp") {
-                rule.type = SocketType::TCP;
-            } else if (val == "udp") {
-                rule.type = SocketType::UDP;
+            if (val == "tcp" || val == "stream") {
+                rule.type = SocketType::STREAM;
+            } else if (val == "udp" || val == "dgram" || val == "datagram") {
+                rule.type = SocketType::DATAGRAM;
             } else {
                 RULE_ERROR("Invalid type \"" << val << "\".");
                 return std::nullopt;
@@ -473,10 +473,10 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
             }
         } else if (i == arglen || arg[i] == ',') {
             /* Handle bareword toggle flags. */
-            if (buf == "tcp") {
-                rule.type = SocketType::TCP;
-            } else if (buf == "udp") {
-                rule.type = SocketType::UDP;
+            if (buf == "tcp" || buf == "stream") {
+                rule.type = SocketType::STREAM;
+            } else if (buf == "udp" || buf == "dgram" || buf == "datagram") {
+                rule.type = SocketType::DATAGRAM;
             } else if (buf == "in") {
                 rule.direction = RuleDir::INCOMING;
             } else if (buf == "out") {
@@ -533,9 +533,9 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
             dirstr = "both";
 
         std::string typestr;
-        if (rule.type == SocketType::TCP)
+        if (rule.type == SocketType::STREAM)
             typestr = "TCP";
-        else if (rule.type == SocketType::UDP)
+        else if (rule.type == SocketType::DATAGRAM)
             typestr = "UDP";
         else
             typestr = "TCP and UDP";

@@ -3,7 +3,7 @@
 #define IP2UNIX_TYPES_HH
 
 enum class SocketType {
-    TCP, UDP, INVALID
+    STREAM, DATAGRAM, INVALID
 };
 
 #endif

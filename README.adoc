@@ -206,9 +206,12 @@ The following matches are available:
 Whether this rule applies to a server-side socket (`in`), a client-side
 socket (`out`) or both if neither `in` nor `out` is specified.
 
-*tcp* | *udp*::
+*tcp* | *udp* | *stream* | *d*[*ata*]*gram*::
 Specifies the IP type, which currently is either `tcp` for TCP sockets, `udp`
 for UDP sockets or if it is not defined it matches both UDP and TCP sockets.
++
+Instead of `tcp` you can also use `stream` and instead of `udp` you can use
+`dgram` or `datagram`.
 
 *addr*[*ess*]='ADDRESS'::
 The IP address to match, which can be either an IPv4 or an IPv6 address.

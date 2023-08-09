@@ -17,8 +17,8 @@ static std::vector<std::optional<RuleDir>> ruledirs = {
 
 static std::vector<std::optional<SocketType>> sotypes = {
     std::nullopt,
-    SocketType::TCP,
-    SocketType::UDP,
+    SocketType::STREAM,
+    SocketType::DATAGRAM,
     SocketType::INVALID
 };
 
@@ -76,10 +76,10 @@ std::string pprint(const RuleDir &dir) {
 
 std::string pprint(const SocketType &type) {
     switch (type) {
-        case SocketType::UDP:
-            return "SocketType::UDP";
-        case SocketType::TCP:
-            return "SocketType::TCP";
+        case SocketType::DATAGRAM:
+            return "SocketType::DATAGRAM";
+        case SocketType::STREAM:
+            return "SocketType::STREAM";
         case SocketType::INVALID:
             return "SocketType::INVALID";
     }
