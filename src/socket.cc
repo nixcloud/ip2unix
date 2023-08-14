@@ -108,7 +108,7 @@ void Socket::blackhole(void)
 int Socket::setsockopt(int level, int optname, const void *optval,
                        socklen_t optlen)
 {
-    if (this->is_unix && level != SOL_SOCKET) {
+    if (this->is_converted && level != SOL_SOCKET) {
         LOG(DEBUG) << "Prevented calling setsockopt on fd " << this->fd
                    << " with incompatible level " << level << '.';
         return 0;
@@ -122,7 +122,7 @@ int Socket::setsockopt(int level, int optname, const void *optval,
      * succeeded (and it's using SOL_SOCKET level), otherwise we risk a fatal
      * error while replaying them on our end.
      */
-    if (!this->is_unix && level == SOL_SOCKET) {
+    if (!this->is_converted && level == SOL_SOCKET) {
         if (optname == SO_REUSEADDR && *static_cast<const int*>(optval) > 0)
             this->reuse_addr = true;
 
@@ -141,7 +141,7 @@ int Socket::ioctl(unsigned long request, const void *arg)
     /* Only add the arguments to the queue if the ioctl() has succeeded,
      * otherwise we risk a fatal error while replaying them on our end.
      */
-    if (!this->is_unix)
+    if (!this->is_converted)
         this->sockopts.cache_ioctl(request, arg);
 
     return ret;
@@ -154,7 +154,7 @@ int Socket::epoll_ctl(int epfd, int op, struct epoll_event *event)
     if (ret != 0)
         return ret;
 
-    if (!this->is_unix)
+    if (!this->is_converted)
         this->sockopts.cache_epoll_ctl(epfd, op, event);
 
     return ret;
@@ -217,7 +217,7 @@ bool Socket::make_unix(int oldfd)
     int newfd;
     int old_errno = errno;
 
-    if (this->is_unix)
+    if (this->is_converted)
         return true;
 
     if (oldfd != -1) {
@@ -256,7 +256,7 @@ bool Socket::make_unix(int oldfd)
               << newfd << '.';
 
     errno = old_errno;
-    this->is_unix = true;
+    this->is_converted = true;
     return true;
 }
 
@@ -486,7 +486,7 @@ int Socket::accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     sock->ports.reserve(local_port.value());
     sock->binding = local_addr;
     sock->connection = peer;
-    sock->is_unix = true;
+    sock->is_converted = true;
     peer.apply_addr(addr, addrlen);
     Socket::registry[sockfd] = sock->getptr();
     LOG(INFO) << "Accepted socket fd " << sockfd

@@ -126,7 +126,7 @@ struct Socket : std::enable_shared_from_this<Socket>
         static std::unordered_set<SocketPath> sockpath_registry;
 
         /* Whether the socket has been converted to an AF_UNIX socket. */
-        bool is_unix = false;
+        bool is_converted = false;
 
         /* Set if this socket is bound to an unlinked socket path. */
         bool is_blackhole = false;
