@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Unlink socket file before `bind` if `SO_REUSEADDR` is used.
 - Support for Linux abstract sockets.
 - Support for matching an existing Unix domain socket or abstract socket.
+- Add `stream`/`datagram` aliases for `tcp`/`udp` socket types.
 
 ### Changed
 - Rule files (`-f`) are now just a list of newline-separated rule (`-r`)
@@ -26,7 +27,6 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Turn into a Nix Flake.
 - Improve serializer to be more robust in end-of-stream conditions.
 - Bump requirements to require at least GCC version 9.
-- Internally use `stream` instead of `tcp` and `datagram` for `udp`.
 
 ### Removed
 - Badges (eg. LGTM and build status) in README and Hydra.
