@@ -15,24 +15,34 @@
 enum class RuleDir { INCOMING, OUTGOING };
 
 struct Rule {
-    std::optional<RuleDir> direction = std::nullopt;
-    std::optional<SocketType> type = std::nullopt;
-    std::optional<std::string> address = std::nullopt;
-    std::optional<uint16_t> port = std::nullopt;
-    std::optional<uint16_t> port_end = std::nullopt;
+    struct Matches {
+        std::optional<RuleDir> direction = std::nullopt;
+        std::optional<SocketType> type = std::nullopt;
+        std::optional<std::string> address = std::nullopt;
+        std::optional<uint16_t> port = std::nullopt;
+        std::optional<uint16_t> port_end = std::nullopt;
+    };
 
+    // XXX: This should ideally be std::variant once we get to a C++ version
+    //      where handling/matching variants is not as gruesome as eg. using
+    //      std::visit.
+    struct Action {
 #ifdef SYSTEMD_SUPPORT
-    bool socket_activation = false;
-    std::optional<std::string> fd_name = std::nullopt;
+        bool socket_activation = false;
+        std::optional<std::string> fd_name = std::nullopt;
 #endif
 
-    std::optional<SocketPath> socket_path = std::nullopt;
+        std::optional<SocketPath> socket_path = std::nullopt;
 
-    bool reject = false;
-    std::optional<int> reject_errno = std::nullopt;
+        bool reject = false;
+        std::optional<int> reject_errno = std::nullopt;
 
-    bool blackhole = false;
-    bool ignore = false;
+        bool blackhole = false;
+        bool ignore = false;
+    };
+
+    Matches matches = {};
+    Action action = {};
 };
 
 bool is_yaml_rule_file(const std::string&);

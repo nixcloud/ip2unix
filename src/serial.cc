@@ -200,26 +200,26 @@ MaybeError deserialise(std::istream &in, SocketPath *out)
 
 void serialise(const Rule &rule, std::ostream &out)
 {
-    serialise(rule.direction, out);
-    serialise(rule.type, out);
-    serialise(rule.address, out);
-    serialise(rule.port, out);
-    serialise(rule.port_end, out);
-    serialise(rule.socket_path, out);
+    serialise(rule.matches.direction, out);
+    serialise(rule.matches.type, out);
+    serialise(rule.matches.address, out);
+    serialise(rule.matches.port, out);
+    serialise(rule.matches.port_end, out);
+    serialise(rule.action.socket_path, out);
 #ifdef SYSTEMD_SUPPORT
-    serialise(rule.socket_activation, out);
-    serialise(rule.fd_name, out);
+    serialise(rule.action.socket_activation, out);
+    serialise(rule.action.fd_name, out);
 #endif
-    serialise(rule.reject, out);
-    serialise(rule.reject_errno, out);
-    serialise(rule.blackhole, out);
-    serialise(rule.ignore, out);
+    serialise(rule.action.reject, out);
+    serialise(rule.action.reject_errno, out);
+    serialise(rule.action.blackhole, out);
+    serialise(rule.action.ignore, out);
 }
 
 #define DESERIALISE_OR_ERR(what) \
     if ((err = deserialise(in, &out->what))) return err
 
-MaybeError deserialise(std::istream &in, Rule *out)
+MaybeError deserialise(std::istream &in, Rule::Matches *out)
 {
     MaybeError err;
     DESERIALISE_OR_ERR(direction);
@@ -227,6 +227,12 @@ MaybeError deserialise(std::istream &in, Rule *out)
     DESERIALISE_OR_ERR(address);
     DESERIALISE_OR_ERR(port);
     DESERIALISE_OR_ERR(port_end);
+    return std::nullopt;
+}
+
+MaybeError deserialise(std::istream &in, Rule::Action *out)
+{
+    MaybeError err;
     DESERIALISE_OR_ERR(socket_path);
 #ifdef SYSTEMD_SUPPORT
     DESERIALISE_OR_ERR(socket_activation);
@@ -236,6 +242,14 @@ MaybeError deserialise(std::istream &in, Rule *out)
     DESERIALISE_OR_ERR(reject_errno);
     DESERIALISE_OR_ERR(blackhole);
     DESERIALISE_OR_ERR(ignore);
+    return std::nullopt;
+}
+
+MaybeError deserialise(std::istream &in, Rule *out)
+{
+    MaybeError err;
+    DESERIALISE_OR_ERR(matches);
+    DESERIALISE_OR_ERR(action);
     return std::nullopt;
 }
 

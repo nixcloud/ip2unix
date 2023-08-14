@@ -147,24 +147,24 @@ std::string pprint(const std::pair<A, B> &pair)
 static unsigned long test_rule(unsigned long seed)
 {
     Rule rule;
-    rule.direction = CHOOSE(ruledirs);
-    rule.type = CHOOSE(sotypes);
-    rule.address = CHOOSE(strings);
-    rule.port = CHOOSE(ports);
-    rule.port_end = CHOOSE(ports);
+    rule.matches.direction = CHOOSE(ruledirs);
+    rule.matches.type = CHOOSE(sotypes);
+    rule.matches.address = CHOOSE(strings);
+    rule.matches.port = CHOOSE(ports);
+    rule.matches.port_end = CHOOSE(ports);
 #ifdef SYSTEMD_SUPPORT
-    rule.socket_activation = CHOOSE(bools);
-    rule.fd_name = CHOOSE(strings);
+    rule.action.socket_activation = CHOOSE(bools);
+    rule.action.fd_name = CHOOSE(strings);
 #endif
     std::optional<std::string> value = CHOOSE(strings);
     if (value) {
         SocketPath::Type socketpathtype = CHOOSE(socketpathtypes);
-        rule.socket_path = SocketPath(socketpathtype, *value);
+        rule.action.socket_path = SocketPath(socketpathtype, *value);
     }
-    rule.reject = CHOOSE(bools);
-    rule.reject_errno = CHOOSE(ints);
-    rule.blackhole = CHOOSE(bools);
-    rule.ignore = CHOOSE(bools);
+    rule.action.reject = CHOOSE(bools);
+    rule.action.reject_errno = CHOOSE(ints);
+    rule.action.blackhole = CHOOSE(bools);
+    rule.action.ignore = CHOOSE(bools);
 
     std::string result = serialise(rule);
     Rule newrule;
@@ -172,20 +172,20 @@ static unsigned long test_rule(unsigned long seed)
     if ((err = deserialise(result, &newrule)))
         throw std::runtime_error(*err);
 
-    ASSERT_RULEVAL(direction);
-    ASSERT_RULEVAL(type);
-    ASSERT_RULEVAL(address);
-    ASSERT_RULEVAL(port);
-    ASSERT_RULEVAL(port_end);
+    ASSERT_RULEVAL(matches.direction);
+    ASSERT_RULEVAL(matches.type);
+    ASSERT_RULEVAL(matches.address);
+    ASSERT_RULEVAL(matches.port);
+    ASSERT_RULEVAL(matches.port_end);
 #ifdef SYSTEMD_SUPPORT
-    ASSERT_RULEVAL(socket_activation);
-    ASSERT_RULEVAL(fd_name);
+    ASSERT_RULEVAL(action.socket_activation);
+    ASSERT_RULEVAL(action.fd_name);
 #endif
-    ASSERT_RULEVAL(socket_path);
-    ASSERT_RULEVAL(reject);
-    ASSERT_RULEVAL(reject_errno);
-    ASSERT_RULEVAL(blackhole);
-    ASSERT_RULEVAL(ignore);
+    ASSERT_RULEVAL(action.socket_path);
+    ASSERT_RULEVAL(action.reject);
+    ASSERT_RULEVAL(action.reject_errno);
+    ASSERT_RULEVAL(action.blackhole);
+    ASSERT_RULEVAL(action.ignore);
     return seed;
 }
 

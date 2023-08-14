@@ -33,32 +33,32 @@ static std::string describe_nodetype(const YAML::Node &node)
 
 static std::optional<std::string> validate_rule(Rule &rule)
 {
-    if (rule.address) {
+    if (rule.matches.address) {
         char buf[INET6_ADDRSTRLEN];
-        const char *addr = rule.address.value().c_str();
+        const char *addr = rule.matches.address.value().c_str();
         if (
             inet_pton(AF_INET, addr, buf) == 0 &&
             inet_pton(AF_INET6, addr, buf) == 0
         ) {
-            return "Address \"" + rule.address.value() + "\""
+            return "Address \"" + rule.matches.address.value() + "\""
                    " is not a valid IPv4 or IPv6 address.";
         }
     }
 
-    if (!rule.port && rule.port_end)
+    if (!rule.matches.port && rule.matches.port_end)
         return "Port range has an ending port but no starting port.";
 
-    if (rule.port && rule.port_end) {
-        if (rule.port.value() > rule.port_end.value())
+    if (rule.matches.port && rule.matches.port_end) {
+        if (rule.matches.port.value() > rule.matches.port_end.value())
             return "Starting port in port range is bigger than end port.";
-        if (rule.port.value() == rule.port_end.value())
+        if (rule.matches.port.value() == rule.matches.port_end.value())
             return "Ending port in port range has the same value as the"
                    " starting port.";
     }
 
-    if (rule.socket_path) {
-        if (rule.socket_path->type == SocketPath::Type::FILESYSTEM) {
-            const std::string path = rule.socket_path->value;
+    if (rule.action.socket_path) {
+        if (rule.action.socket_path->type == SocketPath::Type::FILESYSTEM) {
+            const std::string path = rule.action.socket_path->value;
 
             if (path.empty())
                 return "Socket path has to be non-empty.";
@@ -66,63 +66,67 @@ static std::optional<std::string> validate_rule(Rule &rule)
                 return "Socket path has to be absolute.";
 
 #ifdef SYSTEMD_SUPPORT
-            if (rule.socket_activation)
+            if (rule.action.socket_activation)
                 return "Can't enable socket activation in conjunction with a"
                        " socket path.";
 #endif
-            if (rule.reject)
+            if (rule.action.reject)
                 return "Using a reject action in conjuction with a socket"
                        " path is not allowed.";
 
-            if (rule.ignore)
+            if (rule.action.ignore)
                 return "Using an ignore action in conjuction with a socket"
                        " path is not allowed.";
 
-            if (rule.blackhole)
+            if (rule.action.blackhole)
                 return "Using a blackhole action in conjuction with a socket"
                        " path is not allowed.";
 #if defined(__linux__)
-        } else if (rule.socket_path->type == SocketPath::Type::ABSTRACT) {
-            if (rule.socket_path->value.empty())
+        } else if (
+            rule.action.socket_path->type == SocketPath::Type::ABSTRACT
+        ) {
+            if (rule.action.socket_path->value.empty())
                 return "Abstract socket name has to be non-empty.";
 
 #ifdef SYSTEMD_SUPPORT
-            if (rule.socket_activation)
+            if (rule.action.socket_activation)
                 return "Can't enable socket activation in conjunction with an"
                        " abstract socket name.";
 #endif
 
-            if (rule.reject)
+            if (rule.action.reject)
                 return "Using a reject action in conjuction with an abstract"
                        " socket name is not allowed.";
 
-            if (rule.ignore)
+            if (rule.action.ignore)
                 return "Using an ignore action in conjuction with an abstract"
                        " socket name is not allowed.";
 
-            if (rule.blackhole)
+            if (rule.action.blackhole)
                 return "Using a blackhole action in conjuction with an"
                        " abstract socket name is not allowed.";
 #endif
         }
-    } else if (rule.reject && rule.blackhole) {
+    } else if (rule.action.reject && rule.action.blackhole) {
         return "Reject and blackhole actions are mutually exclusive.";
-    } else if (rule.ignore && (rule.blackhole || rule.reject)) {
+    } else if (
+        rule.action.ignore && (rule.action.blackhole || rule.action.reject)
+    ) {
         return "Ignore action can't be used in conjunction with blackhole"
                " or reject.";
 #ifdef SYSTEMD_SUPPORT
-    } else if (rule.ignore && rule.socket_activation) {
+    } else if (rule.action.ignore && rule.action.socket_activation) {
         return "Ignore action can't be used in conjunction with socket"
                " activation.";
 #endif
-    } else if (rule.reject || rule.ignore) {
+    } else if (rule.action.reject || rule.action.ignore) {
         return std::nullopt;
-    } else if (rule.blackhole) {
-        if (rule.direction != RuleDir::INCOMING)
+    } else if (rule.action.blackhole) {
+        if (rule.matches.direction != RuleDir::INCOMING)
             return "Blackhole rules are only valid for incoming connections.";
         return std::nullopt;
 #ifdef SYSTEMD_SUPPORT
-    } else if (!rule.socket_activation) {
+    } else if (!rule.action.socket_activation) {
         return "Socket activation is disabled and no socket"
                " path, abstract name, reject, ignore or blackhole action was"
                " specified.";
@@ -200,9 +204,9 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
             std::string val;
             RULE_CONVERT(val, "direction", std::string, "string");
             if (val == "outgoing") {
-                rule.direction = RuleDir::OUTGOING;
+                rule.matches.direction = RuleDir::OUTGOING;
             } else if (val == "incoming") {
-                rule.direction = RuleDir::INCOMING;
+                rule.matches.direction = RuleDir::INCOMING;
             } else {
                 RULE_ERROR("Invalid direction \"" << val << "\".");
                 return std::nullopt;
@@ -211,21 +215,22 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
             std::string val;
             RULE_CONVERT(val, "type", std::string, "string");
             if (val == "tcp" || val == "stream") {
-                rule.type = SocketType::STREAM;
+                rule.matches.type = SocketType::STREAM;
             } else if (val == "udp" || val == "dgram" || val == "datagram") {
-                rule.type = SocketType::DATAGRAM;
+                rule.matches.type = SocketType::DATAGRAM;
             } else {
                 RULE_ERROR("Invalid type \"" << val << "\".");
                 return std::nullopt;
             }
         } else if (key == "address") {
-            RULE_CONVERT(rule.address, "address", std::string, "string");
+            RULE_CONVERT(rule.matches.address, "address", std::string,
+                         "string");
         } else if (key == "port") {
             std::string val;
             RULE_CONVERT(val, "port", std::string, "16 bit unsigned int");
             std::optional<uint16_t> port = string2port(val);
             if (port) {
-                rule.port = port.value();
+                rule.matches.port = port.value();
             } else {
                 RULE_ERROR("Port number is not a 16 bit unsigned int.");
                 return std::nullopt;
@@ -235,7 +240,7 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
             RULE_CONVERT(val, "portEnd", std::string, "16 bit unsigned int");
             std::optional<uint16_t> portend = string2port(val);
             if (portend) {
-                rule.port_end = portend.value();
+                rule.matches.port_end = portend.value();
             } else {
                 RULE_ERROR("Port range end number is not a "
                            "16 bit unsigned int.");
@@ -243,44 +248,46 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
             }
 #ifdef SYSTEMD_SUPPORT
         } else if (key == "socketActivation") {
-            RULE_CONVERT(rule.socket_activation, "socketActivation", bool,
-                         "bool");
+            RULE_CONVERT(rule.action.socket_activation, "socketActivation",
+                         bool, "bool");
         } else if (key == "fdName") {
-            RULE_CONVERT(rule.fd_name, "fdName", std::string, "string");
+            RULE_CONVERT(rule.action.fd_name, "fdName", std::string, "string");
 #endif
         } else if (key == "reject") {
-            RULE_CONVERT(rule.reject, "reject", bool, "bool");
+            RULE_CONVERT(rule.action.reject, "reject", bool, "bool");
         } else if (key == "rejectError") {
             std::string val;
             RULE_CONVERT(val, "rejectError", std::string, "string");
             std::optional<int> rej_errno = parse_errno(val);
             if (rej_errno) {
-                rule.reject_errno = rej_errno;
+                rule.action.reject_errno = rej_errno;
             } else {
                 RULE_ERROR("Invalid reject error code \"" << val << "\".");
                 return std::nullopt;
             }
         } else if (key == "blackhole") {
-            RULE_CONVERT(rule.blackhole, "blackhole", bool, "bool");
+            RULE_CONVERT(rule.action.blackhole, "blackhole", bool, "bool");
         } else if (key == "ignore") {
-            RULE_CONVERT(rule.ignore, "ignore", bool, "bool");
+            RULE_CONVERT(rule.action.ignore, "ignore", bool, "bool");
         } else if (key == "socketPath") {
-            if (rule.socket_path) {
+            if (rule.action.socket_path) {
                 RULE_ERROR("Socket path or abstract name already specified.");
                 return std::nullopt;
             }
             std::string path;
             RULE_CONVERT(path, "socketPath", std::string, "string");
-            rule.socket_path = SocketPath(SocketPath::Type::FILESYSTEM, path);
+            rule.action.socket_path =
+                SocketPath(SocketPath::Type::FILESYSTEM, path);
 #if defined(__linux__)
         } else if (key == "abstract") {
-            if (rule.socket_path) {
+            if (rule.action.socket_path) {
                 RULE_ERROR("Socket path or abstract name already specified.");
                 return std::nullopt;
             }
             std::string name;
             RULE_CONVERT(name, "abstract", std::string, "string");
-            rule.socket_path = SocketPath(SocketPath::Type::ABSTRACT, name);
+            rule.action.socket_path =
+                SocketPath(SocketPath::Type::ABSTRACT, name);
 #endif
         } else {
             RULE_ERROR("Invalid key \"" << key << "\".");
@@ -383,48 +390,48 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
             if (i == arglen || arg[i] == ',') {
                 /* Handle key=value options. */
                 if (key.value() == "path") {
-                    if (rule.socket_path) {
+                    if (rule.action.socket_path) {
                         print_arg_error(
                             rulepos, arg, errpos, errlen,
                             "socket path or abstract name specified earlier"
                         );
                         return std::nullopt;
                     }
-                    rule.socket_path = SocketPath(
+                    rule.action.socket_path = SocketPath(
                         SocketPath::Type::FILESYSTEM,
                         std::filesystem::absolute(buf)
                     );
 #if defined(__linux__)
                 } else if (key.value() == "abstract") {
-                    if (rule.socket_path) {
+                    if (rule.action.socket_path) {
                         print_arg_error(
                             rulepos, arg, errpos, errlen,
                             "socket path or abstract name specified earlier"
                         );
                         return std::nullopt;
                     }
-                    rule.socket_path = SocketPath(
+                    rule.action.socket_path = SocketPath(
                         SocketPath::Type::ABSTRACT,
                         buf
                     );
 #endif
 #ifdef SYSTEMD_SUPPORT
                 } else if (key.value() == "systemd") {
-                    rule.socket_activation = true;
-                    rule.fd_name = buf;
+                    rule.action.socket_activation = true;
+                    rule.action.fd_name = buf;
 #endif
                 } else if (key.value() == "reject") {
-                    rule.reject = true;
+                    rule.action.reject = true;
                     std::optional<int> rej_errno = parse_errno(buf);
                     if (rej_errno) {
-                        rule.reject_errno = rej_errno.value();
+                        rule.action.reject_errno = rej_errno.value();
                     } else {
                         print_arg_error(rulepos, arg, valpos, i - valpos,
                                         "invalid reject error code");
                         return std::nullopt;
                     }
                 } else if (key.value() == "addr" || key.value() == "address") {
-                    rule.address = buf;
+                    rule.matches.address = buf;
                 } else if (key.value() == "port") {
                     /* Handle port ranges, like "1000-2000". */
                     std::size_t rangesep = buf.find('-');
@@ -436,7 +443,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                         std::optional<uint16_t> portend =
                             string2port(buf.substr(rangesep + 1));
                         if (portend) {
-                            rule.port_end = portend.value();
+                            rule.matches.port_end = portend.value();
                         } else {
                             print_arg_error(rulepos, arg,
                                             valpos + rangesep + 1,
@@ -448,7 +455,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
 
                     std::optional<uint16_t> port = string2port(portbuf);
                     if (port) {
-                        rule.port = port.value();
+                        rule.matches.port = port.value();
                     } else {
                         print_arg_error(rulepos, arg, valpos, i - valpos,
                                         "invalid port");
@@ -474,23 +481,23 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
         } else if (i == arglen || arg[i] == ',') {
             /* Handle bareword toggle flags. */
             if (buf == "tcp" || buf == "stream") {
-                rule.type = SocketType::STREAM;
+                rule.matches.type = SocketType::STREAM;
             } else if (buf == "udp" || buf == "dgram" || buf == "datagram") {
-                rule.type = SocketType::DATAGRAM;
+                rule.matches.type = SocketType::DATAGRAM;
             } else if (buf == "in") {
-                rule.direction = RuleDir::INCOMING;
+                rule.matches.direction = RuleDir::INCOMING;
             } else if (buf == "out") {
-                rule.direction = RuleDir::OUTGOING;
+                rule.matches.direction = RuleDir::OUTGOING;
 #ifdef SYSTEMD_SUPPORT
             } else if (buf == "systemd") {
-                rule.socket_activation = true;
+                rule.action.socket_activation = true;
 #endif
             } else if (buf == "reject") {
-                rule.reject = true;
+                rule.action.reject = true;
             } else if (buf == "blackhole") {
-                rule.blackhole = true;
+                rule.action.blackhole = true;
             } else if (buf == "ignore") {
-                rule.ignore = true;
+                rule.action.ignore = true;
             } else {
                 print_arg_error(rulepos, arg, errpos, errlen, "unknown flag");
                 return std::nullopt;
@@ -525,71 +532,74 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
     int pos = 0;
     for (Rule &rule : rules) {
         std::string dirstr;
-        if (rule.direction == RuleDir::INCOMING)
+        if (rule.matches.direction == RuleDir::INCOMING)
             dirstr = "incoming";
-        else if (rule.direction == RuleDir::OUTGOING)
+        else if (rule.matches.direction == RuleDir::OUTGOING)
             dirstr = "outgoing";
         else
             dirstr = "both";
 
         std::string typestr;
-        if (rule.type == SocketType::STREAM)
+        if (rule.matches.type == SocketType::STREAM)
             typestr = "TCP";
-        else if (rule.type == SocketType::DATAGRAM)
+        else if (rule.matches.type == SocketType::DATAGRAM)
             typestr = "UDP";
         else
             typestr = "TCP and UDP";
 
         std::string portstr;
-        if (rule.port)
-            portstr = std::to_string(rule.port.value());
+        if (rule.matches.port)
+            portstr = std::to_string(rule.matches.port.value());
         else
             portstr = "<any>";
 
         out << "Rule #" << ++pos << ':' << std::endl
             << "  Direction: " << dirstr << std::endl
             << "  IP Type: " << typestr << std::endl
-            << "  Address: " << rule.address.value_or("<any>") << std::endl;
+            << "  Address: " << rule.matches.address.value_or("<any>")
+            << std::endl;
 
-        if (rule.port_end) {
+        if (rule.matches.port_end) {
             out << "  Ports: " << portstr << " - "
-                << std::to_string(rule.port_end.value())
+                << std::to_string(rule.matches.port_end.value())
                 << std::endl;
         } else {
             out << "  Port: " << portstr << std::endl;
         }
 
 #ifdef SYSTEMD_SUPPORT
-        if (rule.socket_activation) {
+        if (rule.action.socket_activation) {
             out << "  Socket activation";
-            if (rule.fd_name) {
+            if (rule.action.fd_name) {
                 out << " with file descriptor name: "
-                    << rule.fd_name.value() << std::endl;
+                    << rule.action.fd_name.value() << std::endl;
             } else {
                 out << "." << std::endl;
             }
         } else {
 #endif
-            if (rule.reject) {
+            if (rule.action.reject) {
                 out << "  Reject connect() and bind() calls";
-                if (rule.reject_errno)
+                if (rule.action.reject_errno)
                     out << " with errno "
-                        << errno2name(rule.reject_errno.value());
+                        << errno2name(rule.action.reject_errno.value());
                 out << "." << std::endl;
-            } else if (rule.blackhole) {
+            } else if (rule.action.blackhole) {
                 out << "  Blackhole the socket." << std::endl;
-            } else if (rule.ignore) {
+            } else if (rule.action.ignore) {
                 out << "  Don't handle this socket." << std::endl;
-            } else if (rule.socket_path) {
+            } else if (rule.action.socket_path) {
 #if defined(__linux__)
-                if (rule.socket_path->type == SocketPath::Type::ABSTRACT) {
+                if (
+                    rule.action.socket_path->type == SocketPath::Type::ABSTRACT
+                ) {
                     out << "  Abstract name: "
-                        << rule.socket_path->value
+                        << rule.action.socket_path->value
                         << std::endl;
                 } else {
 #endif
                     out << "  Socket path: "
-                        << rule.socket_path->value
+                        << rule.action.socket_path->value
                         << std::endl;
 #if defined(__linux__)
                 }

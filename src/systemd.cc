@@ -215,7 +215,7 @@ void Systemd::init(const std::vector<Rule> &rules)
 
         size_t rulepos = 0;
         for (const Rule &rule : rules) {
-            if (!rule.socket_activation || !rule.fd_name) {
+            if (!rule.action.socket_activation || !rule.action.fd_name) {
                 rulepos++;
                 continue;
             }
@@ -224,7 +224,7 @@ void Systemd::init(const std::vector<Rule> &rules)
             for (size_t i = 0; i < elems; ++i) {
                 int fd = static_cast<int>(SD_LISTEN_FDS_START + i);
 
-                if (fdnames[i] == *rule.fd_name) {
+                if (fdnames[i] == *rule.action.fd_name) {
                     bool is_inet = socket_is_inet(fd);
                     LOG(DEBUG) << "Matched systemd "
                                << (is_inet ? "inet" : "unix")

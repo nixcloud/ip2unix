@@ -70,7 +70,7 @@ static void init_rules(void)
 
 #ifdef SYSTEMD_SUPPORT
     for (const Rule &rule : *rules) {
-        if (!rule.socket_activation)
+        if (!rule.action.socket_activation)
             continue;
 
         Systemd::init(*rules);
@@ -178,35 +178,38 @@ static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
     ) {
         const Rule &rule = *it;
 
-        if (rule.direction && rule.direction != dir)
+        if (rule.matches.direction && rule.matches.direction != dir)
             continue;
 
-        if (rule.type && sock->type != rule.type)
+        if (rule.matches.type && sock->type != rule.matches.type)
             continue;
 
-        if (rule.address && addr.get_host() != rule.address)
+        if (rule.matches.address && addr.get_host() != rule.matches.address)
             continue;
 
-        if (rule.port) {
+        if (rule.matches.port) {
             std::optional<uint16_t> addrport = addr.get_port();
-            if (addrport && rule.port_end) {
-                if (rule.port.value() > addrport.value())
+            if (addrport && rule.matches.port_end) {
+                if (rule.matches.port.value() > addrport.value())
                     continue;
-                if (rule.port_end < addrport.value())
+                if (rule.matches.port_end < addrport.value())
                     continue;
-            } else if (addrport != rule.port)
+            } else if (addrport != rule.matches.port)
                 continue;
         }
 
-        if (rule.ignore)
+        if (rule.action.ignore)
             return std::nullopt;
 
 #ifdef SYSTEMD_SUPPORT
-        if (rule.socket_activation)
+        if (rule.action.socket_activation)
             return std::make_pair(rulepos, rule);
 #endif
-        if (!rule.socket_path && !rule.reject && !rule.blackhole)
-            continue;
+        if (
+            !rule.action.socket_path &&
+            !rule.action.reject &&
+            !rule.action.blackhole
+        ) continue;
 
         return std::make_pair(rulepos, rule);
     }
@@ -251,18 +254,18 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
             return std::invoke(realfun, fd, addr, addrlen);
         }
 
-        if (rule->second.reject) {
-            errno = rule->second.reject_errno.value_or(EACCES);
+        if (rule->second.action.reject) {
+            errno = rule->second.action.reject_errno.value_or(EACCES);
             return -1;
         }
 
-        if (rule->second.blackhole) {
+        if (rule->second.action.blackhole) {
             sock->blackhole();
             return std::invoke(sockfun, sock, inaddr, SocketPath());
         }
 
 #ifdef SYSTEMD_SUPPORT
-        if (rule->second.socket_activation) {
+        if (rule->second.action.socket_activation) {
             std::optional<Systemd::FdInfo> fdinfo =
                 Systemd::acquire_fdinfo_for_rulepos(rule->first);
 
@@ -276,7 +279,12 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
         }
 #endif
 
-        return std::invoke(sockfun, sock, inaddr, *rule->second.socket_path);
+        return std::invoke(
+            sockfun,
+            sock,
+            inaddr,
+            *rule->second.action.socket_path
+        );
     }, [&]() {
         return std::invoke(realfun, fd, addr, addrlen);
     });
@@ -448,15 +456,18 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
 
             RuleMatch rule = match_rule(addrcopy, sock, RuleDir::OUTGOING);
 
-            if (!rule || !rule->second.socket_path)
+            if (!rule || !rule->second.action.socket_path)
                 return real::sendto(fd, buf, len, flags, addr, addrlen);
 
-            if (rule->second.reject) {
-                errno = rule->second.reject_errno.value_or(EACCES);
+            if (rule->second.action.reject) {
+                errno = rule->second.action.reject_errno.value_or(EACCES);
                 return ssize_t{-1};
             }
 
-            newdest = sock->rewrite_dest(addrcopy, *rule->second.socket_path);
+            newdest = sock->rewrite_dest(
+                addrcopy,
+                *rule->second.action.socket_path
+            );
         }
 
         if (newdest) {
@@ -493,15 +504,18 @@ extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
 
             RuleMatch rule = match_rule(addrcopy, sock, RuleDir::OUTGOING);
 
-            if (!rule || !rule->second.socket_path)
+            if (!rule || !rule->second.action.socket_path)
                 return real::sendmsg(fd, msg, flags);
 
-            if (rule->second.reject) {
-                errno = rule->second.reject_errno.value_or(EACCES);
+            if (rule->second.action.reject) {
+                errno = rule->second.action.reject_errno.value_or(EACCES);
                 return ssize_t{-1};
             }
 
-            newdest = sock->rewrite_dest(addrcopy, *rule->second.socket_path);
+            newdest = sock->rewrite_dest(
+                addrcopy,
+                *rule->second.action.socket_path
+            );
         }
 
         msghdr newmsg;
