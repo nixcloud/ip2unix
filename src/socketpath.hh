@@ -29,7 +29,15 @@ struct SocketPath {
 namespace std {
     template<> struct hash<SocketPath> {
         std::size_t operator()(const SocketPath &addr) const {
-            return std::hash<std::string>()(addr.value); // TODO
+            std::size_t hashval = std::hash<std::string>()(addr.value);
+            switch (addr.type) {
+                case SocketPath::Type::ABSTRACT:
+                    hashval = ~hashval;
+                    break;
+                case SocketPath::Type::FILESYSTEM:
+                    break;
+            }
+            return hashval;
         }
     };
 }
