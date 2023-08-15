@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Removed
 - Badges (eg. LGTM and build status) in README and Hydra.
+- No longer prefer C library path over `RTLD_NEXT`.
 
 ## [2.1.4] - 2021-07-10
 

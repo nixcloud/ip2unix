@@ -2,7 +2,6 @@ project('ip2unix', 'cpp',
         default_options: ['cpp_std=c++17', 'warning_level=3'],
         meson_version: '>=0.47.0', version: '2.1.4')
 
-script_findlibc = files('scripts/findlibc.py')
 script_generrno = files('scripts/generrno.py')
 script_genoffsets = files('scripts/genoffsets.py')
 script_gensyms = files('scripts/gensyms.py')
@@ -54,13 +53,6 @@ deps = [
   dependency('yaml-cpp', version: '>=0.5.0'),
   cc.find_library('dl')
 ]
-
-libcpath = run_command(python, script_findlibc, cc.cmd_array(), check: false)
-if libcpath.returncode() == 0
-  fullpath = libcpath.stdout()
-  message('Found C library at ' + fullpath)
-  lib_cflags += ['-DLIBC_PATH="' + fullpath + '"']
-endif
 
 systemd_enabled = get_option('systemd-support')
 

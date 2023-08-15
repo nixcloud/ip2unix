@@ -360,6 +360,7 @@
       in lib.mapAttrs (lib.const (lib.mapAttrs mkProgramTest)) {
         mariadb-php-abstract.x86_64-linux =
           tests/programs/mariadb-php-abstract.nix;
+        multiple-preload.x86_64-linux = tests/programs/multiple-preload.nix;
         rsession.x86_64-linux = tests/programs/rsession.nix;
       };
 
