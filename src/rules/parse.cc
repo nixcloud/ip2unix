@@ -65,7 +65,7 @@ static std::optional<std::string> validate_rule(Rule &rule)
                    " domain socket.";
     }
 
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
     if (rule.matches.from_abstract) {
         if (rule.matches.address)
             return "Can't match an abstract socket and an IP address at"
@@ -105,7 +105,7 @@ static std::optional<std::string> validate_rule(Rule &rule)
             if (rule.action.blackhole)
                 return "Using a blackhole action in conjuction with a socket"
                        " path is not allowed.";
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
         } else if (
             rule.action.socket_path->type == SocketPath::Type::ABSTRACT
         ) {
@@ -309,7 +309,7 @@ static std::optional<Rule> parse_rule(const std::string &file, int pos,
         } else if (key == "fromUnix") {
             RULE_CONVERT(rule.matches.from_unix, "fromUnix", std::string,
                          "string");
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
         } else if (key == "fromAbstract") {
             RULE_CONVERT(rule.matches.from_abstract, "fromAbstract",
                          std::string, "string");
@@ -451,7 +451,7 @@ std::optional<Rule> parse_rule_arg(size_t rulepos, const std::string &arg)
                     );
                 } else if (key.value() == "from-unix") {
                     rule.matches.from_unix = buf;
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
                 } else if (key.value() == "from-abstract") {
                     rule.matches.from_abstract = buf;
                 } else if (key.value() == "abstract") {
@@ -609,7 +609,7 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
             dirstr = "both";
 
         if (rule.matches.from_unix
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
             || rule.matches.from_abstract
 #endif
         ) {
@@ -629,7 +629,7 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
                 out << "  From existing Unix domain socket path matching: "
                     << rule.matches.from_unix.value()
                     << std::endl;
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
             } else if (rule.matches.from_abstract) {
                 out << "  From existing abstract name matching: "
                     << rule.matches.from_abstract.value()
@@ -688,7 +688,7 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
             } else if (rule.action.ignore) {
                 out << "  Don't handle this socket." << std::endl;
             } else if (rule.action.socket_path) {
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
                 if (
                     rule.action.socket_path->type == SocketPath::Type::ABSTRACT
                 ) {
@@ -704,7 +704,7 @@ void print_rules(std::vector<Rule> &rules, std::ostream &out)
                         out << " (will not be removed on close)";
                     }
                     out << std::endl;
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
                 }
 #endif
             }

@@ -23,7 +23,7 @@ static std::vector<std::optional<SocketType>> sotypes = {
 };
 
 static std::vector<SocketPath::Type> socketpathtypes = {
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
     SocketPath::Type::ABSTRACT,
 #endif
     SocketPath::Type::FILESYSTEM
@@ -91,7 +91,7 @@ std::string pprint(const SocketPath &socket_path) {
     switch (socket_path.type) {
         case SocketPath::Type::FILESYSTEM:
             return socket_path.value;
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
         case SocketPath::Type::ABSTRACT:
             return std::string("@") + socket_path.value;
 #endif

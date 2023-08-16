@@ -164,9 +164,11 @@ void serialise(const SocketPath &path, std::ostream &out)
         case SocketPath::Type::FILESYSTEM:
             out.put('f');
             break;
+#ifdef ABSTRACT_SUPPORT
         case SocketPath::Type::ABSTRACT:
             out.put('a');
             break;
+#endif
     }
 
     serialise(path.value, out);
@@ -186,7 +188,7 @@ MaybeError deserialise(std::istream &in, SocketPath *out)
         case 'f':
             out->type = SocketPath::Type::FILESYSTEM;
             break;
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
         case 'a':
             out->type = SocketPath::Type::ABSTRACT;
             break;

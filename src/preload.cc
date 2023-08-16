@@ -201,7 +201,7 @@ static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
         }
 
         if (rule.matches.from_unix
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
             || rule.matches.from_abstract
 #endif
         ) {
@@ -218,15 +218,15 @@ static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
 
                 if (!globpath(*rule.matches.from_unix, path.value))
                     continue;
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
             } else if (rule.matches.from_abstract) {
                 if (path.type != SocketPath::Type::ABSTRACT)
                     continue;
 
                 if (!globpath(*rule.matches.from_abstract, path.value))
                     continue;
-            }
 #endif
+            }
         }
 
         if (rule.action.ignore)

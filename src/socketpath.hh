@@ -5,7 +5,12 @@
 #include <string>
 
 struct SocketPath {
-    enum class Type { ABSTRACT, FILESYSTEM };
+    enum class Type {
+#ifdef ABSTRACT_SUPPORT
+        ABSTRACT,
+#endif
+        FILESYSTEM
+    };
 
     inline SocketPath()
         : type(Type::FILESYSTEM), value(), unlink(true) {}
@@ -36,9 +41,11 @@ namespace std {
         std::size_t operator()(const SocketPath &addr) const {
             std::size_t hashval = std::hash<std::string>()(addr.value);
             switch (addr.type) {
+#ifdef ABSTRACT_SUPPORT
                 case SocketPath::Type::ABSTRACT:
                     hashval = ~hashval;
                     break;
+#endif
                 case SocketPath::Type::FILESYSTEM:
                     break;
             }

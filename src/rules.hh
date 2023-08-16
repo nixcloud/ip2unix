@@ -21,7 +21,7 @@ struct Rule {
         std::optional<std::string> address = std::nullopt;
         std::optional<uint16_t> port = std::nullopt;
         std::optional<uint16_t> port_end = std::nullopt;
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
         std::optional<std::string> from_abstract = std::nullopt;
 #endif
         std::optional<std::string> from_unix = std::nullopt;

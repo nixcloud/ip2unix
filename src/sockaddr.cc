@@ -53,7 +53,7 @@ std::optional<SockAddr> SockAddr::unix(const SocketPath &path)
         case SocketPath::Type::FILESYSTEM:
             strncpy(ua.sun_path, path.value.c_str(), sizeof(ua.sun_path) - 1);
             return SockAddr(reinterpret_cast<const sockaddr*>(&ua));
-#if defined(__linux__)
+#ifdef ABSTRACT_SUPPORT
         case SocketPath::Type::ABSTRACT:
             ua.sun_path[0] = '\0';
             memcpy(ua.sun_path + 1, path.value.c_str(), path.value.size());

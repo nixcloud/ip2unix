@@ -248,6 +248,10 @@
           mesonFlags = [ "-Dsystemd-support=false" ];
         });
 
+        no-abstract = fullForEachSystem (lib.const {
+          mesonFlags = [ "-Dabstract-support=false" ];
+        });
+
         # This is to make sure AsciiDoc is picked over Asciidoctor when
         # generating the manpage.
         default-asciidoc = forEachSystem (pkgs: {

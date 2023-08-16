@@ -60,6 +60,13 @@ if systemd_enabled
   cflags += ['-DSYSTEMD_SUPPORT']
 endif
 
+abstract_enabled = get_option('abstract-support') \
+               and host_machine.system() == 'linux'
+
+if abstract_enabled
+  cflags += ['-DABSTRACT_SUPPORT']
+endif
+
 if cc.has_header_symbol('sys/epoll.h', 'epoll_ctl')
   cflags += ['-DHAS_EPOLL']
 endif
@@ -96,7 +103,7 @@ if not systemd_enabled
   adoc_attrs += ['-a', 'without-systemd']
 endif
 
-if host_machine.system() != 'linux'
+if not abstract_enabled
   adoc_attrs += ['-a', 'without-abstract']
 endif
 
