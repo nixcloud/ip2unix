@@ -44,21 +44,25 @@ of the following steps are to be performed inside this `ip2unix` directory.
 This is the easiest and recommended way to compile it from source and it should
 work on any distribution.
 
-If you are not running https://nixos.org/[NixOS] you can install
-https://nixos.org/nix/[Nix] via the following command:
+In order to build the latest version of *ip2unix*, the following command is
+needed _without the need of cloning the source tree manually_:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ curl https://nixos.org/nix/install | sh
+$ nix build github:nixcloud/ip2unix
 ---------------------------------------------------------------------
 
-In order to build *ip2unix* issue the following command from the top of the
-source tree:
+[NOTE]
+.You need to have support for https://nixos.wiki/wiki/Flakes[Flakes]
+====
+If that's not the case you can also ad-hoc-enable it using the following
+command:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ nix-build
+$ nix build --experimental-features 'nix-command flakes' github:nixcloud/ip2unix
 ---------------------------------------------------------------------
+====
 
 This takes care of fetching the dependencies, building and running the test
 suite. The resulting command can now be found in `result/bin/ip2unix`.
@@ -68,7 +72,7 @@ using the command:
 
 [source,sh-session]
 ---------------------------------------------------------------------
-$ nix-env -f . -i
+$ nix profile install github:nixcloud/ip2unix
 ---------------------------------------------------------------------
 
 == Debian and derivatives
