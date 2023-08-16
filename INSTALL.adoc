@@ -6,6 +6,8 @@ toc::[]
 
 = Requirements
 
+:sysdman_url: https://www.freedesktop.org/software/systemd/man
+
 * https://mesonbuild.com/[Meson], at least version 0.47.0.
 * https://ninja-build.org/[Ninja], at least version 1.5.
 * https://github.com/jbeder/yaml-cpp[yaml-cpp], at least version 0.5.0
