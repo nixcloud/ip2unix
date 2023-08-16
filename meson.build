@@ -1,6 +1,6 @@
 project('ip2unix', 'cpp',
         default_options: ['cpp_std=c++17', 'warning_level=3'],
-        meson_version: '>=0.47.0', version: '2.1.4')
+        meson_version: '>=0.47.0', version: '2.2.0')
 
 script_generrno = files('scripts/generrno.py')
 script_genoffsets = files('scripts/genoffsets.py')
