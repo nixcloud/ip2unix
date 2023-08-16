@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 - Missing serialisation for `from-unix` and `from-abstract`.
 
+### Changed
+
+- Improve wording/grammar in `README` and manpage.
+
 ## [2.2.0] - 2023-08-16
 
 ### Fixed

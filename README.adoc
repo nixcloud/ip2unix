@@ -180,7 +180,7 @@ ifdef::manmanual[]
   Increases the level of verbosity, according to the following table:
 
   'FATAL' (default);;
-    Only prints fatal errors that causes the program to terminate.
+    Only print fatal errors which cause program termination.
   'ERROR' (*-v*);;
     Also print errors that are recoverable.
   'WARNING' (*-vv*);;
@@ -206,49 +206,48 @@ instead.
 The following matches are available:
 
 *in* | *out*::
-Whether this rule applies to a server-side socket (`in`), a client-side
-socket (`out`) or both if neither `in` nor `out` is specified.
+Match either a server-side socket (`in`), a client-side socket (`out`) or both
+if neither `in` nor `out` is specified.
 
 *tcp* | *udp* | *stream* | *d*[*ata*]*gram*::
-Specifies the IP type, which currently is either `tcp` for TCP sockets, `udp`
-for UDP sockets or if it is not defined it matches both UDP and TCP sockets.
-+
-Instead of `tcp` you can also use `stream` and instead of `udp` you can use
-`dgram` or `datagram`.
+Match the socket type, which currently is either a `stream` (alias: `tcp`)
+or `datagram` (aliases: `dgram` or `udp`).
 
 *addr*[*ess*]='ADDRESS'::
 The IP address to match, which can be either an IPv4 or an IPv6 address.
 
 *port*='PORT'[-'PORT_END']::
-UDP or TCP port number which for outgoing connections specifies the target
-port and for incomping connections the port that the socket is bound to.
+Match the UDP or TCP port number which for outgoing connections specifies the
+target port and for incomping connections the port that the socket is bound to.
 +
 If a range is specified by separating two port numbers via `-`, the given
 range is matched instead of just a single port. The range is inclusive, so if
 `2000-3000` is specified, both port 2000 and port 3000 are matched as well.
 
 [[rule-from-unix]]*from-unix*='PATTERN'::
-Match an existing Unix domain socket instead of an IP socket and match its path
-by the given 'PATTERN'.
+Use an existing Unix domain socket with a filename matching 'PATTERN'. This is
+useful for example if a program hardcodes the socket path and you want to
+change it.
 +
 The syntax for 'PATTERN' is similar to {man_glob} and allows the following
 wildcards:
 +
 [horizontal]
-*?*;; Matches any single character except `/`
-*&ast;*;; Matches zero or more characters except `/`
-*&ast;&ast;*;; Matches zero or more path components, eg. `a/**/z` matches `a/z`
-               as well as `a/b/z`, `a/b/cde/z`, `a/b/c/c/d/z` and so on
-*[&mldr;]*;; Matches a single character via a series of either verbatim
+*?*;; Match any single character except `/`
+*&ast;*;; Match zero or more characters except `/`
+*&ast;&ast;*;; Match zero or more path components, eg. `a/**/z` matches `a/z`,
+               `a/b/z`, `a/b/cde/z`, `a/b/c/c/d/z` and so on
+*[&mldr;]*;; Match a single character via a series of either verbatim
              characters or ranges, eg. `[a-cijq-s]` matches either `a`, `b`,
              `c`, `i`, `j`, `q`, `r` or `s`
 *[!&mldr;]*;; Same as above, but negates the match
-*\X*;; Remove the special meaning of the character 'X', eg. `\?` matches `?`
+*\X*;; Remove the special meaning of the character 'X',
+       eg. `\?` literally matches `?`
 
 ifndef::without-abstract[]
 *from-abstract*='PATTERN'::
-Similar to <<rule-from-unix,*from-unix*>> but instead of matching a path, match
-an abstract socket with a name matching 'PATTERN'.
+Similar to <<rule-from-unix,*from-unix*>> but matches 'PATTERN' against an
+abstract socket name.
 endif::[]
 
 === Actions
@@ -266,12 +265,14 @@ Technically, this means that we *bind* to a Unix socket using a temporary file
 system path and *unlink* it shortly thereafter.
 
 *ignore*::
-Prevents a socket from being converted to a Unix domain socket if this is
-set. This is useful to exempt specific sockets from being matched when
-another rule matches a broad scope.
+Prevent a socket from being converted to a Unix domain socket if this is set.
+This is useful to exempt specific sockets from being matched when another rule
+matches a broad scope.
 
 [[rule-socket-path]]*path*='SOCKET_PATH'::
-The path to the socket file to either bind or connect to.
+Convert the socket into a Unix domain socket at the file specified by
+'SOCKET_PATH', which is either created during bind or used as the target when
+connecting.
 +
 Placeholders are allowed here and are substituted accordingly:
 +
@@ -293,8 +294,10 @@ accidentally remove the socket file too early.
 
 ifndef::without-abstract[]
 *abstract*='NAME'::
-An abstract namespace Unix domain socket not being created in the file system
-but solely distinguished by its name.
+Convert the socket into an abstract namespace Unix domain socket. Unlike the
+<<rule-socket-path,*path*>> action, the 'NAME' provided here has no connection
+with file system pathnames. This also means that file system permissions do not
+apply.
 +
 The placeholders supported in <<rule-socket-path,*path*>> are also supported
 here.
@@ -302,8 +305,8 @@ endif::[]
 
 ifndef::without-systemd[]
 *systemd*[='FD_NAME']::
-Use the socket passed along via file descriptor by systemd instead of
-creating one.
+Use an existing socket file descriptor provided by systemd instead of creating
+a new socket.
 +
 An optional file descriptor name ('FD_NAME') can be specified to
 distinguish between several socket units. This corresponds to the {fdname}
