@@ -180,24 +180,63 @@ static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
     ) {
         const Rule &rule = *it;
 
-        if (rule.matches.direction && rule.matches.direction != dir)
-            continue;
+        LOG(DEBUG) << "Matching rule #" << rulepos + 1;
 
-        if (rule.matches.type && sock->type != rule.matches.type)
+        if (rule.matches.direction && rule.matches.direction != dir) {
+            switch (dir) {
+                case RuleDir::INCOMING:
+                    LOG(DEBUG) << "Skipping rule: direction is not incoming.";
+                    break;
+                case RuleDir::OUTGOING:
+                    LOG(DEBUG) << "Skipping rule: direction is not outgoing.";
+                    break;
+            }
             continue;
+        }
 
-        if (rule.matches.address && addr.get_host() != rule.matches.address)
+        if (rule.matches.type && rule.matches.type != sock->type) {
+            if (rule.matches.type) {
+                switch (*rule.matches.type) {
+                    case SocketType::DATAGRAM:
+                        LOG(DEBUG) << "Skipping rule: Not a datagram socket.";
+                        break;
+                    case SocketType::STREAM:
+                        LOG(DEBUG) << "Skipping rule: Not a stream socket.";
+                        break;
+                    case SocketType::INVALID:
+                        break;
+                }
+            }
             continue;
+        }
+
+        if (rule.matches.address) {
+            auto maybe_host = addr.get_host();
+            if (rule.matches.address != maybe_host) {
+                LOG(DEBUG) << "Skipping rule: Address does not match.";
+                continue;
+            }
+        }
 
         if (rule.matches.port) {
             std::optional<uint16_t> addrport = addr.get_port();
             if (addrport && rule.matches.port_end) {
-                if (rule.matches.port.value() > addrport.value())
+                if (rule.matches.port.value() > addrport.value()) {
+                    LOG(DEBUG) << "Skipping rule: Port " << addrport.value()
+                               << " is outside of port range starting at "
+                               << rule.matches.port.value();
                     continue;
-                if (rule.matches.port_end < addrport.value())
+                }
+                if (rule.matches.port_end < addrport.value()) {
+                    LOG(DEBUG) << "Skipping rule: Port " << addrport.value()
+                               << " is outside of port range ending at "
+                               << rule.matches.port_end.value();
                     continue;
-            } else if (addrport != rule.matches.port)
+                }
+            } else if (addrport != rule.matches.port) {
+                LOG(DEBUG) << "Skipping rule: Port does not match.";
                 continue;
+            }
         }
 
         if (rule.matches.from_unix
@@ -207,41 +246,64 @@ static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
         ) {
             auto maybe_path = addr.get_sockpath();
 
-            if (!maybe_path)
+            if (!maybe_path) {
+                LOG(DEBUG) << "Skipping rule: Unable to get socket path.";
                 continue;
+            }
 
             SocketPath path = *maybe_path;
 
             if (rule.matches.from_unix) {
-                if (path.type != SocketPath::Type::FILESYSTEM)
+                if (path.type != SocketPath::Type::FILESYSTEM) {
+                    LOG(DEBUG) << "Skipping rule: Not a file system socket.";
                     continue;
+                }
 
-                if (!globpath(*rule.matches.from_unix, path.value))
+                if (!globpath(*rule.matches.from_unix, path.value)) {
+                    LOG(DEBUG) << "Skipping rule: Unix socket path '"
+                               << path.value << "' does not match '"
+                               << *rule.matches.from_unix << "'.";
                     continue;
+                }
 #ifdef ABSTRACT_SUPPORT
             } else if (rule.matches.from_abstract) {
-                if (path.type != SocketPath::Type::ABSTRACT)
+                if (path.type != SocketPath::Type::ABSTRACT) {
+                    LOG(DEBUG) << "Skipping rule: Not an abstract socket.";
                     continue;
+                }
 
-                if (!globpath(*rule.matches.from_abstract, path.value))
+                if (!globpath(*rule.matches.from_abstract, path.value)) {
+                    LOG(DEBUG) << "Skipping rule: Abstract socket name '"
+                               << path.value << "' does not match '"
+                               << *rule.matches.from_abstract << "'.";
                     continue;
+                }
 #endif
             }
         }
 
-        if (rule.action.ignore)
+        if (rule.action.ignore) {
+            LOG(DEBUG) << "Rule matched but ignored, returning no-op.";
             return std::nullopt;
+        }
 
 #ifdef SYSTEMD_SUPPORT
-        if (rule.action.socket_activation)
+        if (rule.action.socket_activation) {
+            LOG(DEBUG) << "Rule matched, used for socket activation.";
             return std::make_pair(rulepos, rule);
+        }
 #endif
         if (
             !rule.action.socket_path &&
             !rule.action.reject &&
             !rule.action.blackhole
-        ) continue;
+        ) {
+            LOG(DEBUG) << "Skipping rule due to invalid action.";
+            continue;
+        }
 
+        LOG(DEBUG) << "Rule matched for either turning into a Unix socket"
+                   << " or to reject/blackhole.";
         return std::make_pair(rulepos, rule);
     }
 
