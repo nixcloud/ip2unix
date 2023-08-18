@@ -210,6 +210,11 @@ void serialise(const Rule &rule, std::ostream &out)
     serialise(rule.matches.address, out);
     serialise(rule.matches.port, out);
     serialise(rule.matches.port_end, out);
+#ifdef ABSTRACT_SUPPORT
+    serialise(rule.matches.from_abstract, out);
+#endif
+    serialise(rule.matches.from_unix, out);
+
     serialise(rule.action.socket_path, out);
 #ifdef SYSTEMD_SUPPORT
     serialise(rule.action.socket_activation, out);
@@ -232,6 +237,10 @@ MaybeError deserialise(std::istream &in, Rule::Matches *out)
     DESERIALISE_OR_ERR(address);
     DESERIALISE_OR_ERR(port);
     DESERIALISE_OR_ERR(port_end);
+#ifdef ABSTRACT_SUPPORT
+    DESERIALISE_OR_ERR(from_abstract);
+#endif
+    DESERIALISE_OR_ERR(from_unix);
     return std::nullopt;
 }
 

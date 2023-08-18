@@ -29,6 +29,11 @@ static std::vector<SocketPath::Type> socketpathtypes = {
     SocketPath::Type::FILESYSTEM
 };
 
+static std::vector<std::optional<std::string>> simple_strings = {
+    std::nullopt,
+    "something",
+};
+
 static std::vector<std::optional<std::string>> strings = {
     std::nullopt,
     "",
@@ -152,6 +157,11 @@ static unsigned long test_rule(unsigned long seed)
     rule.matches.address = CHOOSE(strings);
     rule.matches.port = CHOOSE(ports);
     rule.matches.port_end = CHOOSE(ports);
+#ifdef ABSTRACT_SUPPORT
+    rule.matches.from_abstract = CHOOSE(simple_strings);
+#endif
+    rule.matches.from_unix = CHOOSE(simple_strings);
+
 #ifdef SYSTEMD_SUPPORT
     rule.action.socket_activation = CHOOSE(bools);
     rule.action.fd_name = CHOOSE(strings);
@@ -178,6 +188,11 @@ static unsigned long test_rule(unsigned long seed)
     ASSERT_RULEVAL(matches.address);
     ASSERT_RULEVAL(matches.port);
     ASSERT_RULEVAL(matches.port_end);
+#ifdef ABSTRACT_SUPPORT
+    ASSERT_RULEVAL(matches.from_abstract);
+#endif
+    ASSERT_RULEVAL(matches.from_unix);
+
 #ifdef SYSTEMD_SUPPORT
     ASSERT_RULEVAL(action.socket_activation);
     ASSERT_RULEVAL(action.fd_name);
