@@ -15,6 +15,10 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#if defined(__APPLE__)
+#include <sys/ucred.h>
+#endif
+
 struct sockaddr_in6;
 struct sockaddr_in;
 
@@ -29,7 +33,11 @@ struct SockAddr
 
     std::optional<std::string> get_host(void) const;
     bool set_host(const std::string&);
+#if defined(SO_PEERCRED)
     bool set_host(const ucred&);
+#else
+    bool set_host(const xucred&);
+#endif
     bool set_host(const SockAddr&);
 
     bool set_random_host(void);

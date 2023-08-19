@@ -15,6 +15,10 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#if defined(__APPLE__)
+#include <sys/ucred.h>
+#endif
+
 std::optional<Socket::Ptr> Socket::find(int fd)
 {
     using itype = decltype(Socket::registry)::const_iterator;
@@ -274,10 +278,19 @@ bool Socket::create_binding(const SockAddr &addr)
         if (!local.set_host(addr))
             return false;
     } else {
+#if defined(SO_PEERCRED)
         ucred local_cred;
         local_cred.uid = getuid();
         local_cred.gid = getgid();
         local_cred.pid = getpid();
+#else
+        xucred local_cred;
+        local_cred.cr_uid = getuid();
+        /* XXX!
+        local_cred.cr_gid = getgid();
+        local_cred.cr_pid = getpid();
+        */
+#endif
 
         // Our local sockaddr, which we only need if we didn't have a
         // bind() before our connect.
@@ -483,11 +496,20 @@ int Socket::accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     } else {
         // We use SO_PEERCRED to get uid, gid and pid in order to generate
         // unique IP addresses.
+#if defined(SO_PEERCRED)
         ucred peercred;
         socklen_t len = sizeof peercred;
 
         if (getsockopt(sockfd, SOL_SOCKET, SO_PEERCRED, &peercred, &len) == -1)
             return -1;
+#else
+        xucred peercred;
+        socklen_t len = sizeof peercred;
+
+        if (getsockopt(sockfd, SOL_LOCAL, LOCAL_PEERCRED, &peercred,
+                       &len) == -1)
+            return -1;
+#endif
 
         if (!peer.set_host(peercred)) {
             errno = EINVAL;
