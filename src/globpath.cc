@@ -81,7 +81,8 @@ MatchResult GlobPath::match_cclass(size_t *pattern_pos, const char &pathchar)
         } else if (this->pattern[nextpat] == pathchar) {
             found = true;
         }
-        nextpat++;
+        if (++nextpat >= this->patlen)
+            return MatchResult::Invalid;
     } while (this->pattern[nextpat] != ']');
 
     // Range has ended preliminary (like eg. "[a-]") so we need to match the
@@ -157,7 +158,7 @@ MatchResult GlobPath::match_norec(size_t *pattern_pos, size_t *path_pos)
         if (this->pattern[patpos] == '*') {
             size_t anum;
             // Eat up all consecutive "any string" wildcard characters.
-            for (anum = 0; this->pattern[patpos] == '*'; ++anum) {
+            for (anum = 0; patpos < this->patlen && this->pattern[patpos] == '*'; ++anum) {
                 // If the wildcard is the last character in pattern, anything
                 // from the rest of path will match.
                 if (patpos >= this->patlen) {
@@ -171,7 +172,7 @@ MatchResult GlobPath::match_norec(size_t *pattern_pos, size_t *path_pos)
 
             // If the number of asterisks is two followed by a slash, we need
             // to do recursive globbing, like eg. "a/**/b" or "**/foo".
-            bool is_slash = this->pattern[patpos] == '/';
+            bool is_slash = patpos < this->patlen && this->pattern[patpos] == '/';
             if (anum == 2 && last_slash + 2 == patpos && is_slash) {
                 *pattern_pos = patpos + 1;
                 *path_pos = pathpos;
@@ -201,7 +202,7 @@ MatchResult GlobPath::match_norec(size_t *pattern_pos, size_t *path_pos)
 
         MatchResult result = this->match_fixed(&patpos, &pathpos);
         if (result == MatchResult::GotSlash) {
-            if (this->pattern[patpos++] == '/') {
+            if (patpos < this->patlen && this->pattern[patpos++] == '/') {
                 last_slash = patpos;
                 pathpos++;
             } else {
