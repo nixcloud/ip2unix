@@ -218,7 +218,7 @@ The IP address to match, which can be either an IPv4 or an IPv6 address.
 
 *port*='PORT'[-'PORT_END']::
 Match the UDP or TCP port number which for outgoing connections specifies the
-target port and for incomping connections the port that the socket is bound to.
+target port and for incoming connections the port that the socket is bound to.
 +
 If a range is specified by separating two port numbers via `-`, the given
 range is matched instead of just a single port. The range is inclusive, so if
