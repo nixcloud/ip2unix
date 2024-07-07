@@ -20,6 +20,11 @@ if std_fs_check.returncode() != 0
         ' please update your compiler toolchain.')
 endif
 
+if get_option('b_lto')
+  error('Link-time optimisation is not supported,' +
+        ' please build with b_lto set to false (-Db_lto=false)')
+endif
+
 warning_flags = [
   '-Wcast-qual',
   '-Wcovered-switch-default',
