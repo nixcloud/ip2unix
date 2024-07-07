@@ -27,7 +27,7 @@
 
       mesonFlags = [ "-Dtest-timeout=3600" ] ++ attrs.mesonFlags or [];
 
-      nativeBuildInputs = [ pkgs.meson pkgs.ninja pkgs.pkgconfig ]
+      nativeBuildInputs = [ pkgs.meson pkgs.ninja pkgs.pkg-config ]
                        ++ attrs.nativeBuildInputs or [];
       buildInputs = [ libyamlcpp ] ++ attrs.buildInputs or [];
 
@@ -314,7 +314,16 @@
         in lib.optional (majorVersion != null && isEligible) {
           name = "${compiler}${lib.head majorVersion}";
           value = lib.genAttrs req.systems (withSystemFull getPackageAttrs);
-        }) nixpkgs.legacyPackages.x86_64-linux;
+        }) (import nixpkgs {
+          # We use x86_64-linux only for evaluating the package attributes
+          # available, the final evaluation of the packages themselves are done
+          # using the real target system.
+          system = "x86_64-linux";
+          # This is to avoid evaluation errors. For example llvmPackages_10 has
+          # been removed and with aliases enabled, we get an attribute that
+          # directly leads to a "throw".
+          config.allowAliases = false;
+        });
 
       in lib.listToAttrs (mapAttrsToOneList mkCompilerPackages {
         clang = {
