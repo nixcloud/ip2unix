@@ -37,5 +37,5 @@ if ACTION == '--map':
     sys.stdout.write("{\n  global:" + exported + "\n  local: *;\n};\n")
 elif ACTION == '--ldscript':
     symbols = find_symbols('WRAP_SYM')
-    lines = map(lambda s: f'PROVIDE({s} = ip2unix_wrap_{s});', symbols)
+    lines = map(lambda s: f'{s} = ip2unix_wrap_{s};', symbols)
     sys.stdout.write("\n".join(lines) + "\n")
