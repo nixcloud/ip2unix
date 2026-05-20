@@ -15,7 +15,7 @@ pkgs.runCommand "test-rsession" {
   export HOME="$PWD"
   export LANG=C
 
-  ip2unix -r path=test.socket rsession \
+  ip2unix -r path=test.socket,noremove rsession \
     --standalone=1 --program-mode=server --log-stderr=1 \
     --www-address 127.0.0.1 --www-port 8080 &
   while [ ! -e test.socket ]; do sleep 1; done
