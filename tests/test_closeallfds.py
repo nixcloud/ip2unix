@@ -41,7 +41,7 @@ def test_closeallfds(tmpdir):
             while True:
                 try:
                     client.connect(sockfile)
-                except FileNotFoundError:
+                except (FileNotFoundError, ConnectionRefusedError):
                     pass
                 else:
                     break

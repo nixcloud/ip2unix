@@ -15,7 +15,7 @@ def test_accept_no_peer_addr(tmpdir, helper_accept_no_peer_addr):
             while True:
                 try:
                     client.connect(sockfile)
-                except FileNotFoundError:
+                except (FileNotFoundError, ConnectionRefusedError):
                     pass
                 else:
                     break

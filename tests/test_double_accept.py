@@ -38,7 +38,7 @@ def test_double_accept(tmpdir):
                 while True:
                     try:
                         client.connect(sockfile)
-                    except FileNotFoundError:
+                    except (FileNotFoundError, ConnectionRefusedError):
                         pass
                     else:
                         break

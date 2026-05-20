@@ -42,7 +42,7 @@ def assert_client(path, port, identifier):
         while True:
             try:
                 client.connect(path.replace('%p', str(port)))
-            except FileNotFoundError:
+            except (FileNotFoundError, ConnectionRefusedError):
                 pass
             else:
                 break
