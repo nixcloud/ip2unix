@@ -552,13 +552,16 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
 
             RuleMatch rule = match_rule(addrcopy, sock, RuleDir::OUTGOING);
 
-            if (!rule || !rule->second.action.socket_path)
+            if (!rule)
                 return real::sendto(fd, buf, len, flags, addr, addrlen);
 
             if (rule->second.action.reject) {
                 errno = rule->second.action.reject_errno.value_or(EACCES);
                 return ssize_t{-1};
             }
+
+            if (!rule->second.action.socket_path)
+                return real::sendto(fd, buf, len, flags, addr, addrlen);
 
             newdest = sock->rewrite_dest(
                 addrcopy,
@@ -600,13 +603,16 @@ extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
 
             RuleMatch rule = match_rule(addrcopy, sock, RuleDir::OUTGOING);
 
-            if (!rule || !rule->second.action.socket_path)
+            if (!rule)
                 return real::sendmsg(fd, msg, flags);
 
             if (rule->second.action.reject) {
                 errno = rule->second.action.reject_errno.value_or(EACCES);
                 return ssize_t{-1};
             }
+
+            if (!rule->second.action.socket_path)
+                return real::sendmsg(fd, msg, flags);
 
             newdest = sock->rewrite_dest(
                 addrcopy,

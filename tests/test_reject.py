@@ -20,12 +20,24 @@ def assert_reject(errno):
 
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server:
     with assert_reject(errno.EPERM):
+        server.sendto(b'dummy', ('127.0.0.1', 1234))
+
+    with assert_reject(errno.EPERM):
+        server.sendmsg([b'dummy'], [], 0, ('127.0.0.1', 1234))
+
+    with assert_reject(errno.EPERM):
         server.bind(('127.0.0.1', 1234))
 
     with assert_reject(errno.EPERM):
         server.connect(('127.0.0.1', 1234))
 
 with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as server:
+    with assert_reject(errno.EACCES):
+        server.sendto(b'dummy', ('1234::1', 1234))
+
+    with assert_reject(errno.EACCES):
+        server.sendmsg([b'dummy'], [], 0, ('1234::1', 1234))
+
     with assert_reject(errno.EACCES):
         server.bind(('1234::1', 1234))
 
