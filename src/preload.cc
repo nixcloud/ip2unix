@@ -409,7 +409,7 @@ static int handle_accept(int fd, struct sockaddr *addr, socklen_t *addrlen,
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
         if (sock->rewrite_peer_address) {
             int accfd = real::accept4(fd, nullptr, nullptr, flags);
-            if (accfd > 0)
+            if (accfd >= 0)
                 return sock->accept(accfd, addr, addrlen);
             return accfd;
         }
