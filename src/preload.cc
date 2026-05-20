@@ -37,7 +37,22 @@
 
 static std::mutex g_rules_mutex;
 
+static std::once_flag g_rules_init_flag;
 static std::shared_ptr<const std::vector<Rule>> g_rules = nullptr;
+
+/*
+ * This is needed because non-local initialisation is not guaranteed to have
+ * happened as soon as one of our wrapper functions is called.
+ */
+static bool g_initialised = false;
+
+__attribute__((constructor(65535))) void mark_initialised(void) {
+    g_initialised = true;
+}
+
+__attribute__((destructor(65535))) void mark_uninitialised(void) {
+    g_initialised = false;
+}
 
 using RuleMatch = std::optional<std::pair<size_t, const Rule>>;
 
@@ -170,7 +185,7 @@ extern "C" int WRAP_SYM(listen)(int sockfd, int backlog)
 static RuleMatch match_rule(const SockAddr &addr, const Socket::Ptr sock,
                             const RuleDir dir)
 {
-    init_rules();
+    std::call_once(g_rules_init_flag, init_rules);
 
     size_t rulepos = 0;
     for (
@@ -318,11 +333,11 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
                                RuleDir dir, int fd,
                                const struct sockaddr *addr, socklen_t addrlen)
 {
-    if (
+    if (!g_initialised || (
         addr->sa_family != AF_INET &&
         addr->sa_family != AF_INET6 &&
         addr->sa_family != AF_UNIX
-    ) return std::invoke(realfun, fd, addr, addrlen);
+    )) return std::invoke(realfun, fd, addr, addrlen);
 
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
@@ -535,7 +550,7 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
 {
     TRACE_CALL("sendto", fd, buf, len, flags, addr, addrlen);
 
-    if (addr == nullptr)
+    if (!g_initialised || addr == nullptr)
         return real::sendto(fd, buf, len, flags, addr, addrlen);
 
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
@@ -586,7 +601,7 @@ extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
 {
     TRACE_CALL("sendmsg", fd, msg, flags);
 
-    if (msg->msg_name == nullptr)
+    if (!g_initialised || msg->msg_name == nullptr)
         return real::sendmsg(fd, msg, flags);
 
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
@@ -680,10 +695,13 @@ extern "C" int WRAP_SYM(close)(int fd)
 {
     TRACE_CALL("close", fd);
 
+    if (!g_initialised)
+        return real::close(fd);
+
 #ifdef SYSTEMD_SUPPORT
     {
         std::scoped_lock<std::mutex> lock(g_rules_mutex);
-        init_rules();
+        std::call_once(g_rules_init_flag, init_rules);
         if (Systemd::has_fd(fd)) {
             LOG(DEBUG) << "Prevented socket fd " << fd << " from being closed,"
                        << " because it's a file descriptor passed by systemd.";
