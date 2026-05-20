@@ -34,6 +34,11 @@ if pytest.found()
               ' tests for socket activation.')
     endif
   endif
+
+  if abstract_enabled
+    pytest_args += ['--abstract-support']
+  endif
+
   test('integration', pytest, args: pytest_args, timeout: timeout,
        workdir: meson.current_source_dir(),
        depends: [ip2unix, libip2unix, helper_accept_no_peer_addr],

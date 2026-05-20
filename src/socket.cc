@@ -331,7 +331,7 @@ int Socket::bind(const SockAddr &addr, const SocketPath &path)
     if (this->domain == AF_UNIX) {
         SocketPath newpath = this->format_sockpath(path, addr);
         USOCK_OR_EFAULT(newpath);
-        return real::connect(this->fd, dest.cast(), dest.size());
+        return real::bind(this->fd, dest.cast(), dest.size());
     }
 
     if (!this->make_unix())

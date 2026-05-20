@@ -326,7 +326,7 @@ static inline int bind_connect(SockFun &&sockfun, RealFun &&realfun,
 
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return Socket::when<int>(fd, [&](Socket::Ptr sock) {
-        SockAddr inaddr(addr);
+        SockAddr inaddr(addr, addrlen);
 
         if (dir == RuleDir::OUTGOING) {
             /* If we already got something from a recvfrom or recvmsg, we
@@ -543,7 +543,7 @@ extern "C" ssize_t WRAP_SYM(sendto)(int fd, const void *buf, size_t len,
         if (!sock->rewrite_peer_address)
             return real::sendto(fd, buf, len, flags, addr, addrlen);
 
-        SockAddr addrcopy(addr);
+        SockAddr addrcopy(addr, addrlen);
 
         // XXX: Make all of this DRY!
         std::optional<SockAddr> newdest = sock->rewrite_dest_peermap(addrcopy);
@@ -594,7 +594,10 @@ extern "C" ssize_t WRAP_SYM(sendmsg)(int fd, const struct msghdr *msg,
         if (!sock->rewrite_peer_address)
             return real::sendmsg(fd, msg, flags);
 
-        SockAddr addrcopy(reinterpret_cast<const sockaddr*>(msg->msg_name));
+        SockAddr addrcopy(
+            reinterpret_cast<const sockaddr*>(msg->msg_name),
+            msg->msg_namelen
+        );
 
         // XXX: Make all of this DRY!
         std::optional<SockAddr> newdest = sock->rewrite_dest_peermap(addrcopy);

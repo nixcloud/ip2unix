@@ -27,9 +27,9 @@ SockAddr::SockAddr()
 {
 }
 
-SockAddr::SockAddr(const sockaddr *addr)
+SockAddr::SockAddr(const sockaddr *addr, socklen_t addrlen)
     : inner({})
-    , inner_size(family2size(addr->sa_family))
+    , inner_size(addrlen)
 {
     memcpy(&this->inner, addr, this->inner_size);
 }
@@ -52,14 +52,19 @@ std::optional<SockAddr> SockAddr::unix(const SocketPath &path)
     switch (path.type) {
         case SocketPath::Type::FILESYSTEM:
             strncpy(ua.sun_path, path.value.c_str(), sizeof(ua.sun_path) - 1);
-            return SockAddr(reinterpret_cast<const sockaddr*>(&ua));
+            return SockAddr(
+                reinterpret_cast<const sockaddr*>(&ua),
+                sizeof(sockaddr_un)
+            );
 #ifdef ABSTRACT_SUPPORT
         case SocketPath::Type::ABSTRACT:
             ua.sun_path[0] = '\0';
             memcpy(ua.sun_path + 1, path.value.c_str(), path.value.size());
 
-            SockAddr sa(reinterpret_cast<const sockaddr*>(&ua));
-            sa.inner_size = sizeof(sa_family_t) + path.value.size() + 1;
+            SockAddr sa(
+                reinterpret_cast<const sockaddr*>(&ua),
+                sizeof(sa_family_t) + path.value.size() + 1
+            );
             return sa;
 #endif
     }
@@ -69,8 +74,10 @@ std::optional<SockAddr> SockAddr::unix(const SocketPath &path)
 
 SockAddr SockAddr::copy() const
 {
-    SockAddr sa(reinterpret_cast<const sockaddr*>(&this->inner));
-    sa.inner_size = this->inner_size;
+    SockAddr sa(
+        reinterpret_cast<const sockaddr*>(&this->inner),
+        this->inner_size
+    );
     return sa;
 }
 
@@ -178,13 +185,32 @@ bool SockAddr::set_random_host(void)
     return false;
 }
 
-std::optional<SocketPath> SockAddr::get_sockpath(void) const
+std::optional<SocketPath> SockAddr::get_sockpath() const
 {
     if (this->is_unix()) {
-        return SocketPath(
-            SocketPath::Type::FILESYSTEM,
-            std::string(this->cast_un()->sun_path)
-        );
+        const char *sun_path = this->cast_un()->sun_path;
+        socklen_t pathlen = this->size() - sizeof(sa_family_t);
+
+        // If the path length is zero, it's an unnamed socket and we don't have
+        // any path or abstract name.
+        if (pathlen == 0)
+            return std::nullopt;
+
+#ifdef ABSTRACT_SUPPORT
+        if (*sun_path == '\0') {
+            return SocketPath(
+                SocketPath::Type::ABSTRACT,
+                std::string(sun_path + 1, pathlen - 1)
+            );
+        } else {
+#endif
+            return SocketPath(
+                SocketPath::Type::FILESYSTEM,
+                std::string(sun_path)
+            );
+#ifdef ABSTRACT_SUPPORT
+        }
+#endif
     }
 
     return std::nullopt;
@@ -256,9 +282,7 @@ bool SockAddr::operator==(const SockAddr &other) const
     }
 
     if (this->is_unix()) {
-        const sockaddr_un *addr = this->cast_un();
-        const sockaddr_un *othr = other.cast_un();
-        return std::string(addr->sun_path) == std::string(othr->sun_path);
+        return this->get_sockpath() == other.get_sockpath();
     }
 
     return false;
@@ -281,8 +305,10 @@ std::size_t SockAddr::get_hash(void) const
         for (const unsigned char &comp : addr->sin6_addr.s6_addr)
             hashprep << comp;
     } else if (this->is_unix()) {
-        const sockaddr_un *addr = this->cast_un();
-        hashprep << '|' << std::string(addr->sun_path);
+        auto maybe_sockpath = this->get_sockpath();
+        if (maybe_sockpath) {
+            hashprep << '|' << maybe_sockpath->value;
+        }
     }
 
     return std::hash<std::string>{}(hashprep.str());

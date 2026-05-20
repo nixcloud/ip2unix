@@ -21,7 +21,7 @@ struct sockaddr_in;
 struct SockAddr
 {
     SockAddr();
-    SockAddr(const sockaddr*);
+    SockAddr(const sockaddr*, socklen_t);
 
     static std::optional<SockAddr> unix(const SocketPath&);
 
