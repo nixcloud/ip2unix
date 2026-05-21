@@ -18,9 +18,9 @@
       attrs = fun pkgs;
       stdenv = attrs.stdenv or pkgs.stdenv;
 
-      libyamlcpp =
-        if stdenv.cc.isClang then pkgs.libyamlcpp
-        else pkgs.libyamlcpp.override { inherit stdenv; };
+      yaml-cpp =
+        if stdenv.cc.isClang then pkgs.yaml-cpp
+        else pkgs.yaml-cpp.override { inherit stdenv; };
 
     in stdenv.mkDerivation (removeAttrs attrs [ "stdenv" ] // rec {
       inherit (self.packages.${system}.ip2unix) name version src;
@@ -29,7 +29,7 @@
 
       nativeBuildInputs = [ pkgs.meson pkgs.ninja pkgs.pkg-config ]
                        ++ attrs.nativeBuildInputs or [];
-      buildInputs = [ libyamlcpp ] ++ attrs.buildInputs or [];
+      buildInputs = [ yaml-cpp ] ++ attrs.buildInputs or [];
 
       doCheck = attrs.doCheck or true;
 
@@ -180,7 +180,7 @@
           pkgs.docbook5 pkgs.python3Packages.pytest
           pkgs.python3Packages.pytest-timeout pkgs.systemd
         ];
-        buildInputs = [ pkgs.libyamlcpp ];
+        buildInputs = [ pkgs.yaml-cpp ];
 
         doCheck = true;
 
