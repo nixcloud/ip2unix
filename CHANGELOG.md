@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
+## [2.2.2] - 2026-05-23
+
+### Fixed
+
+- Out of range `string_view` access in `globpath`. Thanks to Adam Mizerski.
+- Typo in README and manpage.
+- Invalid use of `PROVIDE` in linker script.
+- `reject` rule not working with `sendto`/`sendmsg`.
+- Bug in `accept` if `stdin` was closed and accept would return FD 0.
+- Broken abstract socket support if used with `from-abstract`.
+- Race condition if the program uses library calls wrapped by `ip2unix` before
+  initialisation was done.
+
 ## [2.2.1] - 2023-08-18
 
 ### Fixed
@@ -138,6 +151,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - The initial release, which evolved from an early prototype specific to a
   certain use case into a more generic command line tool.
 
+[2.2.2]: https://github.com/nixcloud/ip2unix/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/nixcloud/ip2unix/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/nixcloud/ip2unix/compare/v2.1.4...v2.2.0
 [2.1.4]: https://github.com/nixcloud/ip2unix/compare/v2.1.3...v2.1.4
