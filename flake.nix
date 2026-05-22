@@ -377,6 +377,9 @@
         rsession.x86_64-linux = tests/programs/rsession.nix;
       };
 
+      # FIXME: Currently address/thread sanitizers do not work with integration
+      #        tests because lib[at]san runtimes need to be the initial library
+      #        to be loaded.
       sanitizer = lib.mapAttrs (name: let
         genDrv = { fun ? forEachSystem, override ? x: {} }: fun (super: {
           mesonFlags = [ "-Db_sanitize=${name}" ];
@@ -386,10 +389,9 @@
           nativeBuildInputs = [ super.python3 ];
         } // override super);
       in genDrv) {
-        # FIXME: Currently those do not work with integration tests because
-        #        lib[at]san runtimes need to be the initial library to be
-        #        loaded.
-        address = {};
+        address.fun = fun: let
+          supportedSystems = lib.remove "aarch64-linux" hydraSystems;
+        in lib.genAttrs supportedSystems (withSystem fun);
 
         thread.fun = fun: let
           supportedSystems = lib.remove "i686-linux" hydraSystems;
